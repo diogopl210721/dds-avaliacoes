@@ -2,17 +2,15 @@ import { useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase, callFunction } from "../lib/supabaseClient";
 
-type Step = "codigo" | "buscar_empresa" | "cadastro" | "confirmado";
+type Step = "codigo" | "empresa" | "cadastro" | "confirmado";
 
-type GooglePlaceLite = { id: string; displayName?: { text: string }; formattedAddress?: string };
-type GooglePlaceDetails = {
+type Empresa = {
   google_place_id: string;
   nome: string;
-  endereco: string;
+  write_a_review_uri: string;
+  google_maps_uri: string | null;
   rating: number | null;
   review_count: number | null;
-  write_a_review_uri: string | null;
-  google_maps_uri: string | null;
   cidade?: string | null;
   estado?: string | null;
 };
@@ -28,9 +26,9 @@ export default function Ativar() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
 
-  const [query, setQuery] = useState("");
-  const [resultados, setResultados] = useState<GooglePlaceLite[]>([]);
-  const [empresaSelecionada, setEmpresaSelecionada] = useState<GooglePlaceDetails | null>(null);
+  const [nomeEmpresa, setNomeEmpresa] = useState("");
+  const [placeId, setPlaceId] = useState("");
+  const [empresaSelecionada, setEmpresaSelecionada] = useState<Empresa | null>(null);
 
   const [form, setForm] = useState({
     nome: "",
@@ -53,7 +51,7 @@ export default function Ativar() {
       );
       if (data.error) throw new Error(data.error);
       setPlateId(data.plate_id!);
-      setStep("buscar_empresa");
+      setStep("empresa");
     } catch (e: any) {
       setErro(e.message ?? "Código ou PIN inválido.");
     } finally {
@@ -61,38 +59,22 @@ export default function Ativar() {
     }
   }
 
-  async function buscarEmpresa(e: React.FormEvent) {
+  function confirmarEmpresa(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
-    setCarregando(true);
-    try {
-      const data = await callFunction<{ places: GooglePlaceLite[] }>("search-company", {
-        action: "search",
-        query,
-      });
-      setResultados(data.places);
-    } catch {
-      setErro("Não foi possível buscar agora. Tente novamente.");
-    } finally {
-      setCarregando(false);
+    if (!nomeEmpresa.trim() || !placeId.trim()) {
+      setErro("Preencha o nome da empresa e o Place ID.");
+      return;
     }
-  }
-
-  async function selecionarEmpresa(placeId: string) {
-    setCarregando(true);
-    setErro(null);
-    try {
-      const details = await callFunction<GooglePlaceDetails>("search-company", {
-        action: "select",
-        placeId,
-      });
-      setEmpresaSelecionada(details);
-      setStep("cadastro");
-    } catch {
-      setErro("Não foi possível carregar os dados da empresa.");
-    } finally {
-      setCarregando(false);
-    }
+    setEmpresaSelecionada({
+      google_place_id: placeId.trim(),
+      nome: nomeEmpresa.trim(),
+      write_a_review_uri: `https://search.google.com/local/writereview?placeid=${placeId.trim()}`,
+      google_maps_uri: `https://www.google.com/maps/place/?q=place_id:${placeId.trim()}`,
+      rating: null,
+      review_count: null,
+    });
+    setStep("cadastro");
   }
 
   async function finalizarCadastro(e: React.FormEvent) {
@@ -149,26 +131,27 @@ export default function Ativar() {
           </>
         )}
 
-        {step === "buscar_empresa" && (
+        {step === "empresa" && (
           <>
-            <h1 className="text-xl font-semibold mb-1">Encontre sua empresa no Google</h1>
-            <form onSubmit={buscarEmpresa} className="space-y-3 mb-4">
-              <Input label="Nome da empresa" value={query} onChange={setQuery} placeholder="Ex: Padaria do João" />
-              <Botao carregando={carregando}>Buscar</Botao>
+            <h1 className="text-xl font-semibold mb-1">Vincule sua empresa do Google</h1>
+            <p className="text-sm text-gray-500 mb-4">
+              Precisamos do "Place ID" da sua empresa no Google. É gratuito e rápido de achar:
+              {" "}
+              
+                href="https://developers.google.com/maps/documentation/places/web-service/place-id"
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand-600 underline"
+              >
+                clique aqui, digite o nome da sua empresa no mapa e copie o código que aparecer
+              </a>.
+            </p>
+            <form onSubmit={confirmarEmpresa} className="space-y-3">
+              <Input label="Nome da empresa" value={nomeEmpresa} onChange={setNomeEmpresa} placeholder="Ex: Padaria do João" />
+              <Input label="Place ID" value={placeId} onChange={setPlaceId} placeholder="Ex: ChIJN1t_tDeuEmsRUsoyG83frY4" />
+              {erro && <p className="text-sm text-red-600">{erro}</p>}
+              <Botao carregando={carregando}>Continuar</Botao>
             </form>
-            {erro && <p className="text-sm text-red-600 mb-2">{erro}</p>}
-            <div className="space-y-2">
-              {resultados.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => selecionarEmpresa(r.id)}
-                  className="w-full text-left p-3 rounded-lg border hover:border-brand-500 hover:bg-brand-50"
-                >
-                  <div className="font-medium">{r.displayName?.text}</div>
-                  <div className="text-xs text-gray-500">{r.formattedAddress}</div>
-                </button>
-              ))}
-            </div>
           </>
         )}
 
@@ -177,9 +160,6 @@ export default function Ativar() {
             <h1 className="text-xl font-semibold mb-1">Quase lá!</h1>
             <p className="text-sm text-gray-500 mb-4">
               Empresa selecionada: <strong>{empresaSelecionada.nome}</strong>
-              {empresaSelecionada.rating != null && (
-                <> — ⭐ {empresaSelecionada.rating} ({empresaSelecionada.review_count} avaliações)</>
-              )}
             </p>
             <form onSubmit={finalizarCadastro} className="space-y-3">
               <Input label="Nome" value={form.nome} onChange={(v) => setForm({ ...form, nome: v })} />
@@ -199,9 +179,6 @@ export default function Ativar() {
           <div className="text-center space-y-4">
             <h1 className="text-xl font-semibold">Sua placa está pronta! 🎉</h1>
             <p className="text-gray-600">{empresaSelecionada?.nome}</p>
-            {empresaSelecionada?.rating != null && (
-              <p className="text-2xl font-bold text-brand-600">⭐ {empresaSelecionada.rating}</p>
-            )}
             <button
               onClick={() => navigate("/dashboard")}
               className="px-5 py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
