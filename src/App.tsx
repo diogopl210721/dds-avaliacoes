@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Ativar from "./pages/Ativar";
 import Login from "./pages/Login";
@@ -24,7 +24,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/ativar" element={<Ativar />} />
@@ -59,6 +59,6 @@ export default function App() {
             redirecionamento "instantâneo" pedido no briefing. */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
