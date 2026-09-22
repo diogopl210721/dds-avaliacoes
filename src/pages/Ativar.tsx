@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { supabase, callFunction } from "../lib/supabaseClient";
 
 type Step = "codigo" | "buscar_empresa" | "cadastro" | "confirmado";
@@ -108,9 +108,6 @@ export default function Ativar() {
       if (signUpError) throw signUpError;
       if (!signUp.user?.id) throw new Error("Falha ao criar usuário.");
 
-      // Toda a escrita sensível (profile, company, vínculo com o dds_link
-      // e ativação da placa) acontece de uma vez só, do lado do servidor —
-      // ver supabase/functions/complete-activation.
       const result = await callFunction<{ company_id?: string; error?: string }>(
         "complete-activation",
         {
@@ -132,6 +129,11 @@ export default function Ativar() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md bg-white rounded-xl shadow p-6">
+        {step !== "confirmado" && (
+          <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block mb-3">
+            ← Voltar
+          </Link>
+        )}
         {step === "codigo" && (
           <>
             <h1 className="text-xl font-semibold mb-1">Ative sua placa DDS Avaliações</h1>
