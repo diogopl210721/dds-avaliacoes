@@ -121,7 +121,7 @@ export default function Dashboard() {
       {company.write_a_review_uri && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="font-medium mb-1">Link de avaliação vinculado</p>
-          
+          <a
             href={company.write_a_review_uri}
             target="_blank"
             rel="noreferrer"

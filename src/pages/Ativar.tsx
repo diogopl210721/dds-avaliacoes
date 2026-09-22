@@ -137,7 +137,7 @@ export default function Ativar() {
             <p className="text-sm text-gray-500 mb-4">
               Precisamos do "Place ID" da sua empresa no Google. É gratuito e rápido de achar:
               {" "}
-              
+              <a
                 href="https://developers.google.com/maps/documentation/places/web-service/place-id"
                 target="_blank"
                 rel="noreferrer"
