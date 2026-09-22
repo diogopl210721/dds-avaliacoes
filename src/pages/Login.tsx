@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Login() {
@@ -22,6 +22,9 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <form onSubmit={entrar} className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-3">
+        <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block mb-1">
+          ← Voltar
+        </Link>
         <h1 className="text-xl font-semibold mb-2">Entrar no painel</h1>
         <label className="block">
           <span className="text-sm text-gray-600">E-mail</span>
