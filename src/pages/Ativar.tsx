@@ -27,7 +27,7 @@ export default function Ativar() {
   const [carregando, setCarregando] = useState(false);
 
   const [nomeEmpresa, setNomeEmpresa] = useState("");
-  const [placeId, setPlaceId] = useState("");
+  const [linkAvaliacao, setLinkAvaliacao] = useState("");
   const [empresaSelecionada, setEmpresaSelecionada] = useState<Empresa | null>(null);
 
   const [form, setForm] = useState({
@@ -62,15 +62,20 @@ export default function Ativar() {
   function confirmarEmpresa(e: React.FormEvent) {
     e.preventDefault();
     setErro(null);
-    if (!nomeEmpresa.trim() || !placeId.trim()) {
-      setErro("Preencha o nome da empresa e o Place ID.");
+    const link = linkAvaliacao.trim();
+    if (!nomeEmpresa.trim() || !link) {
+      setErro("Preencha o nome da empresa e o link de avaliação.");
+      return;
+    }
+    if (!link.startsWith("http")) {
+      setErro("Cole o link completo (começando com https://).");
       return;
     }
     setEmpresaSelecionada({
-      google_place_id: placeId.trim(),
+      google_place_id: "",
       nome: nomeEmpresa.trim(),
-      write_a_review_uri: `https://search.google.com/local/writereview?placeid=${placeId.trim()}`,
-      google_maps_uri: `https://www.google.com/maps/place/?q=place_id:${placeId.trim()}`,
+      write_a_review_uri: link,
+      google_maps_uri: null,
       rating: null,
       review_count: null,
     });
@@ -134,21 +139,33 @@ export default function Ativar() {
         {step === "empresa" && (
           <>
             <h1 className="text-xl font-semibold mb-1">Vincule sua empresa do Google</h1>
-            <p className="text-sm text-gray-500 mb-4">
-              Precisamos do "Place ID" da sua empresa no Google. É gratuito e rápido de achar:
-              {" "}
-              <a
-                href="https://developers.google.com/maps/documentation/places/web-service/place-id"
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-600 underline"
-              >
-                clique aqui, digite o nome da sua empresa no mapa e copie o código que aparecer
-              </a>.
+            <p className="text-sm text-gray-500 mb-3">
+              Precisamos do link de avaliação da sua empresa no Google. Duas formas gratuitas de conseguir:
             </p>
+            <ul className="text-sm text-gray-500 mb-4 space-y-1.5 list-disc pl-4">
+              <li>
+                <strong>Oficial (recomendado):</strong> entre em{" "}
+                <a href="https://business.google.com" target="_blank" rel="noreferrer" className="text-brand-600 underline">
+                  business.google.com
+                </a>{" "}
+                → selecione sua empresa → "Receber mais avaliações" → copiar link.
+              </li>
+              <li>
+                <strong>Alternativa:</strong> use um gerador gratuito como o{" "}
+                <a href="https://productmate.com/google-review-link-generator" target="_blank" rel="noreferrer" className="text-brand-600 underline">
+                  productmate.com/google-review-link-generator
+                </a>
+                , digite o nome da sua empresa e copie o link gerado.
+              </li>
+            </ul>
             <form onSubmit={confirmarEmpresa} className="space-y-3">
               <Input label="Nome da empresa" value={nomeEmpresa} onChange={setNomeEmpresa} placeholder="Ex: Padaria do João" />
-              <Input label="Place ID" value={placeId} onChange={setPlaceId} placeholder="Ex: ChIJN1t_tDeuEmsRUsoyG83frY4" />
+              <Input
+                label="Link de avaliação"
+                value={linkAvaliacao}
+                onChange={setLinkAvaliacao}
+                placeholder="Cole aqui o link que você copiou"
+              />
               {erro && <p className="text-sm text-red-600">{erro}</p>}
               <Botao carregando={carregando}>Continuar</Botao>
             </form>
