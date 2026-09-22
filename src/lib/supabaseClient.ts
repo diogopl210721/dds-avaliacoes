@@ -14,11 +14,26 @@ if (!url || !anonKey) {
 export const supabase = createClient(url, anonKey);
 
 // Helper para chamar Edge Functions com o mesmo padrão em todo o app.
+// Extrai a mensagem de erro real do corpo da resposta (por padrão, o
+// supabase-js só devolve um erro genérico tipo "Edge Function returned
+// a non-2xx status code", escondendo o { error: "..." } que a função
+// realmente retornou).
 export async function callFunction<T>(
   name: string,
   body?: Record<string, unknown>
 ): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, { body });
-  if (error) throw error;
+  if (error) {
+    const ctx = (error as any)?.context;
+    if (ctx && typeof ctx.json === "function") {
+      try {
+        const parsed = await ctx.json();
+        if (parsed?.error) throw new Error(parsed.error);
+      } catch (parseErr) {
+        if (parseErr instanceof Error && parseErr.message !== error.message) throw parseErr;
+      }
+    }
+    throw error;
+  }
   return data as T;
 }
