@@ -25,6 +25,24 @@ export async function callFunction<T>(
   const { data, error } = await supabase.functions.invoke(name, { body });
   if (error) {
     const ctx = (error as any)?.context;
+    // DEBUG TEMP: loga a causa real (error.context) que normalmente fica
+    // escondida atrás da mensagem genérica "Failed to send a request...".
+    // eslint-disable-next-line no-console
+    console.error("DDS_DEBUG edge function error", {
+      name: (error as any)?.name,
+      message: (error as any)?.message,
+      ctxType: ctx ? ctx.constructor?.name : typeof ctx,
+      ctxName: ctx?.name,
+      ctxMessage: ctx?.message,
+      ctxStack: ctx?.stack,
+      ctxString: (() => {
+        try {
+          return String(ctx);
+        } catch {
+          return "<unstringifiable>";
+        }
+      })(),
+    });
     if (ctx && typeof ctx.json === "function") {
       try {
         const parsed = await ctx.json();
