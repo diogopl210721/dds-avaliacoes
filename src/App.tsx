@@ -5,7 +5,6 @@ import Analise from "./pages/Analise";
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import AdminPlacas from "./pages/admin/AdminPlacas";
-import AdminQrCodes from "./pages/admin/AdminQrCodes";
 import { useAuth } from "./hooks/useAuth";
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -50,14 +49,9 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/admin/qrcodes"
-          element={
-            <PrivateRoute>
-              <AdminQrCodes />
-            </PrivateRoute>
-          }
-        />
+        {/* As telas de Placas e QR Codes foram unificadas em /admin;
+            este redirect evita quebrar algum link/favorito antigo. */}
+        <Route path="/admin/qrcodes" element={<Navigate to="/admin" replace />} />
         {/* Nota: /a/:slug NÃO é uma rota aqui — o QR/NFC aponta direto
             para a Edge Function scan-redirect (ver README), que já faz
             302 sem precisar carregar este SPA. Isso é o que garante o
