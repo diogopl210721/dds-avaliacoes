@@ -1,7 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
 
-const url = import.meta.env.VITE_SUPABASE_URL as string;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+// .trim() como proteção contra espaços/caracteres invisíveis colados por
+// engano ao configurar os Secrets do GitHub Actions (já causou bug real:
+// "Headers": String contains non ISO-8859-1 code point").
+const url = (import.meta.env.VITE_SUPABASE_URL as string)?.trim();
+const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string)?.trim();
 
 if (!url || !anonKey) {
   // Falha alto e claro em dev se o .env não estiver configurado —
@@ -33,24 +36,7 @@ export async function callFunction<T>(
         if (parseErr instanceof Error && parseErr.message !== error.message) throw parseErr;
       }
     }
-    // DEBUG TEMP: mostra a causa real (error.context) na própria tela,
-    // já que a mensagem genérica "Failed to send a request..." escondia
-    // o motivo verdadeiro.
-    const debugInfo = {
-      name: (error as any)?.name,
-      message: (error as any)?.message,
-      ctxType: ctx ? ctx?.constructor?.name : typeof ctx,
-      ctxName: ctx?.name,
-      ctxMessage: ctx?.message,
-      ctxString: (() => {
-        try {
-          return String(ctx);
-        } catch {
-          return "<unstringifiable>";
-        }
-      })(),
-    };
-    throw new Error("DDS_DEBUG " + JSON.stringify(debugInfo));
+    throw error;
   }
   return data as T;
 }
