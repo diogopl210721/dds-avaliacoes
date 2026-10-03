@@ -39,6 +39,8 @@ type Historico = { destino_anterior: string | null; destino_novo: string; create
 export default function AdminPlacas() {
   const [plates, setPlates] = useState<Plate[]>([]);
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(0);
+  const POR_PAGINA = 10;
   const [carregando, setCarregando] = useState(true);
   const [quantidade, setQuantidade] = useState(10);
   const [criando, setCriando] = useState(false);
@@ -90,6 +92,15 @@ export default function AdminPlacas() {
     );
   });
 
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas - 1);
+  const paginadas = filtradas.slice(paginaAtual * POR_PAGINA, paginaAtual * POR_PAGINA + POR_PAGINA);
+
+  function aoBuscar(valor: string) {
+    setBusca(valor);
+    setPagina(0); // toda busca nova volta pra primeira página
+  }
+
   async function criarLote() {
     setCriando(true);
     setErro(null);
@@ -101,6 +112,7 @@ export default function AdminPlacas() {
       );
       if (data.error) throw new Error(data.error);
       setLoteCriado(data.criadas ?? []);
+      setPagina(0);
       carregar();
     } catch (e: any) {
       setErro(e.message ?? "Não foi possível criar o lote.");
@@ -315,7 +327,7 @@ export default function AdminPlacas() {
 
       <input
         value={busca}
-        onChange={(e) => setBusca(e.target.value)}
+        onChange={(e) => aoBuscar(e.target.value)}
         placeholder="Pesquisar por código, empresa..."
         className="w-full rounded-lg border border-gray-300 px-3 py-2"
       />
@@ -336,7 +348,7 @@ export default function AdminPlacas() {
                 </tr>
               </thead>
               <tbody>
-                {filtradas.map((p) => (
+                {paginadas.map((p) => (
                   <tr
                     key={p.id}
                     onClick={() => abrirDetalhe(p)}
@@ -380,6 +392,27 @@ export default function AdminPlacas() {
                 ))}
               </tbody>
             </table>
+          )}
+          {!carregando && filtradas.length > 0 && (
+            <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t bg-gray-50 text-sm">
+              <button
+                onClick={() => setPagina((p) => Math.max(0, p - 1))}
+                disabled={paginaAtual === 0}
+                className="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100 disabled:opacity-40"
+              >
+                ← Anterior
+              </button>
+              <span className="text-gray-500">
+                Página {paginaAtual + 1} de {totalPaginas} · {filtradas.length} placa(s)
+              </span>
+              <button
+                onClick={() => setPagina((p) => Math.min(totalPaginas - 1, p + 1))}
+                disabled={paginaAtual >= totalPaginas - 1}
+                className="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100 disabled:opacity-40"
+              >
+                Próximo →
+              </button>
+            </div>
           )}
         </div>
 
