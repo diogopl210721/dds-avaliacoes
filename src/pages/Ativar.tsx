@@ -10,7 +10,6 @@ export default function Ativar() {
   const [pin, setPin] = useState("");
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [linkAvaliacao, setLinkAvaliacao] = useState("");
-  const [endereco, setEndereco] = useState("");
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
 
@@ -45,7 +44,6 @@ export default function Ativar() {
           pin: pin.trim(),
           nomeEmpresa: nomeEmpresa.trim(),
           reviewLink: link,
-          endereco: endereco.trim() || null,
           cidade: cidade || null,
           estado: estado || null,
         }
@@ -120,13 +118,6 @@ export default function Ativar() {
             value={linkAvaliacao}
             onChange={setLinkAvaliacao}
             placeholder="Cole aqui o link que você copiou acima"
-          />
-          <Input
-            label="Endereço (opcional)"
-            value={endereco}
-            onChange={setEndereco}
-            placeholder="Ex: Rua das Flores, 123"
-            required={false}
           />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Cidade" value={cidade} onChange={setCidade} required={false} />

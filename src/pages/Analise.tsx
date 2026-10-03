@@ -14,9 +14,6 @@ type Lead = { telefone: string; created_at: string };
 type Resultado = {
   codigo: string;
   empresa: string | null;
-  endereco: string | null;
-  cidade: string | null;
-  estado: string | null;
   status: string;
   totalAcessos: number;
   porDia: Record<string, number>;
@@ -25,16 +22,6 @@ type Resultado = {
   porOrigem: Record<string, number>;
   telefones: Lead[];
 };
-
-// Monta o endereço pro cabeçalho dos relatórios: usa o endereço completo se
-// tiver sido cadastrado, senão cai pra cidade/estado, senão fica em branco.
-function enderecoCompleto(r: Resultado): string {
-  if (r.endereco) {
-    const cidadeEstado = [r.cidade, r.estado].filter(Boolean).join(" - ");
-    return cidadeEstado ? `${r.endereco}, ${cidadeEstado}` : r.endereco;
-  }
-  return [r.cidade, r.estado].filter(Boolean).join(" - ") || "—";
-}
 
 // Converte um telefone digitado de qualquer jeito num link wa.me válido,
 // assumindo Brasil quando não vier o código do país.
@@ -84,7 +71,6 @@ export default function Analise() {
       import("file-saver"),
     ]);
     const empresa = resultado.empresa ?? "Sua placa";
-    const endereco = enderecoCompleto(resultado);
 
     const livro = new ExcelJS.Workbook();
     livro.creator = "DDS Avaliações";
@@ -94,7 +80,7 @@ export default function Analise() {
     });
     planilha.columns = [{ width: 24 }, { width: 24 }];
 
-    // Cabeçalho: nome do cliente em destaque, depois código e endereço.
+    // Cabeçalho: nome do cliente em destaque, depois o código da placa.
     const linhaTitulo = planilha.addRow([empresa]);
     planilha.mergeCells(`A${linhaTitulo.number}:B${linhaTitulo.number}`);
     linhaTitulo.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
@@ -105,10 +91,7 @@ export default function Analise() {
     });
 
     const linhaCodigo = planilha.addRow(["Código da placa", resultado.codigo]);
-    const linhaEndereco = planilha.addRow(["Endereço", endereco]);
-    [linhaCodigo, linhaEndereco].forEach((linha) => {
-      linha.getCell(1).font = { bold: true, color: { argb: "FF6B7280" } };
-    });
+    linhaCodigo.getCell(1).font = { bold: true, color: { argb: "FF6B7280" } };
 
     planilha.addRow([]);
 
@@ -154,7 +137,6 @@ export default function Analise() {
       import("jspdf-autotable"),
     ]);
     const empresa = resultado.empresa ?? "Sua placa";
-    const endereco = enderecoCompleto(resultado);
     const larguraPagina = 210; // A4 em mm (retrato)
 
     const doc = new jsPDF();
@@ -171,13 +153,12 @@ export default function Analise() {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text(`Código da placa: ${resultado.codigo}`, 14, 38);
-    doc.text(`Endereço: ${endereco}`, 14, 44);
     doc.setFontSize(8);
     doc.setTextColor(140, 140, 140);
-    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, 50);
+    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, 44);
 
     autoTable(doc, {
-      startY: 56,
+      startY: 50,
       head: [["Telefone", "Data"]],
       body: resultado.telefones.length
         ? resultado.telefones.map((l) => [l.telefone, new Date(l.created_at).toLocaleString("pt-BR")])
