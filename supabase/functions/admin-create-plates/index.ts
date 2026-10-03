@@ -1,28 +1,21 @@
-// supabase/functions/admin-create-plates/index.ts
-//
-// Cria N placas + N dds_links (o motor de QR dinâmico) de uma vez.
-// Cada par placa/link nasce com destino AGUARDANDO_DESTINO — o QR já
-// pode ser impresso antes de existir um comprador (é essa a graça do
-// link dinâmico: a imagem impressa nunca precisa mudar).
-//
-// Devolve o PIN em texto puro e os QRs (PNG/SVG) SÓ nesta resposta —
-// depois disso, só o hash do PIN fica no banco. Os arquivos de QR também
-// ficam salvos no Storage (bucket "qr-codes", público) para poderem ser
-// baixados de novo a qualquer momento pelo painel Admin -> QR Codes.
-//
-// Requer JWT de um usuário com role = 'admin'.
-// Deploy: supabase functions deploy admin-create-plates
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import QRCode from "npm:qrcode@1.5.4";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 const SCAN_BASE_URL =
   Deno.env.get("SCAN_BASE_URL") ??
-  "https://SEU_PROJECT_REF.functions.supabase.co/scan-redirect";
+  "https://kwadhzmdaakxkztggigm.supabase.co/functions/v1/scan-redirect";
 const BUCKET = "qr-codes";
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
   const authHeader = req.headers.get("Authorization") ?? "";
   const supabaseUser = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -54,11 +47,13 @@ Deno.serve(async (req) => {
   const criadas = [];
   for (let i = 0; i < qtd; i++) {
     try {
-      const codigoPlaca = `DDS-P${randomAlnum(6)}`;
-      const codigoLink = `DDS-Q${randomAlnum(6)}`;
+      const { data: codigoData, error: codigoErr } = await supabaseAdmin.rpc("next_dds_codigo");
+      if (codigoErr) throw codigoErr;
+      const codigo = codigoData as string; // ex: DDS215 — único código usado tanto na placa quanto no link
+
       const slug = randomAlnum(8);
-      const pin = String(Math.floor(100000 + Math.random() * 900000));
-      const pinHash = await bcrypt.hash(pin);
+      const pin = String(Math.floor(1000 + Math.random() * 9000)); // PIN de 4 dígitos
+      const pinHash = bcrypt.hashSync(pin);
 
       const urlQr = `${SCAN_BASE_URL}/${slug}?src=qr`;
       const urlNfc = `${SCAN_BASE_URL}/${slug}?src=nfc`;
@@ -80,7 +75,7 @@ Deno.serve(async (req) => {
       const { data: link, error: linkError } = await supabaseAdmin
         .from("dds_links")
         .insert({
-          codigo: codigoLink,
+          codigo,
           slug,
           produto: "avaliacoes",
           status: "AGUARDANDO_DESTINO",
@@ -91,9 +86,13 @@ Deno.serve(async (req) => {
         .single();
       if (linkError) throw linkError;
 
+      // Guarda o PIN também em texto puro (coluna `pin`) para o admin poder
+      // consultar depois e passar ao cliente — o hash continua sendo o que
+      // de fato valida o login do cliente.
       const { error: plateError } = await supabaseAdmin.from("plates").insert({
-        codigo: codigoPlaca,
+        codigo,
         pin_hash: pinHash,
+        pin,
         status: "AGUARDANDO_ATIVACAO",
         dynamic_link_id: link.id,
       });
@@ -102,8 +101,7 @@ Deno.serve(async (req) => {
       const qrPngDataUrl = `data:image/png;base64,${bufferToBase64(qrPngBuffer)}`;
 
       criadas.push({
-        codigo: codigoPlaca,
-        codigoLink,
+        codigo,
         slug,
         pin,
         urlQr,
@@ -140,6 +138,6 @@ function bufferToBase64(buf: Uint8Array): string {
 function json(body: unknown, status: number) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...corsHeaders },
   });
 }

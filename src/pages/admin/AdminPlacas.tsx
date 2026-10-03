@@ -5,6 +5,7 @@ import { supabase, callFunction } from "../../lib/supabaseClient";
 type Plate = {
   id: string;
   codigo: string;
+  pin: string | null;
   status: string;
   apelido: string | null;
   company_id: string | null;
@@ -37,7 +38,7 @@ export default function AdminPlacas() {
     setCarregando(true);
     const { data, error } = await supabase
       .from("plates")
-      .select("id, codigo, status, apelido, company_id, ultimo_acesso_em, companies(nome)")
+      .select("id, codigo, pin, status, apelido, company_id, ultimo_acesso_em, companies(nome)")
       .order("created_at", { ascending: false });
     if (error) {
       // eslint-disable-next-line no-console
@@ -114,7 +115,8 @@ export default function AdminPlacas() {
       p_full: false,
     });
     if (error) return alert("Não foi possível gerar novo PIN: " + error.message);
-    window.prompt(`Novo PIN de ${codigo} (anote agora, não aparece de novo):`, data as string);
+    window.prompt(`Novo PIN de ${codigo}:`, data as string);
+    carregar();
   }
 
   // Reseta a placa por completo: desvincula da empresa e volta pro estado
@@ -131,8 +133,12 @@ export default function AdminPlacas() {
       p_full: true,
     });
     if (error) return alert("Não foi possível resetar a placa: " + error.message);
-    window.prompt(`${codigo} resetada. Novo PIN (anote agora, não aparece de novo):`, data as string);
+    window.prompt(`${codigo} resetada. Novo PIN:`, data as string);
     carregar();
+  }
+
+  function copiarPin(pin: string) {
+    navigator.clipboard?.writeText(pin).catch(() => {});
   }
 
   return (
@@ -151,7 +157,7 @@ export default function AdminPlacas() {
             <input
               type="number"
               min={1}
-              max={500}
+              max={100}
               value={quantidade}
               onChange={(e) => setQuantidade(Number(e.target.value))}
               className="mt-1 w-28 rounded-lg border border-gray-300 px-3 py-2"
@@ -191,6 +197,7 @@ export default function AdminPlacas() {
             <thead className="bg-gray-100 text-left">
               <tr>
                 <th className="p-3">Código</th>
+                <th className="p-3">PIN</th>
                 <th className="p-3">Empresa</th>
                 <th className="p-3">Status</th>
                 <th className="p-3">Último acesso</th>
@@ -201,6 +208,19 @@ export default function AdminPlacas() {
               {plates.map((p) => (
                 <tr key={p.id} className="border-t">
                   <td className="p-3 font-mono">{p.codigo}</td>
+                  <td className="p-3 font-mono">
+                    {p.pin ? (
+                      <button
+                        onClick={() => copiarPin(p.pin!)}
+                        title="Copiar PIN"
+                        className="hover:underline"
+                      >
+                        {p.pin}
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
                   <td className="p-3">{p.companies?.nome ?? "—"}</td>
                   <td className="p-3">
                     <StatusBadge status={p.status} />
