@@ -115,13 +115,21 @@ export default function Ativar() {
       link = selecionada.write_a_review_uri!;
     } else {
       nomeEmpresa = nomeEmpresaManual.trim();
-      link = linkAvaliacaoManual.trim();
-      if (!nomeEmpresa || !link) {
-        setErro("Preencha o nome da empresa e o link de avaliação.");
+      const valor = linkAvaliacaoManual.trim();
+      if (!nomeEmpresa || !valor) {
+        setErro("Preencha o nome da empresa e o link (ou o Place ID) de avaliação.");
         return;
       }
-      if (!link.startsWith("http")) {
-        setErro("Cole o link completo (começando com https://).");
+      if (valor.startsWith("http")) {
+        // Já é um link completo (ex: copiado do business.google.com ou do productmate).
+        link = valor;
+      } else if (/^[A-Za-z0-9_-]{10,}$/.test(valor)) {
+        // Só o Place ID (ex: ChIJN1t_tDeuEmsRUsoyG83frY4) — a gente monta o link
+        // sozinho, sem precisar de nenhuma API paga: é a mesma fórmula que
+        // sites como o productmate usam por trás dos panos.
+        link = `https://search.google.com/local/writereview?placeid=${encodeURIComponent(valor)}`;
+      } else {
+        setErro("Cole o link completo (começando com https://) ou o Place ID da empresa.");
         return;
       }
     }
@@ -194,37 +202,45 @@ export default function Ativar() {
           {modoManual ? (
             <div className="space-y-3">
               <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 space-y-2">
-                <p className="font-medium text-gray-700">Como pegar o link de avaliação (grátis, leva 1 minuto):</p>
+                <p className="font-medium text-gray-700">Como pegar o link de avaliação (grátis, direto do Google, leva 1 minuto):</p>
                 <ol className="list-decimal list-inside space-y-1.5">
                   <li>
-                    Clique no botão abaixo — abre em uma nova aba, pode voltar aqui depois.
+                    Clique no botão abaixo — é uma ferramenta oficial do Google, abre em nova aba.
                   </li>
                   <li>
-                    Nesse site, digite o nome da sua empresa e clique em <strong>"Copiar link"</strong> (ou
-                    "Copy link").
+                    Digite o nome da sua empresa na caixa de busca do mapa e clique no pino certo.
                   </li>
                   <li>
-                    Volte nesta aba e cole o link no campo <strong>"Link de avaliação"</strong> logo abaixo.
+                    Aparece um código (o "Place ID", algo como <code className="bg-gray-100 px-1 rounded">ChIJ...</code>) — copie
+                    ele.
+                  </li>
+                  <li>
+                    Volte nesta aba e cole esse código no campo <strong>"Link de avaliação"</strong> abaixo — a gente
+                    monta o link sozinho.
                   </li>
                 </ol>
                 <a
-                  href="https://productmate.com/google-review-link-generator"
+                  href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-block mt-1 px-3 py-1.5 rounded-lg bg-white border border-gray-300 font-medium text-gray-700 hover:bg-gray-100"
                 >
-                  Abrir gerador de link grátis ↗
+                  Abrir ferramenta do Google (Place ID Finder) ↗
                 </a>
                 <p className="pt-1 text-gray-400">
-                  Prefere o jeito oficial do Google? Vá em{" "}
+                  Prefere colar o link pronto? Também funciona: pegue em{" "}
                   <a href="https://business.google.com" target="_blank" rel="noreferrer" className="text-brand-600 underline">
                     business.google.com
                   </a>{" "}
-                  → sua empresa → "Receber mais avaliações" → copiar link.
+                  → sua empresa → "Receber mais avaliações" → copiar link, ou em{" "}
+                  <a href="https://productmate.com/google-review-link-generator" target="_blank" rel="noreferrer" className="text-brand-600 underline">
+                    productmate.com
+                  </a>
+                  .
                 </p>
               </div>
               <Input label="Nome da empresa" value={nomeEmpresaManual} onChange={setNomeEmpresaManual} placeholder="Ex: Padaria do João" />
-              <Input label="Link de avaliação" value={linkAvaliacaoManual} onChange={setLinkAvaliacaoManual} placeholder="Cole aqui o link que você copiou" />
+              <Input label="Link de avaliação ou Place ID" value={linkAvaliacaoManual} onChange={setLinkAvaliacaoManual} placeholder="Cole aqui o código ou o link completo" />
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Cidade" value={cidade} onChange={setCidade} required={false} />
                 <Input label="Estado (UF)" value={estado} onChange={(v) => setEstado(v.toUpperCase())} required={false} />
