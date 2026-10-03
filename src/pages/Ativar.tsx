@@ -31,8 +31,10 @@ export default function Ativar() {
   const [carregandoSelecao, setCarregandoSelecao] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Fallback manual, para quando a busca não encontra a empresa.
-  const [modoManual, setModoManual] = useState(false);
+  // Fluxo padrão: passo a passo gratuito (productmate/business.google.com),
+  // sem depender de uma chave paga do Google Places. A busca automática
+  // (Google Places) fica como opção avançada, pra quem configurar a chave.
+  const [modoManual, setModoManual] = useState(true);
   const [nomeEmpresaManual, setNomeEmpresaManual] = useState("");
   const [linkAvaliacaoManual, setLinkAvaliacaoManual] = useState("");
   const [cidade, setCidade] = useState("");
@@ -181,15 +183,61 @@ export default function Ativar() {
         </Link>
         <h1 className="text-xl font-semibold mb-1">Cadastre sua placa DDS Avaliações</h1>
         <p className="text-sm text-gray-500 mb-4">
-          Digite o código impresso na placa, o PIN de 4 dígitos e busque o nome da sua empresa no
-          Google. Sem necessidade de criar conta.
+          Digite o código impresso na placa, o PIN de 4 dígitos e o link de avaliação da sua
+          empresa no Google. Sem necessidade de criar conta.
         </p>
 
         <form onSubmit={salvar} className="space-y-3">
           <Input label="Código da placa" value={codigo} onChange={setCodigo} placeholder="Ex: DDS215" />
           <Input label="PIN" value={pin} onChange={setPin} placeholder="0000" />
 
-          {!modoManual ? (
+          {modoManual ? (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600 space-y-2">
+                <p className="font-medium text-gray-700">Como pegar o link de avaliação (grátis, leva 1 minuto):</p>
+                <ol className="list-decimal list-inside space-y-1.5">
+                  <li>
+                    Clique no botão abaixo — abre em uma nova aba, pode voltar aqui depois.
+                  </li>
+                  <li>
+                    Nesse site, digite o nome da sua empresa e clique em <strong>"Copiar link"</strong> (ou
+                    "Copy link").
+                  </li>
+                  <li>
+                    Volte nesta aba e cole o link no campo <strong>"Link de avaliação"</strong> logo abaixo.
+                  </li>
+                </ol>
+                <a
+                  href="https://productmate.com/google-review-link-generator"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block mt-1 px-3 py-1.5 rounded-lg bg-white border border-gray-300 font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  Abrir gerador de link grátis ↗
+                </a>
+                <p className="pt-1 text-gray-400">
+                  Prefere o jeito oficial do Google? Vá em{" "}
+                  <a href="https://business.google.com" target="_blank" rel="noreferrer" className="text-brand-600 underline">
+                    business.google.com
+                  </a>{" "}
+                  → sua empresa → "Receber mais avaliações" → copiar link.
+                </p>
+              </div>
+              <Input label="Nome da empresa" value={nomeEmpresaManual} onChange={setNomeEmpresaManual} placeholder="Ex: Padaria do João" />
+              <Input label="Link de avaliação" value={linkAvaliacaoManual} onChange={setLinkAvaliacaoManual} placeholder="Cole aqui o link que você copiou" />
+              <div className="grid grid-cols-2 gap-3">
+                <Input label="Cidade" value={cidade} onChange={setCidade} required={false} />
+                <Input label="Estado (UF)" value={estado} onChange={(v) => setEstado(v.toUpperCase())} required={false} />
+              </div>
+              <button
+                type="button"
+                onClick={() => setModoManual(false)}
+                className="text-xs text-gray-400 hover:text-gray-600 underline"
+              >
+                Prefere buscar automaticamente? (opcional)
+              </button>
+            </div>
+          ) : (
             <div>
               <label className="block">
                 <span className="text-sm text-gray-600">Nome da sua empresa</span>
@@ -251,39 +299,7 @@ export default function Ativar() {
                 onClick={() => setModoManual(true)}
                 className="text-xs text-gray-400 hover:text-gray-600 underline mt-2"
               >
-                Não encontrou sua empresa? Preencher manualmente
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs text-gray-500 space-y-1">
-                <p className="font-medium text-gray-600">Não tem o link de avaliação ainda?</p>
-                <p>
-                  <strong>Oficial:</strong>{" "}
-                  <a href="https://business.google.com" target="_blank" rel="noreferrer" className="text-brand-600 underline">
-                    business.google.com
-                  </a>{" "}
-                  → sua empresa → "Receber mais avaliações" → copiar link.
-                </p>
-                <p>
-                  <strong>Alternativa gratuita:</strong>{" "}
-                  <a href="https://productmate.com/google-review-link-generator" target="_blank" rel="noreferrer" className="text-brand-600 underline">
-                    productmate.com/google-review-link-generator
-                  </a>
-                </p>
-              </div>
-              <Input label="Nome da empresa" value={nomeEmpresaManual} onChange={setNomeEmpresaManual} placeholder="Ex: Padaria do João" />
-              <Input label="Link de avaliação" value={linkAvaliacaoManual} onChange={setLinkAvaliacaoManual} placeholder="Cole aqui o link que você copiou" />
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Cidade" value={cidade} onChange={setCidade} required={false} />
-                <Input label="Estado (UF)" value={estado} onChange={(v) => setEstado(v.toUpperCase())} required={false} />
-              </div>
-              <button
-                type="button"
-                onClick={() => setModoManual(false)}
-                className="text-xs text-gray-400 hover:text-gray-600 underline"
-              >
-                ← Voltar para a busca
+                ← Voltar para o passo a passo gratuito
               </button>
             </div>
           )}
