@@ -5,7 +5,6 @@ import { supabase, callFunction } from "../../lib/supabaseClient";
 type Plate = {
   id: string;
   codigo: string;
-  slug: string;
   status: string;
   apelido: string | null;
   company_id: string | null;
@@ -36,10 +35,14 @@ export default function AdminPlacas() {
 
   async function carregar() {
     setCarregando(true);
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("plates")
-      .select("id, codigo, slug, status, apelido, company_id, ultimo_acesso_em, companies(nome)")
+      .select("id, codigo, status, apelido, company_id, ultimo_acesso_em, companies(nome)")
       .order("created_at", { ascending: false });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("Erro ao carregar placas:", error.message);
+    }
     setPlates((data as any) ?? []);
     setCarregando(false);
   }
@@ -99,6 +102,36 @@ export default function AdminPlacas() {
       .update({ company_id: novoCompanyId })
       .eq("id", plateId);
     if (error) return alert("Não foi possível transferir: " + error.message);
+    carregar();
+  }
+
+  // Gera um novo PIN pra placa (ex.: cliente perdeu o PIN) sem mexer no
+  // cadastro/empresa já vinculados.
+  async function novoPin(codigo: string, plateId: string) {
+    if (!window.confirm(`Gerar um novo PIN para ${codigo}? O PIN antigo deixa de funcionar.`)) return;
+    const { data, error } = await supabase.rpc("admin_reset_plate_pin", {
+      p_plate_id: plateId,
+      p_full: false,
+    });
+    if (error) return alert("Não foi possível gerar novo PIN: " + error.message);
+    window.prompt(`Novo PIN de ${codigo} (anote agora, não aparece de novo):`, data as string);
+  }
+
+  // Reseta a placa por completo: desvincula da empresa e volta pro estado
+  // "de fábrica", com um PIN novo — para reaproveitar uma plaquinha física.
+  async function resetarPlaca(codigo: string, plateId: string) {
+    if (
+      !window.confirm(
+        `Resetar ${codigo} por completo? Isso desvincula a empresa cadastrada e a placa volta a ficar disponível para um novo cadastro. Essa ação não pode ser desfeita.`
+      )
+    )
+      return;
+    const { data, error } = await supabase.rpc("admin_reset_plate_pin", {
+      p_plate_id: plateId,
+      p_full: true,
+    });
+    if (error) return alert("Não foi possível resetar a placa: " + error.message);
+    window.prompt(`${codigo} resetada. Novo PIN (anote agora, não aparece de novo):`, data as string);
     carregar();
   }
 
@@ -182,6 +215,8 @@ export default function AdminPlacas() {
                       <AcaoLink onClick={() => alterarStatus(p.id, "ATIVA")}>Desbloquear</AcaoLink>
                     )}
                     <AcaoLink onClick={() => transferirPlaca(p.id)}>Transferir</AcaoLink>
+                    <AcaoLink onClick={() => novoPin(p.codigo, p.id)}>Novo PIN</AcaoLink>
+                    <AcaoLink onClick={() => resetarPlaca(p.codigo, p.id)}>Resetar</AcaoLink>
                   </td>
                 </tr>
               ))}
