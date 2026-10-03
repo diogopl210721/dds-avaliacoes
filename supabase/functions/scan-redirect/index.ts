@@ -5,7 +5,7 @@
 // Google" — só resolve slug -> destino_atual e registra o acesso.
 // Isso é o que permite trocar o destino sem reimprimir nada.
 //
-// Ex.: https://<project>.functions.supabase.co/scan-redirect/Q7K29P?src=qr
+// Ex.: https://<project>.supabase.co/functions/v1/scan-redirect/Q7K29P?src=qr
 //
 // Deploy: supabase functions deploy scan-redirect --no-verify-jwt
 
@@ -16,7 +16,11 @@ const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const FALLBACK_URL = Deno.env.get("FALLBACK_URL") ?? "https://ddsinovacao.com.br";
+// Site real (confirmado funcionando) — o domínio curto
+// avaliacao.ddsinovacao.com.br nunca foi configurado no DNS, por isso NÃO
+// pode ser usado aqui (link morto = "não é possível acessar o site" pro
+// cliente que acabou de escanear a placa).
+const BASE_URL = Deno.env.get("BASE_URL") ?? "https://www.ddsinovacao.com.br/dds-avaliacoes";
 
 Deno.serve(async (req) => {
   const url = new URL(req.url);
@@ -24,25 +28,25 @@ Deno.serve(async (req) => {
   const srcParam = (url.searchParams.get("src") ?? "unknown").toUpperCase();
   const source = ["QR", "NFC"].includes(srcParam) ? srcParam : "UNKNOWN";
 
-  if (!slug) return Response.redirect(FALLBACK_URL, 302);
+  if (!slug) return Response.redirect(`${BASE_URL}/#/`, 302);
 
   const { data: link } = await supabaseAdmin
     .from("dds_links")
-    .select("id, status, destino_atual, company_id")
+    .select("id, codigo, status, destino_atual, company_id")
     .eq("slug", slug)
     .maybeSingle();
 
-  if (!link) return Response.redirect(FALLBACK_URL, 302);
+  if (!link) return Response.redirect(`${BASE_URL}/#/`, 302);
 
   if (link.status === "AGUARDANDO_DESTINO" || !link.destino_atual) {
-    // Placa ainda não ativada -> manda para a ativação. O código+PIN
-    // impressos na própria placa são o que o consumidor digita lá; não dá
-    // (nem precisa) prefill-ar pelo slug do link.
-    return Response.redirect("https://avaliacao.ddsinovacao.com.br/ativar", 302);
+    // Placa ainda não ativada -> manda para a ativação, já preenchendo o
+    // código (o cliente só precisa digitar o PIN impresso na placa).
+    const destino = `${BASE_URL}/#/ativar?codigo=${encodeURIComponent(link.codigo)}`;
+    return Response.redirect(destino, 302);
   }
 
   if (link.status === "PAUSADO") {
-    return Response.redirect(`${FALLBACK_URL}/placa-pausada`, 302);
+    return Response.redirect(`${BASE_URL}/#/`, 302);
   }
 
   const target = link.destino_atual;
