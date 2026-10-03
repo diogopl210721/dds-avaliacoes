@@ -13,10 +13,23 @@ export default function Login() {
     e.preventDefault();
     setErro(null);
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    if (error || !data.user) {
+      setCarregando(false);
+      return setErro("E-mail ou senha inválidos.");
+    }
+
+    // Contas admin (ex.: diogo_pl@me.com) não têm uma "companies" própria —
+    // vão direto para o painel de administração (criar placas em lote).
+    // Donos de empresa comuns (fluxo antigo com conta própria) vão para /dashboard.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
     setCarregando(false);
-    if (error) return setErro("E-mail ou senha inválidos.");
-    navigate("/dashboard");
+    navigate(profile?.role === "admin" ? "/admin" : "/dashboard");
   }
 
   return (
