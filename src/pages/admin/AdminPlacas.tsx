@@ -19,7 +19,7 @@ type Plate = {
   status: string;
   apelido: string | null;
   company_id: string | null;
-  companies: { nome: string } | null;
+  companies: { nome: string; endereco: string | null } | null;
   ultimo_acesso_em: string | null;
   dds_links: DdsLinkResumo | null;
 };
@@ -47,7 +47,9 @@ export default function AdminPlacas() {
   const [selecionada, setSelecionada] = useState<Plate | null>(null);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [novoDestino, setNovoDestino] = useState("");
+  const [novoEndereco, setNovoEndereco] = useState("");
   const [salvando, setSalvando] = useState(false);
+  const [salvandoEndereco, setSalvandoEndereco] = useState(false);
   const [scansTotal, setScansTotal] = useState<{ total: number; qr: number; nfc: number } | null>(null);
   const [copiado, setCopiado] = useState<"qr" | "nfc" | "pin" | null>(null);
   const [leads, setLeads] = useState<{ telefone: string; created_at: string }[]>([]);
@@ -61,7 +63,7 @@ export default function AdminPlacas() {
     const { data, error } = await supabase
       .from("plates")
       .select(
-        "id, codigo, pin, status, apelido, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, qr_png_path, qr_svg_path)"
+        "id, codigo, pin, status, apelido, company_id, ultimo_acesso_em, companies(nome, endereco), dds_links:dynamic_link_id(id, slug, destino_atual, status, qr_png_path, qr_svg_path)"
       )
       .order("created_at", { ascending: false });
     if (error) {
@@ -187,6 +189,7 @@ export default function AdminPlacas() {
   async function abrirDetalhe(plate: Plate) {
     setSelecionada(plate);
     setNovoDestino(plate.dds_links?.destino_atual ?? "");
+    setNovoEndereco(plate.companies?.endereco ?? "");
     setHistorico([]);
     setScansTotal(null);
     setLeads([]);
@@ -234,6 +237,18 @@ export default function AdminPlacas() {
     });
     setSalvando(false);
     if (error) return alert("Não foi possível alterar o destino: " + error.message);
+    await carregar();
+  }
+
+  async function salvarEndereco() {
+    if (!selecionada?.company_id) return;
+    setSalvandoEndereco(true);
+    const { error } = await supabase
+      .from("companies")
+      .update({ endereco: novoEndereco || null, updated_at: new Date().toISOString() })
+      .eq("id", selecionada.company_id);
+    setSalvandoEndereco(false);
+    if (error) return alert("Não foi possível salvar o endereço: " + error.message);
     await carregar();
   }
 
@@ -488,6 +503,29 @@ export default function AdminPlacas() {
                   </div>
                   <p className="text-xs text-gray-400 mt-1">
                     A imagem do QR não muda — só o destino do redirecionamento.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600">Endereço do comércio</label>
+                  <div className="flex gap-2 mt-1">
+                    <input
+                      value={novoEndereco}
+                      onChange={(e) => setNovoEndereco(e.target.value)}
+                      placeholder="Ex: Rua das Flores, 123 - Centro"
+                      disabled={!selecionada.company_id}
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-100"
+                    />
+                    <button
+                      onClick={salvarEndereco}
+                      disabled={salvandoEndereco || !selecionada.company_id}
+                      className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-50"
+                    >
+                      Salvar
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Aparece no cabeçalho do relatório exportado na tela "Análise da minha placa".
                   </p>
                 </div>
 

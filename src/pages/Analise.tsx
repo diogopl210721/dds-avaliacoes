@@ -1,16 +1,47 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { callFunction } from "../lib/supabaseClient";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+type Lead = { telefone: string; created_at: string };
 
 type Resultado = {
+  codigo: string;
   empresa: string | null;
+  endereco: string | null;
+  cidade: string | null;
+  estado: string | null;
   status: string;
   totalAcessos: number;
   porDia: Record<string, number>;
   porMes: Record<string, number>;
   porAno: Record<string, number>;
   porOrigem: Record<string, number>;
+  telefones: Lead[];
 };
+
+// Monta o endereço pro cabeçalho dos relatórios: usa o endereço completo se
+// tiver sido cadastrado, senão cai pra cidade/estado, senão fica em branco.
+function enderecoCompleto(r: Resultado): string {
+  if (r.endereco) {
+    const cidadeEstado = [r.cidade, r.estado].filter(Boolean).join(" - ");
+    return cidadeEstado ? `${r.endereco}, ${cidadeEstado}` : r.endereco;
+  }
+  return [r.cidade, r.estado].filter(Boolean).join(" - ") || "—";
+}
+
+// Converte um telefone digitado de qualquer jeito num link wa.me válido,
+// assumindo Brasil quando não vier o código do país.
+function linkWhatsapp(telefoneBruto: string): string {
+  let digitos = telefoneBruto.replace(/\D/g, "");
+  digitos = digitos.replace(/^0+/, "");
+  if (!digitos.startsWith("55") && (digitos.length === 10 || digitos.length === 11)) {
+    digitos = "55" + digitos;
+  }
+  return `https://wa.me/${digitos}`;
+}
 
 export default function Analise() {
   const [codigo, setCodigo] = useState("");
@@ -37,6 +68,49 @@ export default function Analise() {
     }
   }
 
+  function exportarExcel() {
+    if (!resultado) return;
+    const empresa = resultado.empresa ?? "Sua placa";
+    const endereco = enderecoCompleto(resultado);
+
+    const cabecalho = [
+      ["Cliente", empresa],
+      ["Código da placa", resultado.codigo],
+      ["Endereço", endereco],
+      [],
+      ["Telefone", "Data"],
+      ...resultado.telefones.map((l) => [l.telefone, new Date(l.created_at).toLocaleString("pt-BR")]),
+    ];
+
+    const planilha = XLSX.utils.aoa_to_sheet(cabecalho);
+    planilha["!cols"] = [{ wch: 22 }, { wch: 22 }];
+    const livro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(livro, planilha, "Telefones");
+    XLSX.writeFile(livro, `telefones-${resultado.codigo}.xlsx`);
+  }
+
+  function exportarPdf() {
+    if (!resultado) return;
+    const empresa = resultado.empresa ?? "Sua placa";
+    const endereco = enderecoCompleto(resultado);
+
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(empresa, 14, 18);
+    doc.setFontSize(10);
+    doc.text(`Código da placa: ${resultado.codigo}`, 14, 26);
+    doc.text(`Endereço: ${endereco}`, 14, 32);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["Telefone", "Data"]],
+      body: resultado.telefones.map((l) => [l.telefone, new Date(l.created_at).toLocaleString("pt-BR")]),
+      headStyles: { fillColor: [99, 102, 241] },
+    });
+
+    doc.save(`telefones-${resultado.codigo}.pdf`);
+  }
+
   if (resultado) {
     const ultimosDias = Object.entries(resultado.porDia)
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
@@ -57,7 +131,9 @@ export default function Analise() {
               ← Voltar
             </button>
             <h1 className="text-xl font-semibold">{resultado.empresa ?? "Sua placa"}</h1>
-            <p className="text-sm text-gray-500">Status: {resultado.status}</p>
+            <p className="text-sm text-gray-500">
+              Código: {resultado.codigo} · Status: {resultado.status}
+            </p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
@@ -65,6 +141,50 @@ export default function Analise() {
             <Card titulo="QR" valor={resultado.porOrigem.QR ?? 0} />
             <Card titulo="NFC" valor={resultado.porOrigem.NFC ?? 0} />
           </div>
+
+          <Secao titulo={`Telefones de clientes (${resultado.telefones.length})`}>
+            <div className="flex justify-end gap-2 mb-3">
+              <button
+                onClick={exportarExcel}
+                disabled={resultado.telefones.length === 0}
+                className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-100 disabled:opacity-40"
+              >
+                Exportar Excel
+              </button>
+              <button
+                onClick={exportarPdf}
+                disabled={resultado.telefones.length === 0}
+                className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-100 disabled:opacity-40"
+              >
+                Exportar PDF
+              </button>
+            </div>
+            {resultado.telefones.length === 0 ? (
+              <SemDados />
+            ) : (
+              <ul className="space-y-1 max-h-64 overflow-y-auto">
+                {resultado.telefones.map((l, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between text-sm border-b border-gray-100 py-1.5 last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-800">{l.telefone}</p>
+                      <p className="text-xs text-gray-400">{new Date(l.created_at).toLocaleString("pt-BR")}</p>
+                    </div>
+                    <a
+                      href={linkWhatsapp(l.telefone)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600"
+                    >
+                      WhatsApp
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Secao>
 
           <Secao titulo="Acessos por dia (últimos 30 dias com registro)">
             {ultimosDias.length === 0 ? (
