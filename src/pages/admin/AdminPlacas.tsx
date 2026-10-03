@@ -50,6 +50,7 @@ export default function AdminPlacas() {
   const [salvando, setSalvando] = useState(false);
   const [scansTotal, setScansTotal] = useState<{ total: number; qr: number; nfc: number } | null>(null);
   const [copiado, setCopiado] = useState<"qr" | "nfc" | "pin" | null>(null);
+  const [leads, setLeads] = useState<{ telefone: string; created_at: string }[]>([]);
 
   useEffect(() => {
     carregar();
@@ -188,6 +189,14 @@ export default function AdminPlacas() {
     setNovoDestino(plate.dds_links?.destino_atual ?? "");
     setHistorico([]);
     setScansTotal(null);
+    setLeads([]);
+
+    const { data: leadsData } = await supabase
+      .from("review_leads")
+      .select("telefone, created_at")
+      .eq("plate_id", plate.id)
+      .order("created_at", { ascending: false });
+    setLeads(leadsData ?? []);
 
     const linkId = plate.dds_links?.id;
     if (!linkId) return;
@@ -387,6 +396,32 @@ export default function AdminPlacas() {
                 <p>
                   <span className="text-gray-500">Acessos:</span> {scansTotal.total} (QR {scansTotal.qr} / NFC {scansTotal.nfc})
                 </p>
+              )}
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-medium">Telefones deixados antes de avaliar ({leads.length})</p>
+                {leads.length > 0 && (
+                  <button
+                    onClick={() => copiarTexto(leads.map((l) => l.telefone).join(", "), "pin")}
+                    className="text-xs text-brand-600 hover:underline"
+                  >
+                    Copiar todos
+                  </button>
+                )}
+              </div>
+              {leads.length === 0 ? (
+                <p className="text-xs text-gray-400">Nenhum telefone deixado ainda.</p>
+              ) : (
+                <ul className="text-xs space-y-1 max-h-32 overflow-y-auto">
+                  {leads.map((l, i) => (
+                    <li key={i} className="text-gray-600 flex justify-between gap-2">
+                      <span className="font-mono">{l.telefone}</span>
+                      <span className="text-gray-400">{new Date(l.created_at).toLocaleString("pt-BR")}</span>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
 
