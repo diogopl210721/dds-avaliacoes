@@ -5,8 +5,41 @@ import { useSearchParams } from "react-router-dom";
 // O acesso já foi contabilizado pelo scan-redirect antes de chegar aqui —
 // esta tela só existe pra, opcionalmente, pedir telefone e aniversário da
 // pessoa antes de mandar ela pra avaliação, com um "presente" como incentivo.
-// Nunca trava: "Quero meu presente" e "Pular" levam os dois pro mesmo lugar,
+// Nunca trava: o botão principal e "Pular" levam os dois pro mesmo lugar,
 // então ninguém deixa de avaliar por causa disso.
+
+// Formata enquanto digita: só números, no formato DD/MM/AAAA.
+// Texto simples em vez de <input type="date"> de propósito — abrir o
+// calendário nativo é um passo a mais que faz gente desistir no meio.
+function formatarDigitandoData(valorAtual: string, novoValor: string): string {
+  const digitos = novoValor.replace(/\D/g, "").slice(0, 8);
+  let formatado = digitos;
+  if (digitos.length > 4) {
+    formatado = `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+  } else if (digitos.length > 2) {
+    formatado = `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+  }
+  return formatado;
+}
+
+// Converte "DD/MM/AAAA" digitado pelo usuário em "AAAA-MM-DD" (ISO) pro
+// backend. Retorna null se a data estiver incompleta ou inválida.
+function dataBrParaIso(valor: string): string | null {
+  const m = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return null;
+  const [, dia, mes, ano] = m;
+  const d = Number(dia);
+  const mo = Number(mes);
+  const y = Number(ano);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const data = new Date(Date.UTC(y, mo - 1, d));
+  if (data.getUTCFullYear() !== y || data.getUTCMonth() !== mo - 1 || data.getUTCDate() !== d) {
+    return null;
+  }
+  if (data.getTime() > Date.now()) return null;
+  return `${ano}-${mes}-${dia}`;
+}
+
 export default function Avaliar() {
   const [params] = useSearchParams();
   const slug = params.get("slug") ?? "";
@@ -33,7 +66,7 @@ export default function Avaliar() {
         body: JSON.stringify({
           slug,
           telefone: telefone.trim(),
-          dataNascimento: dataNascimento || null,
+          dataNascimento: dataBrParaIso(dataNascimento.trim()),
         }),
       }).catch(() => {});
     }
@@ -60,7 +93,8 @@ export default function Avaliar() {
             {empresa ? `Ganhe uma surpresa da ${empresa}!` : "Ganhe uma surpresa!"}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Deixe seu telefone e data de aniversário e receba um presente especial 🎉
+            Deixe seu telefone e data de aniversário — no mês do seu aniversário a gente te manda
+            uma surpresa especial 🎉
           </p>
         </div>
 
@@ -77,12 +111,14 @@ export default function Avaliar() {
             />
           </label>
           <label className="block">
-            <span className="text-xs text-gray-500">Sua data de aniversário</span>
+            <span className="text-xs text-gray-500">Sua data de aniversário (DD/MM/AAAA)</span>
             <input
-              type="date"
+              type="text"
+              inputMode="numeric"
               value={dataNascimento}
-              onChange={(e) => setDataNascimento(e.target.value)}
-              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setDataNascimento(formatarDigitandoData(dataNascimento, e.target.value))}
+              placeholder="DD/MM/AAAA"
+              maxLength={10}
               className="mt-1 w-full text-center rounded-lg border border-gray-300 px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </label>
@@ -93,7 +129,7 @@ export default function Avaliar() {
           disabled={indo}
           className="w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 disabled:opacity-50"
         >
-          Quero meu presente e avaliar 🎁
+          Quero minha surpresa de aniversário e avaliar 🎁
         </button>
 
         <button
