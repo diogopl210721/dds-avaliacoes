@@ -64,6 +64,7 @@ export default function AdminPlacas() {
       .select(
         "id, codigo, pin, status, apelido, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, qr_png_path, qr_svg_path, historico_limpo_em)"
       )
+      .eq("oculta", false)
       .order("created_at", { ascending: false });
     if (error) {
       // eslint-disable-next-line no-console
@@ -175,6 +176,17 @@ export default function AdminPlacas() {
     carregar();
   }
 
+  // "Exclui" a placa da lista — na prática só oculta (nunca apaga do banco),
+  // pra servir de lixeira segura pra placas de teste/engano.
+  async function excluirPlaca(codigo: string, plateId: string) {
+    if (!window.confirm(`Remover ${codigo} da lista? Ela some do painel, mas os dados continuam guardados.`))
+      return;
+    const { error } = await supabase.from("plates").update({ oculta: true }).eq("id", plateId);
+    if (error) return alert("Não foi possível remover: " + error.message);
+    if (selecionada?.id === plateId) setSelecionada(null);
+    carregar();
+  }
+
   function copiarTexto(valor: string, marca: "qr" | "nfc" | "pin") {
     navigator.clipboard
       ?.writeText(valor)
@@ -192,11 +204,18 @@ export default function AdminPlacas() {
     setScansTotal(null);
     setLeads([]);
 
-    const { data: leadsData } = await supabase
+    // Depois de um reset completo, tudo do cliente anterior (telefones,
+    // acessos e histórico) fica marcado como "limpo" (sem apagar as linhas
+    // do banco) — só mostramos o que aconteceu depois desse marco.
+    const marco = plate.dds_links?.historico_limpo_em ?? null;
+
+    let leadsQuery = supabase
       .from("review_leads")
       .select("telefone, created_at")
       .eq("plate_id", plate.id)
       .order("created_at", { ascending: false });
+    if (marco) leadsQuery = leadsQuery.gt("created_at", marco);
+    const { data: leadsData } = await leadsQuery;
     setLeads(leadsData ?? []);
 
     const linkId = plate.dds_links?.id;
@@ -207,29 +226,27 @@ export default function AdminPlacas() {
       .select("destino_anterior, destino_novo, created_at")
       .eq("link_id", linkId)
       .order("created_at", { ascending: false });
-    // Depois de um reset completo, o histórico do cliente anterior fica
-    // marcado como "limpo" (sem apagar as linhas do banco) — só mostramos o
-    // que aconteceu depois desse marco.
-    if (plate.dds_links?.historico_limpo_em) {
-      histQuery = histQuery.gt("created_at", plate.dds_links.historico_limpo_em);
-    }
+    if (marco) histQuery = histQuery.gt("created_at", marco);
     const { data: hist } = await histQuery;
     setHistorico(hist ?? []);
 
-    const { count: total } = await supabase
-      .from("link_scan_events")
-      .select("id", { count: "exact", head: true })
-      .eq("link_id", linkId);
-    const { count: qr } = await supabase
+    let totalQuery = supabase.from("link_scan_events").select("id", { count: "exact", head: true }).eq("link_id", linkId);
+    let qrQuery = supabase
       .from("link_scan_events")
       .select("id", { count: "exact", head: true })
       .eq("link_id", linkId)
       .eq("source", "QR");
-    const { count: nfc } = await supabase
+    let nfcQuery = supabase
       .from("link_scan_events")
       .select("id", { count: "exact", head: true })
       .eq("link_id", linkId)
       .eq("source", "NFC");
+    if (marco) {
+      totalQuery = totalQuery.gt("created_at", marco);
+      qrQuery = qrQuery.gt("created_at", marco);
+      nfcQuery = nfcQuery.gt("created_at", marco);
+    }
+    const [{ count: total }, { count: qr }, { count: nfc }] = await Promise.all([totalQuery, qrQuery, nfcQuery]);
     setScansTotal({ total: total ?? 0, qr: qr ?? 0, nfc: nfc ?? 0 });
   }
 
@@ -357,6 +374,7 @@ export default function AdminPlacas() {
                       <AcaoLink onClick={() => transferirPlaca(p.id)}>Transferir</AcaoLink>
                       <AcaoLink onClick={() => novoPin(p.codigo, p.id)}>Novo PIN</AcaoLink>
                       <AcaoLink onClick={() => resetarPlaca(p.codigo, p.id)}>Resetar</AcaoLink>
+                      <AcaoLink onClick={() => excluirPlaca(p.codigo, p.id)}>Excluir</AcaoLink>
                     </td>
                   </tr>
                 ))}
