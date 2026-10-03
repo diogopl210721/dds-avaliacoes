@@ -27,18 +27,24 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-wrap justify-center gap-4">
         <Link
-          to="/ativar"
+          to="/cadastrar"
           className="px-5 py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
         >
-          Ativar minha placa
+          Cadastrar minha placa
+        </Link>
+        <Link
+          to="/analise"
+          className="px-5 py-2.5 rounded-lg border border-gray-300 font-medium hover:bg-gray-100"
+        >
+          Análise da minha placa
         </Link>
         <Link
           to="/login"
-          className="px-5 py-2.5 rounded-lg border border-gray-300 font-medium hover:bg-gray-100"
+          className="px-5 py-2.5 rounded-lg border border-gray-300 font-medium hover:bg-gray-100 text-gray-500"
         >
-          Entrar no painel
+          Painel administrativo
         </Link>
       </div>
     </div>

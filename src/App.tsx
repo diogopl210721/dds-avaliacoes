@@ -1,6 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Ativar from "./pages/Ativar";
+import Analise from "./pages/Analise";
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import AdminPlacas from "./pages/admin/AdminPlacas";
@@ -28,6 +29,10 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/ativar" element={<Ativar />} />
+        <Route path="/cadastrar" element={<Ativar />} />
+        <Route path="/cadastrarqrcode" element={<Ativar />} />
+        <Route path="/cadastrartag" element={<Ativar />} />
+        <Route path="/analise" element={<Analise />} />
         <Route path="/login" element={<Login />} />
         <Route
           path="/dashboard/*"
