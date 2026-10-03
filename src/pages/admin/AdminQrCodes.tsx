@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { publicStorageUrl } from "../../lib/storage";
+import { scanLink } from "../../lib/scanLink";
 
 type DdsLink = {
   id: string;
@@ -28,6 +29,17 @@ export default function AdminQrCodes() {
   const [novoDestino, setNovoDestino] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [scansTotal, setScansTotal] = useState<{ total: number; qr: number; nfc: number } | null>(null);
+  const [copiado, setCopiado] = useState<"qr" | "nfc" | null>(null);
+
+  async function copiarLink(origem: "qr" | "nfc", slug: string) {
+    try {
+      await navigator.clipboard.writeText(scanLink(slug, origem));
+      setCopiado(origem);
+      setTimeout(() => setCopiado(null), 2000);
+    } catch {
+      window.prompt("Copie o link:", scanLink(slug, origem));
+    }
+  }
 
   useEffect(() => {
     carregar();
@@ -158,7 +170,10 @@ export default function AdminQrCodes() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="font-mono font-semibold">{selecionado.codigo}</p>
-                <p className="text-xs text-gray-500">go.ddsinovacao.com.br/{selecionado.slug}</p>
+                <p className="text-xs text-gray-400">
+                  go.ddsinovacao.com.br/{selecionado.slug}{" "}
+                  <span className="text-gray-300">(domínio curto ainda não ativo — use os links abaixo)</span>
+                </p>
               </div>
               {selecionado.qr_png_path && (
                 <img
@@ -178,6 +193,25 @@ export default function AdminQrCodes() {
                   <span className="text-gray-500">Acessos:</span> {scansTotal.total} (QR {scansTotal.qr} / NFC {scansTotal.nfc})
                 </p>
               )}
+            </div>
+
+            <div className="text-sm space-y-2 bg-gray-50 rounded-lg p-3">
+              <LinkParaCopiar
+                label="Link do QR Code"
+                valor={scanLink(selecionado.slug, "qr")}
+                copiado={copiado === "qr"}
+                onCopiar={() => copiarLink("qr", selecionado.slug)}
+              />
+              <LinkParaCopiar
+                label="Link do NFC"
+                valor={scanLink(selecionado.slug, "nfc")}
+                copiado={copiado === "nfc"}
+                onCopiar={() => copiarLink("nfc", selecionado.slug)}
+              />
+              <p className="text-xs text-gray-400">
+                Grave este link do NFC (com o app NFC Tools, por exemplo) na etiqueta física — é o
+                mesmo QR, só muda o final (?src=nfc), pra separar os acessos nas estatísticas.
+              </p>
             </div>
 
             <div className="flex gap-2">
@@ -233,6 +267,38 @@ export default function AdminQrCodes() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function LinkParaCopiar({
+  label,
+  valor,
+  copiado,
+  onCopiar,
+}: {
+  label: string;
+  valor: string;
+  copiado: boolean;
+  onCopiar: () => void;
+}) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <div className="flex gap-2">
+        <input
+          readOnly
+          value={valor}
+          onFocus={(e) => e.target.select()}
+          className="flex-1 min-w-0 rounded border border-gray-200 bg-white px-2 py-1 text-xs font-mono"
+        />
+        <button
+          onClick={onCopiar}
+          className="shrink-0 text-xs px-3 py-1 rounded-lg border hover:bg-gray-100 whitespace-nowrap"
+        >
+          {copiado ? "Copiado!" : "Copiar"}
+        </button>
       </div>
     </div>
   );
