@@ -9,7 +9,7 @@ const COR_MARCA = "2F6FED"; // brand-500, sem o # (formato ARGB do ExcelJS)
 const COR_MARCA_RGB: [number, number, number] = [47, 111, 237];
 const COR_FAIXA_RGB: [number, number, number] = [238, 247, 255]; // brand-50, pro zebrado
 
-type Lead = { telefone: string; created_at: string };
+type Lead = { telefone: string; created_at: string; data_nascimento: string | null };
 
 type Resultado = {
   codigo: string;
@@ -24,14 +24,35 @@ type Resultado = {
 };
 
 // Converte um telefone digitado de qualquer jeito num link wa.me válido,
-// assumindo Brasil quando não vier o código do país.
-function linkWhatsapp(telefoneBruto: string): string {
+// assumindo Brasil quando não vier o código do país. Com `mensagem`, o
+// WhatsApp já abre com o texto pronto (a pessoa ainda pode editar antes de
+// enviar).
+function linkWhatsapp(telefoneBruto: string, mensagem?: string): string {
   let digitos = telefoneBruto.replace(/\D/g, "");
   digitos = digitos.replace(/^0+/, "");
   if (!digitos.startsWith("55") && (digitos.length === 10 || digitos.length === 11)) {
     digitos = "55" + digitos;
   }
-  return `https://wa.me/${digitos}`;
+  const texto = mensagem ? `?text=${encodeURIComponent(mensagem)}` : "";
+  return `https://wa.me/${digitos}${texto}`;
+}
+
+// "YYYY-MM-DD" -> "DD/MM", sem depender de fuso (new Date() com só a data
+// interpreta como UTC e pode voltar um dia, então parseamos na mão).
+function formatarDiaMes(dataIso: string): string {
+  const [, mes, dia] = dataIso.split("-");
+  return `${dia}/${mes}`;
+}
+
+function ehAniversarianteDoMes(dataIso: string | null, mesAtual: number): boolean {
+  if (!dataIso) return false;
+  const mes = Number(dataIso.split("-")[1]);
+  return mes === mesAtual;
+}
+
+function mensagemAniversario(empresa: string | null): string {
+  const nome = empresa ?? "a gente";
+  return `Olá! 🎉 Esse é seu mês de aniversário e queríamos desejar tudo de bom! Como presente, separamos uma surpresa especial pra você aqui na ${nome}. Vem conferir! 🎁`;
 }
 
 export default function Analise() {
@@ -42,6 +63,8 @@ export default function Analise() {
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [telefonesAbertos, setTelefonesAbertos] = useState(false);
   const [exportando, setExportando] = useState<"excel" | "pdf" | null>(null);
+
+  const mesAtual = new Date().getMonth() + 1;
 
   async function consultar(e: React.FormEvent) {
     e.preventDefault();
@@ -78,11 +101,11 @@ export default function Analise() {
     const planilha = livro.addWorksheet("Telefones", {
       views: [{ state: "frozen", ySplit: 6 }],
     });
-    planilha.columns = [{ width: 24 }, { width: 24 }];
+    planilha.columns = [{ width: 24 }, { width: 16 }, { width: 22 }];
 
     // Cabeçalho: nome do cliente em destaque, depois o código da placa.
     const linhaTitulo = planilha.addRow([empresa]);
-    planilha.mergeCells(`A${linhaTitulo.number}:B${linhaTitulo.number}`);
+    planilha.mergeCells(`A${linhaTitulo.number}:C${linhaTitulo.number}`);
     linhaTitulo.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
     linhaTitulo.height = 26;
     linhaTitulo.alignment = { vertical: "middle" };
@@ -95,7 +118,7 @@ export default function Analise() {
 
     planilha.addRow([]);
 
-    const linhaCabecalhoTabela = planilha.addRow(["Telefone", "Data"]);
+    const linhaCabecalhoTabela = planilha.addRow(["Telefone", "Aniversário", "Deixado em"]);
     linhaCabecalhoTabela.font = { bold: true, color: { argb: "FFFFFFFF" } };
     linhaCabecalhoTabela.eachCell((cel) => {
       cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${COR_MARCA}` } };
@@ -103,7 +126,11 @@ export default function Analise() {
     });
 
     resultado.telefones.forEach((l, i) => {
-      const linha = planilha.addRow([l.telefone, new Date(l.created_at).toLocaleString("pt-BR")]);
+      const linha = planilha.addRow([
+        l.telefone,
+        l.data_nascimento ? formatarDiaMes(l.data_nascimento) : "—",
+        new Date(l.created_at).toLocaleString("pt-BR"),
+      ]);
       if (i % 2 === 1) {
         linha.eachCell((cel) => {
           cel.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEEF7FF" } };
@@ -159,10 +186,14 @@ export default function Analise() {
 
     autoTable(doc, {
       startY: 50,
-      head: [["Telefone", "Data"]],
+      head: [["Telefone", "Aniversário", "Deixado em"]],
       body: resultado.telefones.length
-        ? resultado.telefones.map((l) => [l.telefone, new Date(l.created_at).toLocaleString("pt-BR")])
-        : [["Nenhum telefone deixado ainda.", ""]],
+        ? resultado.telefones.map((l) => [
+            l.telefone,
+            l.data_nascimento ? formatarDiaMes(l.data_nascimento) : "—",
+            new Date(l.created_at).toLocaleString("pt-BR"),
+          ])
+        : [["Nenhum telefone deixado ainda.", "", ""]],
       theme: "striped",
       headStyles: { fillColor: COR_MARCA_RGB, textColor: 255, fontStyle: "bold" },
       alternateRowStyles: { fillColor: COR_FAIXA_RGB },
@@ -195,6 +226,9 @@ export default function Analise() {
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
       .slice(0, 12);
     const anos = Object.entries(resultado.porAno).sort((a, b) => (a[0] < b[0] ? 1 : -1));
+    const aniversariantes = resultado.telefones
+      .filter((l) => ehAniversarianteDoMes(l.data_nascimento, mesAtual))
+      .sort((a, b) => (a.data_nascimento ?? "").localeCompare(b.data_nascimento ?? ""));
 
     return (
       <div className="min-h-screen px-4 py-8 flex justify-center">
@@ -217,6 +251,41 @@ export default function Analise() {
             <Card titulo="QR" valor={resultado.porOrigem.QR ?? 0} />
             <Card titulo="NFC" valor={resultado.porOrigem.NFC ?? 0} />
           </div>
+
+          {aniversariantes.length > 0 && (
+            <div className="bg-white rounded-xl shadow p-4 border-2 border-brand-100">
+              <h2 className="text-sm font-semibold text-gray-700 mb-1">
+                🎂 Aniversariantes do mês ({aniversariantes.length})
+              </h2>
+              <p className="text-xs text-gray-400 mb-3">
+                Mande parabéns e aproveite pra divulgar uma promoção — a mensagem já vai pronta,
+                só conferir e enviar.
+              </p>
+              <ul className="space-y-1">
+                {aniversariantes.map((l, i) => (
+                  <li
+                    key={i}
+                    className="flex items-center justify-between text-sm border-b border-gray-100 py-1.5 last:border-0"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-800">{l.telefone}</p>
+                      <p className="text-xs text-gray-400">
+                        {l.data_nascimento ? formatarDiaMes(l.data_nascimento) : "—"}
+                      </p>
+                    </div>
+                    <a
+                      href={linkWhatsapp(l.telefone, mensagemAniversario(resultado.empresa))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs px-3 py-1.5 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600"
+                    >
+                      Mandar parabéns
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="bg-white rounded-xl shadow p-4">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -262,6 +331,9 @@ export default function Analise() {
                     >
                       <div>
                         <p className="font-medium text-gray-800">{l.telefone}</p>
+                        {l.data_nascimento && (
+                          <p className="text-xs text-gray-500">🎂 {formatarDiaMes(l.data_nascimento)}</p>
+                        )}
                         <p className="text-xs text-gray-400">{new Date(l.created_at).toLocaleString("pt-BR")}</p>
                       </div>
                       <a
