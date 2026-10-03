@@ -25,24 +25,6 @@ export async function callFunction<T>(
   const { data, error } = await supabase.functions.invoke(name, { body });
   if (error) {
     const ctx = (error as any)?.context;
-    // DEBUG TEMP: loga a causa real (error.context) que normalmente fica
-    // escondida atrás da mensagem genérica "Failed to send a request...".
-    // eslint-disable-next-line no-console
-    console.error("DDS_DEBUG edge function error", {
-      name: (error as any)?.name,
-      message: (error as any)?.message,
-      ctxType: ctx ? ctx.constructor?.name : typeof ctx,
-      ctxName: ctx?.name,
-      ctxMessage: ctx?.message,
-      ctxStack: ctx?.stack,
-      ctxString: (() => {
-        try {
-          return String(ctx);
-        } catch {
-          return "<unstringifiable>";
-        }
-      })(),
-    });
     if (ctx && typeof ctx.json === "function") {
       try {
         const parsed = await ctx.json();
@@ -51,7 +33,24 @@ export async function callFunction<T>(
         if (parseErr instanceof Error && parseErr.message !== error.message) throw parseErr;
       }
     }
-    throw error;
+    // DEBUG TEMP: mostra a causa real (error.context) na própria tela,
+    // já que a mensagem genérica "Failed to send a request..." escondia
+    // o motivo verdadeiro.
+    const debugInfo = {
+      name: (error as any)?.name,
+      message: (error as any)?.message,
+      ctxType: ctx ? ctx?.constructor?.name : typeof ctx,
+      ctxName: ctx?.name,
+      ctxMessage: ctx?.message,
+      ctxString: (() => {
+        try {
+          return String(ctx);
+        } catch {
+          return "<unstringifiable>";
+        }
+      })(),
+    };
+    throw new Error("DDS_DEBUG " + JSON.stringify(debugInfo));
   }
   return data as T;
 }
