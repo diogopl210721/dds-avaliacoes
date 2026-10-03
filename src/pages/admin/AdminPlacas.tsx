@@ -85,9 +85,12 @@ export default function AdminPlacas() {
   const filtradas = plates.filter((p) => {
     if (!busca) return true;
     const alvo = busca.toLowerCase();
+    // Só busca nos campos que aparecem na própria tabela (código, PIN,
+    // empresa) — o "slug" do link é um código interno que nunca é mostrado
+    // aqui, e buscar nele trazia resultados sem nenhuma relação aparente.
     return (
       p.codigo.toLowerCase().includes(alvo) ||
-      p.dds_links?.slug?.toLowerCase().includes(alvo) ||
+      p.pin?.toLowerCase().includes(alvo) ||
       p.companies?.nome?.toLowerCase().includes(alvo)
     );
   });
