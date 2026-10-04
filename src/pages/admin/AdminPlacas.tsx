@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase, callFunction } from "../../lib/supabaseClient";
 import { publicStorageUrl } from "../../lib/storage";
 import { scanLink } from "../../lib/scanLink";
@@ -286,6 +287,9 @@ export default function AdminPlacas() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
+      <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block">
+        ← Voltar ao início
+      </Link>
       <h1 className="text-2xl font-bold">Placas</h1>
 
       <div className="bg-white rounded-xl shadow p-4 flex items-end gap-3">
