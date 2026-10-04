@@ -339,62 +339,28 @@ export default function AdminPlacas() {
         <div className="bg-white rounded-xl shadow overflow-hidden">
           {carregando ? (
             <p className="p-4 text-gray-500">Carregando...</p>
+          ) : filtradas.length === 0 ? (
+            <p className="p-4 text-gray-500 text-sm">Nenhuma placa encontrada.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-gray-100 text-left">
-                <tr>
-                  <th className="p-3">Código</th>
-                  <th className="p-3">PIN</th>
-                  <th className="p-3">Empresa</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginadas.map((p) => (
-                  <tr
-                    key={p.id}
-                    onClick={() => abrirDetalhe(p)}
-                    className={`border-t cursor-pointer hover:bg-brand-50 ${
-                      selecionada?.id === p.id ? "bg-brand-50" : ""
-                    }`}
-                  >
-                    <td className="p-3 font-mono">{p.codigo}</td>
-                    <td className="p-3 font-mono">
-                      {p.pin ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            copiarTexto(p.pin!, "pin");
-                          }}
-                          title="Copiar PIN"
-                          className="hover:underline"
-                        >
-                          {p.pin}
-                        </button>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3">{p.companies?.nome ?? "—"}</td>
-                    <td className="p-3">
-                      <StatusBadge status={p.status} />
-                    </td>
-                    <td className="p-3 space-x-2" onClick={(e) => e.stopPropagation()}>
-                      {p.status !== "BLOQUEADA" ? (
-                        <AcaoLink onClick={() => alterarStatus(p.id, "BLOQUEADA")}>Bloquear</AcaoLink>
-                      ) : (
-                        <AcaoLink onClick={() => alterarStatus(p.id, "ATIVA")}>Desbloquear</AcaoLink>
-                      )}
-                      <AcaoLink onClick={() => transferirPlaca(p.id)}>Transferir</AcaoLink>
-                      <AcaoLink onClick={() => novoPin(p.codigo, p.id)}>Novo PIN</AcaoLink>
-                      <AcaoLink onClick={() => resetarPlaca(p.codigo, p.id)}>Resetar</AcaoLink>
-                      <AcaoLink onClick={() => excluirPlaca(p.codigo, p.id)}>Excluir</AcaoLink>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            // Uma linha por placa (sem tabela), pra caber inteira na tela do
+            // celular: toca pra abrir os detalhes e as ações no painel abaixo.
+            <ul className="divide-y">
+              {paginadas.map((p) => (
+                <li
+                  key={p.id}
+                  onClick={() => abrirDetalhe(p)}
+                  className={`flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-brand-50 ${
+                    selecionada?.id === p.id ? "bg-brand-50" : ""
+                  }`}
+                >
+                  <span className="font-mono font-semibold text-sm shrink-0">{p.codigo}</span>
+                  <span className="text-xs text-gray-400 truncate flex-1 min-w-0">
+                    {p.companies?.nome ?? "—"}
+                  </span>
+                  <StatusBadge status={p.status} />
+                </li>
+              ))}
+            </ul>
           )}
           {!carregando && filtradas.length > 0 && (
             <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t bg-gray-50 text-sm">
@@ -459,6 +425,18 @@ export default function AdminPlacas() {
                   <span className="text-gray-500">Acessos:</span> {scansTotal.total} (QR {scansTotal.qr} / NFC {scansTotal.nfc})
                 </p>
               )}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {selecionada.status !== "BLOQUEADA" ? (
+                <AcaoBotao onClick={() => alterarStatus(selecionada.id, "BLOQUEADA")}>Bloquear</AcaoBotao>
+              ) : (
+                <AcaoBotao onClick={() => alterarStatus(selecionada.id, "ATIVA")}>Desbloquear</AcaoBotao>
+              )}
+              <AcaoBotao onClick={() => transferirPlaca(selecionada.id)}>Transferir</AcaoBotao>
+              <AcaoBotao onClick={() => novoPin(selecionada.codigo, selecionada.id)}>Novo PIN</AcaoBotao>
+              <AcaoBotao onClick={() => resetarPlaca(selecionada.codigo, selecionada.id)}>Resetar</AcaoBotao>
+              <AcaoBotao onClick={() => excluirPlaca(selecionada.codigo, selecionada.id)}>Excluir</AcaoBotao>
             </div>
 
             <div>
@@ -610,9 +588,12 @@ function LinkParaCopiar({
   );
 }
 
-function AcaoLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function AcaoBotao({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="text-brand-600 hover:underline text-xs">
+    <button
+      onClick={onClick}
+      className="text-xs px-3 py-1.5 rounded-lg border text-brand-600 hover:bg-brand-50"
+    >
       {children}
     </button>
   );
