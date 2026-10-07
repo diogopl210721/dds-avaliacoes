@@ -52,7 +52,7 @@ function ehAniversarianteDoMes(dataIso: string | null, mesAtual: number): boolea
 
 function mensagemAniversario(empresa: string | null): string {
   const nome = empresa ?? "a gente";
-  return `Olá! 🎉 Esse é seu mês de aniversário e queríamos desejar tudo de bom! Como presente, separamos uma surpresa especial pra você aqui na ${nome}. Vem conferir! 🎁`;
+  return `Olá! 🎉 Esse é seu mês de aniversário e a ${nome} não podia deixar de lembrar de você. Feliz aniversário, tudo de bom! Passa aqui pra gente te dar um abraço. 🎂`;
 }
 
 export default function Analise() {

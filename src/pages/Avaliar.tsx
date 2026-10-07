@@ -88,14 +88,14 @@ export default function Avaliar() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-white rounded-xl shadow p-6 text-center space-y-4">
-        <div className="text-4xl">🎁</div>
+        <div className="text-4xl">🎂</div>
         <div>
           <h1 className="text-xl font-semibold">
-            {empresa ? `Ganhe uma surpresa da ${empresa}!` : "Ganhe uma surpresa!"}
+            {empresa ? `A ${empresa} quer lembrar de você!` : "Quer ser lembrado no seu aniversário?"}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Deixe seu telefone e data de aniversário — no mês do seu aniversário a gente te manda
-            uma surpresa especial 🎉
+            Deixe seu telefone e a data do seu aniversário e a gente te manda um parabéns no seu
+            mês — quem sabe até com uma surpresa 🎁
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export default function Avaliar() {
           onClick={enviarLead}
           className="block w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
         >
-          Quero minha surpresa de aniversário e avaliar 🎁
+          Quero ser lembrado no meu aniversário e avaliar 🎂
         </a>
 
         <a href={dest} className="inline-block text-xs text-gray-400 hover:text-gray-600 underline">
