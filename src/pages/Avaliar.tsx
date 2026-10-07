@@ -50,14 +50,19 @@ export default function Avaliar() {
   const [dataNascimento, setDataNascimento] = useState("");
   const [indo, setIndo] = useState(false);
 
-  function irParaGoogle(comDados: boolean) {
+  // Só dispara o envio do lead — a navegação em si fica por conta do próprio
+  // <a href={dest}> (um toque de verdade num link). Isso importa no iPhone:
+  // um redirecionamento por JavaScript não deixa o sistema entregar o link
+  // pro app do Google Maps (onde o cliente já está logado), e o link acaba
+  // abrindo no navegador, que pede login no Google.
+  function enviarLead() {
     if (indo) return;
     setIndo(true);
 
-    if (comDados && telefone.trim() && slug) {
-      // Best-effort: dispara e não espera resposta, pra não atrasar o
-      // redirecionamento. `keepalive` garante que o pedido continua indo
-      // mesmo com a página saindo do ar logo em seguida.
+    if (telefone.trim() && slug) {
+      // Best-effort: dispara e não espera resposta, pra não atrasar a
+      // navegação. `keepalive` garante que o pedido continua indo mesmo com
+      // a página saindo do ar logo em seguida.
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/captar-lead`;
       fetch(url, {
         method: "POST",
@@ -69,10 +74,6 @@ export default function Avaliar() {
           dataNascimento: dataBrParaIso(dataNascimento.trim()),
         }),
       }).catch(() => {});
-    }
-
-    if (dest) {
-      window.location.href = dest;
     }
   }
 
@@ -124,21 +125,17 @@ export default function Avaliar() {
           </label>
         </div>
 
-        <button
-          onClick={() => irParaGoogle(true)}
-          disabled={indo}
-          className="w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 disabled:opacity-50"
+        <a
+          href={dest}
+          onClick={enviarLead}
+          className="block w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
         >
           Quero minha surpresa de aniversário e avaliar 🎁
-        </button>
+        </a>
 
-        <button
-          onClick={() => irParaGoogle(false)}
-          disabled={indo}
-          className="text-xs text-gray-400 hover:text-gray-600 underline disabled:opacity-50"
-        >
+        <a href={dest} className="inline-block text-xs text-gray-400 hover:text-gray-600 underline">
           Pular e avaliar sem deixar meus dados
-        </button>
+        </a>
       </div>
     </div>
   );
