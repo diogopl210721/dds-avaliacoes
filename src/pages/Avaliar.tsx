@@ -130,7 +130,7 @@ export default function Avaliar() {
           onClick={enviarLead}
           className="block w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
         >
-          Quero ser lembrado no meu aniversário e avaliar 🎂
+          Avaliar a empresa ⭐
         </a>
 
         <a href={dest} className="inline-block text-xs text-gray-400 hover:text-gray-600 underline">
