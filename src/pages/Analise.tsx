@@ -79,7 +79,7 @@ export default function Analise() {
       setResultado(data);
       setTelefonesAbertos(false);
     } catch (e: any) {
-      setErro(e.message ?? "Código ou PIN inválido.");
+      setErro(e.message ?? "Código ou senha inválidos.");
     } finally {
       setCarregando(false);
     }
@@ -379,7 +379,7 @@ export default function Analise() {
         </Link>
         <h1 className="text-xl font-semibold mb-1">Análise da sua placa</h1>
         <p className="text-sm text-gray-500 mb-4">
-          Digite o código e o PIN da sua placa para ver quantas pessoas acessaram, por dia, mês e
+          Digite o código e a senha da sua placa para ver quantas pessoas acessaram, por dia, mês e
           ano.
         </p>
         <form onSubmit={consultar} className="space-y-3">
@@ -394,7 +394,7 @@ export default function Analise() {
             />
           </label>
           <label className="block">
-            <span className="text-sm text-gray-600">PIN</span>
+            <span className="text-sm text-gray-600">Senha (4 números)</span>
             <input
               value={pin}
               onChange={(e) => setPin(e.target.value)}

@@ -1,14 +1,3 @@
-// supabase/functions/scan-redirect/index.ts
-//
-// Este é o motor DDS LINKS em ação: o QR e o NFC apontam para esta
-// função via slug. Ela NÃO sabe nada sobre "placa" nem "avaliação
-// Google" — só resolve slug -> destino_atual e registra o acesso.
-// Isso é o que permite trocar o destino sem reimprimir nada.
-//
-// Ex.: https://<project>.supabase.co/functions/v1/scan-redirect/Q7K29P?src=qr
-//
-// Deploy: supabase functions deploy scan-redirect --no-verify-jwt
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const supabaseAdmin = createClient(
@@ -16,9 +5,9 @@ const supabaseAdmin = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-// Site real (confirmado funcionando) — o domínio curto
-// avaliacao.ddsinovacao.com.br nunca foi configurado no DNS, por isso NÃO
-// pode ser usado aqui (link morto = "não é possível acessar o site" pro
+// Site real (confirmado funcionando) — o dominio curto
+// avaliacao.ddsinovacao.com.br nunca foi configurado no DNS, por isso NAO
+// pode ser usado aqui (link morto = "nao e possivel acessar o site" pro
 // cliente que acabou de escanear a placa).
 const BASE_URL = Deno.env.get("BASE_URL") ?? "https://www.ddsinovacao.com.br/dds-avaliacoes";
 
@@ -30,18 +19,28 @@ Deno.serve(async (req) => {
 
   if (!slug) return Response.redirect(`${BASE_URL}/#/`, 302);
 
+  // Traz o link, a placa dona dele (pra gravar o acesso) e o nome da
+  // empresa (pra mostrar na telinha de "deixe seu telefone").
   const { data: link } = await supabaseAdmin
     .from("dds_links")
-    .select("id, codigo, status, destino_atual, company_id")
+    .select("id, codigo, status, destino_atual, company_id, plates(id), companies(nome)")
     .eq("slug", slug)
     .maybeSingle();
 
   if (!link) return Response.redirect(`${BASE_URL}/#/`, 302);
 
+  const plateId: string | null = Array.isArray((link as any).plates)
+    ? (link as any).plates[0]?.id ?? null
+    : (link as any).plates?.id ?? null;
+
   if (link.status === "AGUARDANDO_DESTINO" || !link.destino_atual) {
-    // Placa ainda não ativada -> manda para a ativação, já preenchendo o
-    // código (o cliente só precisa digitar o PIN impresso na placa).
-    const destino = `${BASE_URL}/#/ativar?codigo=${encodeURIComponent(link.codigo)}`;
+    // Placa ainda nao ativada -> manda para a ativacao ja com o codigo e com
+    // a chave secreta da placa (o proprio slug), que prova que a pessoa esta
+    // com a placa na mao. Assim ela nao digita codigo nem PIN: so escolhe a
+    // senha dela.
+    const destino =
+      `${BASE_URL}/#/ativar?codigo=${encodeURIComponent(link.codigo)}` +
+      `&k=${encodeURIComponent(slug)}`;
     return Response.redirect(destino, 302);
   }
 
@@ -53,30 +52,55 @@ Deno.serve(async (req) => {
 
   const ua = req.headers.get("user-agent") ?? "";
   const geo = await geolocate(req);
-  const insertPromise = supabaseAdmin.from("link_scan_events").insert({
-    link_id: link.id,
-    company_id: link.company_id,
-    source,
-    device_type: detectDevice(ua),
-    browser: detectBrowser(ua),
-    operating_system: detectOS(ua),
-    referrer: req.headers.get("referer") ?? null,
-    country: geo.country,
-    region: geo.region,
-    city: geo.city,
-  }).then(({ error }) => {
+
+  async function registrarAcesso() {
+    if (!plateId) {
+      console.error("scan sem plate_id (link sem placa associada?) slug=", slug);
+      return;
+    }
+    const { error } = await supabaseAdmin.from("link_scan_events").insert({
+      link_id: link.id,
+      plate_id: plateId,
+      company_id: link.company_id,
+      source,
+      device_type: detectDevice(ua),
+      browser: detectBrowser(ua),
+      operating_system: detectOS(ua),
+      referrer: req.headers.get("referer") ?? null,
+      country: geo.country,
+      region: geo.region,
+      city: geo.city,
+    });
     if (error) console.error("scan insert failed:", error);
-  });
+
+    const { error: updError } = await supabaseAdmin
+      .from("plates")
+      .update({ ultimo_acesso_em: new Date().toISOString() })
+      .eq("id", plateId);
+    if (updError) console.error("ultimo_acesso_em update failed:", updError);
+  }
+
+  const registroPromise = registrarAcesso();
 
   // @ts-ignore - EdgeRuntime existe no runtime do Supabase Edge Functions
   if (typeof EdgeRuntime !== "undefined") {
     // @ts-ignore
-    EdgeRuntime.waitUntil(insertPromise);
+    EdgeRuntime.waitUntil(registroPromise);
   } else {
-    await insertPromise;
+    await registroPromise;
   }
 
-  return Response.redirect(target, 302);
+  // Em vez de ir direto pro Google, manda pra telinha intermediaria do
+  // app (pede o telefone, opcional, com "Pular" bem visivel) que so entao
+  // redireciona pro link real do Google. O acesso ja foi contabilizado
+  // acima, independente do que a pessoa fizer nessa tela.
+  const nomeEmpresa = (link as any).companies?.nome ?? "";
+  const interstitial =
+    `${BASE_URL}/#/avaliar?slug=${encodeURIComponent(slug)}` +
+    `&dest=${encodeURIComponent(target)}` +
+    `&empresa=${encodeURIComponent(nomeEmpresa)}`;
+
+  return Response.redirect(interstitial, 302);
 });
 
 async function geolocate(req: Request): Promise<{ country: string | null; region: string | null; city: string | null }> {

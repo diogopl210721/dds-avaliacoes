@@ -2,6 +2,8 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Ativar from "./pages/Ativar";
 import Avaliar from "./pages/Avaliar";
+import TrocarLink from "./pages/TrocarLink";
+import Recuperar from "./pages/Recuperar";
 import Analise from "./pages/Analise";
 import Login from "./pages/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
@@ -32,6 +34,8 @@ export default function App() {
         <Route path="/cadastrar" element={<Ativar />} />
         <Route path="/cadastrarqrcode" element={<Ativar />} />
         <Route path="/cadastrartag" element={<Ativar />} />
+        <Route path="/editar" element={<TrocarLink />} />
+        <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/avaliar" element={<Avaliar />} />
         <Route path="/analise" element={<Analise />} />
         <Route path="/login" element={<Login />} />
