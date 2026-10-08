@@ -20,6 +20,7 @@ export default function Ativar() {
   const [nomeEmpresa, setNomeEmpresa] = useState("");
   const [linkAvaliacao, setLinkAvaliacao] = useState("");
   const [senha, setSenha] = useState("");
+  const [senha2, setSenha2] = useState("");
 
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
@@ -44,6 +45,10 @@ export default function Ativar() {
     }
     if (!/^\d{4}$/.test(senha)) {
       setErro("Crie uma senha com exatamente 4 números.");
+      return;
+    }
+    if (senha !== senha2) {
+      setErro("As duas senhas não são iguais. Digite de novo.");
       return;
     }
 
@@ -190,6 +195,19 @@ export default function Ativar() {
             maxLength={4}
             ajuda="Escolha 4 números que você lembre. Serve para trocar o link e ver as estatísticas depois."
           />
+          <Campo
+            label="Digite a senha de novo para confirmar"
+            value={senha2}
+            onChange={(v) => setSenha2(somente4Digitos(v))}
+            placeholder="0000"
+            inputMode="numeric"
+            maxLength={4}
+          />
+          {senha2.length === 4 && (
+            <p className={`text-xs ${senha === senha2 ? "text-green-600" : "text-red-600"}`}>
+              {senha === senha2 ? "✓ As senhas conferem" : "As senhas não são iguais"}
+            </p>
+          )}
 
           {erro && <p className="text-sm text-red-600">{erro}</p>}
           <BotaoEnviar carregando={carregando}>⚡ Ativar minha placa</BotaoEnviar>
