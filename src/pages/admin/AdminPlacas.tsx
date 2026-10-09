@@ -290,7 +290,7 @@ export default function AdminPlacas() {
       <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block">
         ← Voltar ao início
       </Link>
-      <h1 className="text-2xl font-bold">Placas</h1>
+      <div className="flex items-center justify-between gap-3 flex-wrap"><h1 className="text-2xl font-bold">Placas</h1><Link to="/minisite" className="px-4 py-2 rounded-lg bg-emerald-800 text-white text-sm">Estúdio de mini páginas →</Link></div>
 
       <div className="bg-white rounded-xl shadow p-4 flex items-end gap-3">
         <label className="block">

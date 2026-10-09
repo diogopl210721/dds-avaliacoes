@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function Login() {
@@ -8,6 +8,7 @@ export default function Login() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const navigate = useNavigate();
+  const [params] = useSearchParams();
 
   async function entrar(e: React.FormEvent) {
     e.preventDefault();
@@ -29,7 +30,7 @@ export default function Login() {
       .maybeSingle();
 
     setCarregando(false);
-    navigate(profile?.role === "admin" ? "/admin" : "/dashboard");
+    navigate(params.get("next") === "minisite" ? "/minisite" : profile?.role === "admin" ? "/admin" : "/dashboard");
   }
 
   return (
@@ -38,6 +39,7 @@ export default function Login() {
         <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block mb-1">
           ← Voltar
         </Link>
+        <Link to="/minisite" className="text-sm text-emerald-700 block">Estúdio de mini páginas →</Link>
         <h1 className="text-xl font-semibold mb-2">Entrar no painel</h1>
         <label className="block">
           <span className="text-sm text-gray-600">E-mail</span>

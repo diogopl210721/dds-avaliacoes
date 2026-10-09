@@ -1,5 +1,7 @@
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
+import MiniStudio from "./pages/MiniStudio";
+import MiniPublic from "./pages/MiniPublic";
 import Ativar from "./pages/Ativar";
 import Avaliar from "./pages/Avaliar";
 import TrocarLink from "./pages/TrocarLink";
@@ -30,6 +32,9 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/minisite" element={<MiniStudio />} />
+        <Route path="/demo" element={<MiniStudio demo />} />
+        <Route path="/loja/:slug" element={<MiniPublic />} />
         <Route path="/ativar" element={<Ativar />} />
         <Route path="/cadastrar" element={<Ativar />} />
         <Route path="/cadastrarqrcode" element={<Ativar />} />

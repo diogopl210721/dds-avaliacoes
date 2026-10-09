@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 const navItems = [
+  { to: "/minisite", label: "Minha mini página", icon: Building2 },
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/dashboard/empresa", label: "Minha Empresa", icon: Building2 },
   { to: "/dashboard/placas", label: "Minhas Placas", icon: Tags },

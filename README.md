@@ -164,3 +164,15 @@ update profiles set role = 'admin' where id = 'SEU_USER_ID';
 - Quando um cliente pagar por atualização diária no futuro, basta trocar
   `update_frequency` para `'daily'` naquele registro — a lógica de cron já
   suporta isso, não precisa mexer em código.
+
+## Mini páginas (estúdio)
+
+- `/#/demo`: demonstração interativa, sem autenticação, salvamento ou alterações em placas.
+- `/#/minisite`: editor autenticado; cada conta cria várias páginas, faz upload de imagens e publica um link.
+- `/#/loja/<slug>`: conteúdo público, somente páginas publicadas.
+- Três temas: Elegance, Viva e Essencial. WhatsApp, localização, redes, galeria e catálogo são opcionais.
+- Minha plaquinha incorpora os formulários existentes de análise/contatos/exportação, troca de destino e recuperação; cadastro e administração continuam nas rotas existentes.
+- A busca utiliza a função existente `search-company`; conferir e completar os dados importados. Links curtos do Google podem exigir busca por nome/cidade.
+- `mini_pages` usa RLS por `owner_id`, com leitura pública apenas quando publicada. Fotos no bucket público `mini-page-images`, limitadas a 5 MB; envio e remoção apenas na pasta do dono.
+- Os links públicos usam o HashRouter existente (`avaliacao.ddsinovacao.com.br/#/loja/<slug>`); URLs em caminho direto e domínio do cliente dependem de roteamento/hosting adicional.
+- Campos vazios não aparecem; nenhuma avaliação, acesso ou depoimento fictício é exibido como dado real.

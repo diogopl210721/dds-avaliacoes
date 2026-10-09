@@ -28,6 +28,8 @@ export default function Home() {
       </div>
 
       <div className="flex flex-wrap justify-center gap-4">
+        <Link to="/minisite" className="px-5 py-2.5 rounded-lg bg-emerald-800 text-white font-medium">Criar minha mini página</Link>
+        <Link to="/demo" className="px-5 py-2.5 rounded-lg border border-emerald-800 text-emerald-800 font-medium">Testar novo layout</Link>
         <Link
           to="/cadastrar"
           className="px-5 py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
