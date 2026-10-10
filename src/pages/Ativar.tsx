@@ -170,29 +170,23 @@ export default function Ativar() {
             ajuda="É o link para o cliente deixar a avaliação da sua empresa."
           />
 
-          <details className="rounded-lg border border-gray-200 overflow-hidden">
-            <summary className="cursor-pointer text-sm text-brand-700 px-3 py-2 bg-gray-50">
-              Não tenho o link — gerar agora (grátis)
-            </summary>
-            <p className="text-xs text-gray-500 px-3 py-2 border-b border-gray-200">
-              Gere o link da sua empresa aqui embaixo, copie e cole no campo acima.{" "}
-              <a
-                href="https://www.replifast.com/google-review-link-generator"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-brand-700 underline"
-              >
-                Procurar empresa em outra aba
-              </a>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
+            <p className="text-sm font-medium text-gray-700">
+              Não tem o link de avaliação?
             </p>
-            <iframe
-              src="https://www.replifast.com/google-review-link-generator"
-              title="Gerador de link de avaliação do Google"
-              className="w-full"
-              style={{ height: 420, border: "none" }}
-              allow="clipboard-write"
-            />
-          </details>
+            <a
+              href="https://www.replifast.com/google-review-link-generator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
+            >
+              Procurar empresa e gerar link ↗
+            </a>
+            <p className="text-xs text-gray-600">
+              Abre o RepliFast em outra aba. Procure sua empresa, copie o link de
+              avaliação e volte aqui para colar no campo acima.
+            </p>
+          </div>
 
           <Campo
             label="2. Crie uma senha de 4 números"
