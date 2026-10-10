@@ -170,23 +170,33 @@ export default function Ativar() {
             ajuda="É o link para o cliente deixar a avaliação da sua empresa."
           />
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
-            <p className="text-sm font-medium text-gray-700">
-              Não tem o link de avaliação?
+          <details className="rounded-lg border border-gray-200 overflow-hidden">
+            <summary className="cursor-pointer text-sm text-brand-700 px-3 py-2 bg-gray-50">
+              Não tenho o link — procurar empresa aqui
+            </summary>
+            <p className="text-xs text-gray-600 px-3 py-2 border-b border-gray-200">
+              Procure sua empresa no gerador abaixo, copie o link de avaliação
+              e cole no campo acima, sem sair desta página.
             </p>
-            <a
-              href="https://www.replifast.com/google-review-link-generator"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600"
-            >
-              Procurar empresa e gerar link ↗
-            </a>
-            <p className="text-xs text-gray-600">
-              Abre o RepliFast em outra aba. Procure sua empresa, copie o link de
-              avaliação e volte aqui para colar no campo acima.
+            <iframe
+              src="https://productmate.com/google-review-link-generator"
+              title="Procurar empresa e gerar link de avaliação do Google"
+              className="w-full bg-white"
+              style={{ height: 520, border: "none" }}
+              allow="clipboard-write"
+            />
+            <p className="text-xs text-gray-600 px-3 py-2 border-t border-gray-200">
+              Prefere o RepliFast?{" "}
+              <a
+                href="https://www.replifast.com/google-review-link-generator"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-700 underline"
+              >
+                Abrir gerador alternativo em outra aba
+              </a>
             </p>
-          </div>
+          </details>
 
           <Campo
             label="2. Crie uma senha de 4 números"
