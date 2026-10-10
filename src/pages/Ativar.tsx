@@ -175,10 +175,18 @@ export default function Ativar() {
               Não tenho o link — gerar agora (grátis)
             </summary>
             <p className="text-xs text-gray-500 px-3 py-2 border-b border-gray-200">
-              Gere o link da sua empresa aqui embaixo, copie e cole no campo acima.
+              Gere o link da sua empresa aqui embaixo, copie e cole no campo acima.{" "}
+              <a
+                href="https://www.replifast.com/google-review-link-generator"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-700 underline"
+              >
+                Procurar empresa em outra aba
+              </a>
             </p>
             <iframe
-              src="https://productmate.com/google-review-link-generator"
+              src="https://www.replifast.com/google-review-link-generator"
               title="Gerador de link de avaliação do Google"
               className="w-full"
               style={{ height: 420, border: "none" }}
