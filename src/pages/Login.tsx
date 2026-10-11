@@ -30,7 +30,7 @@ export default function Login() {
       .maybeSingle();
 
     setCarregando(false);
-    navigate(params.get("next") === "minisite" ? "/minisite" : profile?.role === "admin" ? "/admin" : "/dashboard");
+    navigate(profile?.role === "admin" ? params.get("next") === "minisite" ? "/minisite" : "/adm" : params.get("next") === "minisite" ? "/minisite" : "/dashboard");
   }
 
   return (
@@ -73,3 +73,4 @@ export default function Login() {
     </div>
   );
 }
+

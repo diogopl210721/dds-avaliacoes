@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { supabase } from "./lib/supabaseClient";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import MiniStudio from "./pages/MiniStudio";
@@ -17,6 +19,17 @@ function PrivateRoute({ children }: { children: JSX.Element }) {
   if (loading) return <Centered>Carregando...</Centered>;
   if (!user) return <Navigate to="/login" replace />;
   return children;
+}
+
+function AdminRoute() {
+  const { user, loading } = useAuth();
+  const [role, setRole] = useState<string | null>(null);
+  const [checked, setChecked] = useState(false);
+  useEffect(() => { if (!user) return; let active = true; supabase.from('profiles').select('role').eq('id', user.id).maybeSingle().then(({ data }) => { if (active) { setRole(data?.role ?? 'customer'); setChecked(true); } }); return () => { active = false; }; }, [user?.id]);
+  if (loading || (user && !checked)) return <Centered>Carregando…</Centered>;
+  if (!user) return <Navigate to="/login?next=adm" replace />;
+  if (role !== 'admin') return <Centered>Acesso exclusivo do administrador.</Centered>;
+  return <AdminPlacas />;
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
@@ -43,6 +56,8 @@ export default function App() {
         <Route path="/recuperar" element={<Recuperar />} />
         <Route path="/avaliar" element={<Avaliar />} />
         <Route path="/analise" element={<Analise />} />
+        <Route path="/sistema" element={<Analise />} />
+        <Route path="/adm" element={<AdminRoute />} />
         <Route path="/login" element={<Login />} />
         <Route
           path="/dashboard/*"
@@ -52,14 +67,7 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/admin"
-          element={
-            <PrivateRoute>
-              <AdminPlacas />
-            </PrivateRoute>
-          }
-        />
+        <Route path="/admin" element={<AdminRoute />} />
         {/* As telas de Placas e QR Codes foram unificadas em /admin;
             este redirect evita quebrar algum link/favorito antigo. */}
         <Route path="/admin/qrcodes" element={<Navigate to="/admin" replace />} />
@@ -72,3 +80,4 @@ export default function App() {
     </HashRouter>
   );
 }
+

@@ -7,7 +7,7 @@ const ABAS = [
   { to: "/ativar", rotulo: "Ativar" },
   { to: "/editar", rotulo: "Trocar link" },
   { to: "/recuperar", rotulo: "Recuperar" },
-  { to: "/analise", rotulo: "Estatísticas" },
+  { to: "/sistema", rotulo: "Meu sistema" },
 ];
 
 export function MenuPlaca() {
@@ -110,3 +110,4 @@ export function CopiarBotao({ texto, rotulo }: { texto: string; rotulo: string }
     </button>
   );
 }
+

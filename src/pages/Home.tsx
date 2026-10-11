@@ -27,27 +27,9 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-4">
-        <Link to="/minisite" className="px-5 py-2.5 rounded-lg bg-emerald-800 text-white font-medium">Criar minha mini página</Link>
-        <Link to="/demo" className="px-5 py-2.5 rounded-lg border border-emerald-800 text-emerald-800 font-medium">Testar novo layout</Link>
-        <Link
-          to="/cadastrar"
-          className="px-5 py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
-        >
-          Cadastrar minha placa
-        </Link>
-        <Link
-          to="/analise"
-          className="px-5 py-2.5 rounded-lg border border-gray-300 font-medium hover:bg-gray-100"
-        >
-          Análise da minha placa
-        </Link>
-        <Link
-          to="/login"
-          className="px-5 py-2.5 rounded-lg border border-gray-300 font-medium hover:bg-gray-100 text-gray-500"
-        >
-          Painel administrativo
-        </Link>
+      <div className="flex flex-col sm:flex-row justify-center gap-4">
+        <Link to="/cadastrar" className="px-6 py-3 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600">Cadastrar minha placa</Link>
+        <Link to="/sistema" className="px-6 py-3 rounded-lg border border-gray-300 font-medium hover:bg-gray-100">Acesse meu sistema</Link>
       </div>
     </div>
   );

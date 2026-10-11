@@ -1,0 +1,2 @@
+alter policy mini_pages_owner_insert on public.mini_pages with check ((select auth.uid()) = owner_id and plate_id is null and public.is_admin()); alter policy mini_pages_owner_update on public.mini_pages using ((select auth.uid()) = owner_id and plate_id is null and public.is_admin()) with check ((select auth.uid()) = owner_id and plate_id is null and public.is_admin());
+create policy mini_pages_admin_manage on public.mini_pages for all to authenticated using (public.is_admin()) with check (public.is_admin());

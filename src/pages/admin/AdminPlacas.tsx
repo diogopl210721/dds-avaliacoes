@@ -20,6 +20,7 @@ type Plate = {
   pin: string | null;
   status: string;
   apelido: string | null;
+  mini_site_enabled: boolean;
   company_id: string | null;
   companies: { nome: string } | null;
   ultimo_acesso_em: string | null;
@@ -65,7 +66,7 @@ export default function AdminPlacas() {
     const { data, error } = await supabase
       .from("plates")
       .select(
-        "id, codigo, pin, status, apelido, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, qr_png_path, qr_svg_path, historico_limpo_em)"
+        "id, codigo, pin, status, apelido, mini_site_enabled, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, qr_png_path, qr_svg_path, historico_limpo_em)"
       )
       .eq("oculta", false)
       .order("created_at", { ascending: false });
@@ -103,6 +104,19 @@ export default function AdminPlacas() {
   function aoBuscar(valor: string) {
     setBusca(valor);
     setPagina(0); // toda busca nova volta pra primeira página
+  }
+
+  async function liberarMiniSite() {
+    if (!selecionada) return;
+    if (!window.confirm(`Confirmou o pagamento de ${selecionada.codigo}? A criação do mini site será liberada para este cliente.`)) return;
+    setSalvando(true); setErro(null);
+    try {
+      const { error } = await supabase.from('plates').update({ mini_site_enabled: true }).eq('id', selecionada.id);
+      if (error) throw error;
+      await carregar();
+      setSelecionada(old => old ? { ...old, mini_site_enabled: true } : old);
+    } catch (e: any) { setErro(e.message || 'Não foi possível liberar o mini site.'); }
+    finally { setSalvando(false); }
   }
 
   async function criarLote() {
@@ -490,6 +504,13 @@ export default function AdminPlacas() {
               )}
             </div>
 
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
+              <h3 className="font-semibold text-emerald-950">Mini site do cliente</h3>
+              <p className="text-sm text-emerald-900">{selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
+              {!selecionada.mini_site_enabled && <button onClick={liberarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="rounded-lg bg-emerald-800 text-white px-4 py-2 text-sm disabled:opacity-50">{salvando ? 'Liberando…' : 'Pagamento confirmado · liberar mini site'}</button>}
+              {selecionada.status !== 'ATIVA' && <p className="text-xs text-gray-600">A placa precisa estar ativa para a liberação.</p>}
+            </div>
+
             <div className="flex flex-wrap gap-2 md:hidden">
               {selecionada.status !== "BLOQUEADA" ? (
                 <AcaoBotao onClick={() => alterarStatus(selecionada.id, "BLOQUEADA")}>Bloquear</AcaoBotao>
@@ -695,3 +716,4 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+

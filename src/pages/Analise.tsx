@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import PlateMiniOffer, { PlateMiniAccess } from "../components/PlateMiniOffer";
+import MiniStudio from "./MiniStudio";
 import { callFunction } from "../lib/supabaseClient";
 // ExcelJS e jsPDF são pesados — importados só na hora do clique (ver
 // exportarExcel/exportarPdf) pra não engordar o carregamento das outras
@@ -63,6 +65,8 @@ export default function Analise() {
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [telefonesAbertos, setTelefonesAbertos] = useState(false);
   const [exportando, setExportando] = useState<"excel" | "pdf" | null>(null);
+
+  const [miniEditor, setMiniEditor] = useState<PlateMiniAccess | null>(null);
 
   const mesAtual = new Date().getMonth() + 1;
 
@@ -218,6 +222,8 @@ export default function Analise() {
     }
   }
 
+  if (miniEditor) return <><div className="bg-white p-3"><button className="text-sm text-emerald-700" onClick={() => setMiniEditor(null)}>← Voltar ao meu sistema</button></div><MiniStudio plateAccess={miniEditor} /></>;
+
   if (resultado) {
     const ultimosDias = Object.entries(resultado.porDia)
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
@@ -240,11 +246,14 @@ export default function Analise() {
             >
               ← Voltar
             </button>
-            <h1 className="text-xl font-semibold">{resultado.empresa ?? "Sua placa"}</h1>
+            <h1 className="text-xl font-semibold">{resultado.empresa ?? "Meu sistema"}</h1>
+            <Link to="/editar" className="text-sm text-brand-700 underline">Trocar o link da minha placa</Link>
             <p className="text-sm text-gray-500">
               Código: {resultado.codigo} · Status: {resultado.status}
             </p>
           </div>
+
+          <PlateMiniOffer codigo={resultado.codigo} senha={pin.trim()} onOpen={setMiniEditor} />
 
           <div className="grid grid-cols-3 gap-3">
             <Card titulo="Total de acessos" valor={resultado.totalAcessos} />
@@ -377,10 +386,9 @@ export default function Analise() {
         <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block mb-3">
           ← Voltar
         </Link>
-        <h1 className="text-xl font-semibold mb-1">Análise da sua placa</h1>
+        <h1 className="text-xl font-semibold mb-1">Acesse meu sistema</h1>
         <p className="text-sm text-gray-500 mb-4">
-          Digite o código e a senha da sua placa para ver quantas pessoas acessaram, por dia, mês e
-          ano.
+          Use o código e a senha da sua placa para acessar estatísticas, contatos e a criação do seu mini site.
         </p>
         <form onSubmit={consultar} className="space-y-3">
           <label className="block">
@@ -396,6 +404,10 @@ export default function Analise() {
           <label className="block">
             <span className="text-sm text-gray-600">Senha (4 números)</span>
             <input
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              autoComplete="current-password"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
               placeholder="0000"
@@ -409,7 +421,7 @@ export default function Analise() {
             disabled={carregando}
             className="w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 disabled:opacity-50"
           >
-            {carregando ? "Aguarde..." : "Consultar"}
+            {carregando ? "Aguarde..." : "Entrar no meu sistema"}
           </button>
         </form>
       </div>
@@ -451,3 +463,4 @@ function Tabela({ linhas }: { linhas: [string, number][] }) {
 function SemDados() {
   return <p className="text-sm text-gray-400">Ainda não há acessos registrados.</p>;
 }
+
