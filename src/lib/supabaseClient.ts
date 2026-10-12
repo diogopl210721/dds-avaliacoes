@@ -14,7 +14,10 @@ if (!url || !anonKey) {
   );
 }
 
-export const supabase = createClient(url, anonKey);
+export const supabase = createClient(url, anonKey, {
+  // Applications on the same origin/project must not overwrite each other's account.
+  auth: { storageKey: "dds-avaliacoes-auth" },
+});
 
 // Helper para chamar Edge Functions com o mesmo padrão em todo o app.
 // Extrai a mensagem de erro real do corpo da resposta (por padrão, o
@@ -40,3 +43,4 @@ export async function callFunction<T>(
   }
   return data as T;
 }
+

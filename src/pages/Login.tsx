@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { withTimeout } from "../lib/withTimeout";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -14,23 +15,29 @@ export default function Login() {
     e.preventDefault();
     setErro(null);
     setCarregando(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error || !data.user) {
+    try {
+      const { data, error } = await withTimeout(
+        supabase.auth.signInWithPassword({ email: email.trim(), password: senha }),
+        "O login demorou mais que o esperado. Confira a conexão e tente novamente."
+      );
+      if (error || !data.user) {
+        setErro(error?.status === 429 ? "Muitas tentativas. Aguarde um pouco e tente novamente." : "E-mail ou senha inválidos.");
+        return;
+      }
+      const { data: profile, error: profileError } = await supabase.from("profiles")
+        .select("role").eq("id", data.user.id)
+        .abortSignal(AbortSignal.timeout(12000)).maybeSingle();
+      if (profileError) throw new Error("Seu login foi aceito, mas não foi possível verificar a permissão. Tente novamente.");
+      if (params.get("next") === "adm" && profile?.role !== "admin") {
+        setErro("Esta conta não tem acesso administrativo. Entre com sua conta de administrador.");
+        return;
+      }
+      navigate(profile?.role === "admin" ? params.get("next") === "minisite" ? "/minisite" : "/adm" : params.get("next") === "minisite" ? "/minisite" : "/dashboard", { replace: true });
+    } catch (e: any) {
+      setErro(e?.message || "Não foi possível entrar. Confira a conexão e tente novamente.");
+    } finally {
       setCarregando(false);
-      return setErro("E-mail ou senha inválidos.");
     }
-
-    // Contas admin (ex.: diogo_pl@me.com) não têm uma "companies" própria —
-    // vão direto para o painel de administração (criar placas em lote).
-    // Donos de empresa comuns (fluxo antigo com conta própria) vão para /dashboard.
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .maybeSingle();
-
-    setCarregando(false);
-    navigate(profile?.role === "admin" ? params.get("next") === "minisite" ? "/minisite" : "/adm" : params.get("next") === "minisite" ? "/minisite" : "/dashboard");
   }
 
   return (
@@ -45,6 +52,7 @@ export default function Login() {
           <span className="text-sm text-gray-600">E-mail</span>
           <input
             type="email"
+            autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -55,13 +63,14 @@ export default function Login() {
           <span className="text-sm text-gray-600">Senha</span>
           <input
             type="password"
+            autoComplete="current-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
           />
         </label>
-        {erro && <p className="text-sm text-red-600">{erro}</p>}
+        {erro && <p className="text-sm text-red-600" role="alert">{erro}</p>}
         <button
           type="submit"
           disabled={carregando}
