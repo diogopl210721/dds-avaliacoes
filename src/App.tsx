@@ -36,8 +36,8 @@ function AdminRoute() {
     let active = true;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 12000);
-    supabase.from('profiles').select('role').eq('id', user.id)
-      .abortSignal(controller.signal).maybeSingle()
+    Promise.resolve(supabase.from('profiles').select('role').eq('id', user.id)
+      .abortSignal(controller.signal).maybeSingle())
       .then(({ data, error }) => {
         if (!active) return;
         if (error) setPermissionError("Não foi possível verificar seu acesso. Tente novamente.");
