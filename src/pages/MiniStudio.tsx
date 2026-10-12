@@ -10,13 +10,17 @@ import { useAuth } from '../hooks/useAuth';
 import { supabase, callFunction } from '../lib/supabaseClient';
 import {
   MiniContent, MiniRecord, blankContent, demoContent, normalizeContent, slugify, safeUrl, validEmail, siteLink, themeOptions,
-  LIMITS, BENEFIT_ICONS, LIST_TITLE_DEFAULT, LIST_TITLE_SUGGESTIONS, uid, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
+  LIMITS, BENEFIT_ICONS, LIST_TITLE_DEFAULT, LIST_TITLE_SUGGESTIONS, uid, demoFor, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
 } from '../lib/miniPage';
 import { PALETTES } from '../lib/miniPalettes';
 import { compressImage, ImageKind } from '../lib/miniImage';
 import { loadFonts } from '../lib/miniFonts';
 import MiniLanding, { ICONS } from '../components/MiniLanding';
 import { MiniPreviewModal, ThemePhone } from '../components/MiniThemes';
+import type { MiniTheme, PaletteId } from '../lib/miniPage';
+
+// WhatsApp comercial da DDS (botão "Quero o meu" da demonstração).
+const WHATS_DEMO = `https://wa.me/5541991542931?text=${encodeURIComponent('Olá! Vi a demonstração do mini site da DDS Avaliações e quero o meu.')}`;
 import { Field, Area, PhotoBox, Section, ListEditor, useOpen } from '../components/StudioFields';
 import StudioAutofill from '../components/StudioAutofill';
 import Analise from './Analise';
@@ -55,6 +59,8 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   const [dirty, setDirty] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [preview, setPreview] = useState(false);
+  // Prévia em tela cheia de um modelo com dados fictícios do segmento (passo 1).
+  const [modelPreview, setModelPreview] = useState<{ theme: MiniTheme; palette: PaletteId } | null>(null);
   const [plateTab, setPlateTab] = useState('inicio');
   const [isAdmin, setIsAdmin] = useState(false);
   const [accountChecked, setAccountChecked] = useState(false);
@@ -301,9 +307,9 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     {step !== 'placa' && <ol className="sw-steps" aria-label="Etapas">{STEPS.map((s, i) => <li key={s.id} className={s.id === step ? 'is-current' : i < stepIndex ? 'is-done' : ''}><button onClick={() => go(s.id)} aria-current={s.id === step ? 'step' : undefined}><b>{i < stepIndex ? <Check size={14} /> : s.short}</b><span>{s.label}</span></button></li>)}</ol>}
 
     {step === 'modelo' && <>
-      <Title kicker="Passo 1 de 4" title="Escolha o modelo" text="Seis modelos feitos para segmentos e três para qualquer negócio. Você pode trocar depois sem perder o conteúdo." />
-      <div className="studio-themes sw-themes">{themeOptions.map((t, i) => <button className={`studio-theme ${c.theme === t.id ? 'selected' : ''}`} key={t.id} aria-pressed={c.theme === t.id} onClick={() => field('theme', t.id)}>
-        <ThemePhone content={c} theme={t.id} index={i} /><span className="studio-theme-tag">{t.niche}</span><span className="studio-theme-choice">{t.name}{c.theme === t.id && <Check size={18} />}</span><p>{t.description}</p>
+      <Title kicker="Passo 1 de 4" title="Escolha o modelo" text="Toque em um modelo para ver a página inteira com dados de exemplo. Você pode trocar depois sem perder o conteúdo." />
+      <div className="studio-themes sw-themes">{themeOptions.map((t, i) => <button className={`studio-theme ${c.theme === t.id ? 'selected' : ''}`} key={t.id} aria-pressed={c.theme === t.id} aria-label={`Ver o modelo ${t.name}`} onClick={() => setModelPreview({ theme: t.id, palette: c.theme === t.id && c.palette !== 'brand' ? c.palette : demoFor(t.id).palette })}>
+        <ThemePhone content={demoFor(t.id)} theme={t.id} index={i} /><span className="studio-theme-tag">{t.niche}</span><span className="studio-theme-choice">{t.name}{c.theme === t.id ? <em className="studio-theme-on"><Check size={14} /> Escolhido</em> : <em className="studio-theme-see"><Eye size={14} /> Ver modelo</em>}</span><p>{t.description}</p>
       </button>)}</div>
       {nav(undefined, 'cores', 'Escolher as cores')}
     </>}
@@ -351,8 +357,8 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
           <CheckItem ok={c.benefits.length > 0} label="Benefícios" soft />
         </ul>
         <div className="studio-actions">
-          <button className="studio-primary" onClick={() => save(true)} disabled={busy || slugState.status === 'taken'}><Rocket size={17} />{busy ? 'Publicando…' : demo ? 'Testar publicação' : published ? 'Publicar alterações' : 'Publicar página'}</button>
-          <button className="studio-secondary" onClick={() => save(published)} disabled={busy}><Save size={17} />Salvar sem publicar</button>
+          {demo ? <a className="studio-primary" href={WHATS_DEMO} target="_blank" rel="noopener noreferrer"><Rocket size={17} />Quero o meu mini site</a> : <button className="studio-primary" onClick={() => save(true)} disabled={busy || slugState.status === 'taken'}><Rocket size={17} />{busy ? 'Publicando…' : published ? 'Publicar alterações' : 'Publicar página'}</button>}
+          {demo ? <button className="studio-secondary" onClick={() => setPreview(true)}><Eye size={17} />Ver como fica</button> : <button className="studio-secondary" onClick={() => save(published)} disabled={busy}><Save size={17} />Salvar sem publicar</button>}
         </div>
       </div>
       {(published || demo) && <div className="studio-card sw-live">
@@ -381,8 +387,10 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     {mobileMenu && <button className="studio-scrim" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}
     <div className="studio-workspace">
       <header className="studio-topbar"><button className="studio-mobile-toggle" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Abrir menu"><Menu /></button><span><span className="studio-top-dot" />{demo ? 'Demonstração interativa' : published ? (dirty ? 'Alterações não publicadas' : 'Página no ar') : 'Rascunho'}</span>
-        <div><button className="studio-secondary" onClick={() => setPreview(true)}><Eye size={16} /> Prévia</button><button className="studio-primary" onClick={() => save(true)} disabled={busy}><Upload size={16} />{busy ? 'Aguarde…' : demo ? 'Testar' : 'Publicar'}</button></div></header>
-      {demo && <div className="studio-demo-banner">Você está testando uma empresa fictícia. Edite tudo à vontade; nada é publicado ou salvo nesta demonstração.</div>}
+        {demo
+          ? <div><button className="studio-secondary" onClick={() => setPreview(true)}><Eye size={16} /> <span className="sm:hidden">Prévia</span><span className="hidden sm:inline">Ver como fica</span></button><a className="studio-primary whitespace-nowrap" href={WHATS_DEMO} target="_blank" rel="noopener noreferrer"><Rocket size={16} /> Quero o meu</a></div>
+          : <div><button className="studio-secondary" onClick={() => setPreview(true)}><Eye size={16} /> Prévia</button><button className="studio-primary" onClick={() => save(true)} disabled={busy}><Upload size={16} />{busy ? 'Aguarde…' : 'Publicar'}</button></div>}</header>
+      {demo && <div className="studio-demo-banner"><Sparkles size={15} /><span>Demonstração com uma empresa fictícia: mexa à vontade, nada é publicado nem salvo. Gostou? Toque em <strong>Quero o meu</strong>.</span></div>}
       <div className="studio-content"><main>
         {!demo && !plateAccess && <div className="studio-records"><select aria-label="Selecionar mini página" value={id ?? ''} onChange={e => { const r = records.find(r => r.id === e.target.value); if (r && (!dirty || confirm('Descartar alterações não salvas?'))) select(r); }}><option value="">Nova mini página</option>{records.map(r => <option key={r.id} value={r.id}>{normalizeContent(r.content).name}</option>)}</select><button className="studio-secondary" onClick={newPage}>Nova página</button></div>}
         {error && <div className="studio-error" role="alert">{error}</div>}
@@ -392,6 +400,11 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
       </div></div>
     {notice && <div className="studio-toast" role="status"><Check size={18} />{notice}</div>}
     {preview && <MiniPreviewModal content={c} demo={demo} label="Prévia da página" onClose={() => setPreview(false)} />}
+    {modelPreview && <MiniPreviewModal content={{ ...demoFor(modelPreview.theme), palette: modelPreview.palette }} demo label="Modelo com dados de exemplo"
+      onClose={() => setModelPreview(null)}
+      onTheme={theme => setModelPreview({ theme, palette: demoFor(theme).palette })}
+      onPalette={palette => setModelPreview({ ...modelPreview, palette })}
+      action={{ label: 'Usar este modelo', onClick: () => { setC(old => ({ ...old, theme: modelPreview.theme, palette: modelPreview.palette })); setDirty(true); setModelPreview(null); go('cores'); notify(`Modelo ${themeOptions.find(t => t.id === modelPreview.theme)?.name} escolhido. Confira as cores.`); } }} />}
   </div>;
 }
 

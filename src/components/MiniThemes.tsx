@@ -63,8 +63,9 @@ export function PaletteDots({ theme, value, brandColor = '', onChange }: { theme
 }
 
 // Prévia em tela cheia, com troca de modelo e de cores opcional.
-export function MiniPreviewModal({ content, demo = false, label, onClose, onTheme, onPalette }: {
+export function MiniPreviewModal({ content, demo = false, label, onClose, onTheme, onPalette, action }: {
   content: MiniContent; demo?: boolean; label: string; onClose: () => void; onTheme?: (theme: MiniTheme) => void; onPalette?: (id: PaletteId) => void;
+  action?: { label: string; onClick: () => void };
 }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -79,7 +80,10 @@ export function MiniPreviewModal({ content, demo = false, label, onClose, onThem
         {onTheme ? <ThemeChips current={content.theme} onTheme={onTheme} /> : <span className="mini-modal-title">{label}</span>}
         {onPalette && <div className="mini-modal-palettes"><span>Cores</span><PaletteDots theme={content.theme} value={content.palette} brandColor={content.brandColor} onChange={onPalette} /></div>}
       </div>
-      <button className="mini-modal-close" autoFocus onClick={onClose}><X size={18} /> Fechar</button>
+      <div className="mini-modal-buttons">
+        {action && <button className="mini-modal-use" onClick={action.onClick}>{action.label}</button>}
+        <button className="mini-modal-close" autoFocus={!action} onClick={onClose}><X size={18} /> Fechar</button>
+      </div>
     </div>
     <MiniLanding key={content.theme} content={content} demo={demo} floating />
   </div>;
