@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build -c vite.mini.config.ts",
+    "build": "vite build && vite build -c vite.mini.config.ts && node scripts/build-admin-entry.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

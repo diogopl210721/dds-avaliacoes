@@ -69,7 +69,7 @@ export function youtubeId(value: string) {
 // Endereço público. A página real fica na raiz do domínio; o link antigo (#/loja) continua funcionando.
 export const SITE_ORIGIN = 'https://www.ddsinovacao.com.br';
 export function siteLink(slug: string) { return `${SITE_ORIGIN}/${slug}`; }
-export function publicLink(slug: string) { return `${location.origin}${location.pathname}#/loja/${slug}`; }
+export function publicLink(slug: string) { const root = new URL(import.meta.env.BASE_URL, document.baseURI); return `${root.origin}${root.pathname}#/loja/${slug}`; }
 
 // Título da lista de produtos/serviços: o cliente escolhe; sem escolha, vale o padrão do modelo.
 export const LIST_TITLE_DEFAULT: Record<MiniTheme, string> = {
@@ -83,7 +83,7 @@ export const BENEFIT_ICONS = ['shield', 'clock', 'star', 'heart', 'truck', 'awar
 let seq = 0;
 export const uid = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `id-${Date.now()}-${++seq}`);
 
-const asset = (name: string) => new URL(`demo/${name}.jpg`, new URL(import.meta.env.BASE_URL, location.href)).href;
+const asset = (name: string) => new URL(`demo/${name}.jpg`, new URL(import.meta.env.BASE_URL, document.baseURI)).href;
 const item = (id: string, name: string, description: string, price = '') => ({ id, name, description, price, image: '' });
 const b = (id: string, icon: string, title: string, text: string): Benefit => ({ id, icon, title, text });
 const s = (id: string, value: string, label: string): Stat => ({ id, value, label });

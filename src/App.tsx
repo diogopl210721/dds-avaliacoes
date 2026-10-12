@@ -1,5 +1,5 @@
-import { lazy, Suspense } from "react";
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { HashRouter, MemoryRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Avaliar from "./pages/Avaliar";
 import { ScreenLoading } from "./components/ui/Screen";
@@ -17,7 +17,29 @@ const Login = lazy(() => import("./pages/Login"));
 const PrivateDashboard = lazy(() => import("./pages/dashboard/PrivateDashboard"));
 const AdminGate = lazy(() => import("./pages/admin/AdminGate"));
 
+// Navigation outside the administrative screens returns to the normal app.
+function LeaveAdmin() {
+  const { pathname, search } = useLocation();
+  useEffect(() => {
+    const root = new URL(import.meta.env.BASE_URL, document.baseURI);
+    window.location.replace(root.href + '#' + pathname + search);
+  }, [pathname, search]);
+  return <ScreenLoading />;
+}
+
 export default function App() {
+  if (/\/adm\/?$/.test(window.location.pathname)) return (
+    <MemoryRouter initialEntries={['/adm']}>
+      <Suspense fallback={<ScreenLoading />}>
+        <Routes>
+          <Route path="/adm" element={<AdminGate />} />
+          <Route path="/admin" element={<AdminGate />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<LeaveAdmin />} />
+        </Routes>
+      </Suspense>
+    </MemoryRouter>
+  );
   return (
     <HashRouter>
       <Suspense fallback={<ScreenLoading />}>
