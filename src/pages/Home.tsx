@@ -69,7 +69,11 @@ export default function Home() {
         {/* Primeira dobra */}
         <section ref={hero} className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 lg:pt-20 pb-16 lg:pb-24 grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-8 items-center">
           <div>
-            <span className="dds-eyebrow dds-rise"><span className="dds-pulse-dot" />Placas de avaliação Google · QR Code + NFC</span>
+            <button onClick={() => scrollToId("minisite")} className="group dds-eyebrow dds-rise !pl-1.5 hover:!bg-[#399cff24] hover:!border-[#399cff66] transition-colors">
+              <span className="rounded-full bg-gradient-to-r from-[#66e0ff] to-[#8fb8ff] px-2 py-0.5 text-[10px] font-extrabold tracking-[.08em] text-navy-950">NOVO</span>
+              Seu mini site no ar em minutos
+              <ArrowRight size={14} className="text-[#66e0ff] transition-transform group-hover:translate-x-0.5" />
+            </button>
             <h1 className="font-display font-extrabold text-[clamp(40px,7vw,76px)] leading-[1.02] tracking-[-.045em] mt-6 dds-rise" style={{ ["--d" as string]: ".08s" }}>
               Um toque.<br />Mais <span className="font-serif italic font-normal tracking-[-.02em] dds-spectrum-text pr-1">avaliações</span><br className="hidden sm:block" /> no Google.
             </h1>
@@ -165,7 +169,7 @@ export default function Home() {
           <SectionTitle eyebrow="Mais da DDS Inovação" title={<>Resolvemos as <span className="font-serif italic font-normal text-brand-300">suas dores.</span></>} />
           <p data-reveal className="mt-4 max-w-xl text-[16px] leading-relaxed text-[#a7b7d1]">Do site ao vídeo para as redes: soluções digitais para a sua empresa aparecer mais e atender melhor.</p>
 
-          <div data-reveal className="mt-10 relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 p-7 sm:p-10 grid lg:grid-cols-2 gap-10 items-center">
+          <div id="minisite" data-reveal className="scroll-mt-24 mt-10 relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 p-7 sm:p-10 grid lg:grid-cols-2 gap-10 items-center">
             <div>
               <span className="dds-eyebrow"><Smartphone size={14} className="text-[#66e0ff]" />Mini site para empresas</span>
               <h3 className="mt-5 font-display text-[clamp(26px,3.6vw,40px)] font-extrabold leading-[1.05] tracking-[-.04em] text-white">Sua empresa. <span className="font-serif italic font-normal dds-spectrum-text">Seu mini site.</span></h3>
@@ -328,7 +332,7 @@ function MiniPhones() {
         <div key={p.name} data-reveal style={{ ["--d" as string]: `${i * .12}s` }} className="w-[30%] max-w-[150px]">
           <div className="dds-phone transition-transform duration-500 hover:-translate-y-2" style={{ transform: `rotate(${p.rot}) translateY(${p.y})` }}>
             <div className="dds-phone-screen aspect-[9/18] flex flex-col justify-end p-[12%]" style={{ background: p.bg, color: p.ink }}>
-              <p className="text-[8px] font-bold tracking-[.16em] opacity-70 uppercase">{p.niche}</p>
+              <p className="text-[7px] font-bold tracking-[.06em] opacity-70 uppercase truncate">{p.niche}</p>
               <p className="font-display font-extrabold text-[clamp(14px,2vw,20px)] leading-none mt-1">{p.name}</p>
               <div className="mt-2 space-y-1"><div className="h-1 rounded-full opacity-30 bg-current" /><div className="h-1 w-2/3 rounded-full opacity-30 bg-current" /></div>
               <div className="mt-3 rounded-full text-[8px] font-bold text-center py-1.5 text-white" style={{ background: p.btn }}>WhatsApp</div>
