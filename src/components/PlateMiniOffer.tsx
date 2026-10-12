@@ -1,18 +1,13 @@
 import { useEffect, useState } from "react";
 import { callFunction } from "../lib/supabaseClient";
-import { MiniContent, MiniRecord, demoContent } from "../lib/miniPage";
-import MiniLanding from "./MiniLanding";
+import { MiniContent, MiniRecord, demoContent, themeOptions } from "../lib/miniPage";
+import { MiniPreviewModal, ThemePhone } from "./MiniThemes";
 import "../mini.css";
 
 export type PlateMiniAccess = {
   codigo: string; senha: string; page: MiniRecord | null;
   company: { nome?: string; write_a_review_uri?: string } | null;
 };
-const examples = [
-  { theme: "elegance", name: "Elegance", text: "Sofisticação para valorizar sua marca.", color: "#c9a969" },
-  { theme: "viva", name: "Viva", text: "Um estilo acolhedor, cheio de personalidade.", color: "#ef7655" },
-  { theme: "essencial", name: "Essencial", text: "Leve e direto, com sua empresa em destaque.", color: "#2460ad" },
-] as const;
 export default function PlateMiniOffer({ codigo, senha, onOpen }: {
   codigo: string; senha: string; onOpen: (access: PlateMiniAccess) => void;
 }) {
@@ -38,17 +33,14 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
       <p className="text-sm text-gray-600 mt-2">Fotos, produtos, WhatsApp e redes sociais em uma página pronta para compartilhar na bio e com seus clientes.</p></div>
     <button onClick={() => { if (enabled && access) onOpen(access); else setShow(!show); }}
       className="w-full rounded-lg bg-emerald-800 text-white px-4 py-3 font-medium" disabled={busy}>
-      {busy ? "Consultando liberação…" : enabled ? access?.page ? "Editar meu mini site" : "Criar meu mini site" : "Criar meu mini site · ver 3 exemplos"}
+      {busy ? "Consultando liberação…" : enabled ? access?.page ? "Editar meu mini site" : "Criar meu mini site" : "Criar meu mini site · ver 3 modelos"}
     </button>
     {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-    {show && <><p className="text-sm text-gray-600">Escolha um exemplo para explorar. Sua página terá as informações e fotos da sua empresa.</p>
-      <div className="grid sm:grid-cols-3 gap-3">
-        {examples.map(t => <button key={t.theme} className="text-left rounded-xl overflow-hidden border border-gray-200 hover:border-emerald-700" onClick={() => setPreview({ ...demoContent, theme: t.theme })}>
-          <div className={"studio-theme-thumb theme-" + t.theme}>
-            <div className="studio-theme-photo" style={{ backgroundImage: 'url("' + demoContent.cover + '")' }} />
-            <span className="studio-theme-monogram">A</span><strong>Aurora Café</strong>
-            <small>Uma pausa especial no seu dia.</small><span className="studio-theme-cta" style={{ background: t.color }}>Conheça nossa empresa →</span>
-          </div><div className="p-3"><strong>{t.name}</strong><p className="text-xs text-gray-600 mt-1">{t.text}</p><span className="text-xs text-emerald-700 block mt-2">Ver exemplo completo →</span></div>
+    {show && <><p className="text-sm text-gray-600">Toque em um modelo para ver a página completa. A sua terá as informações e fotos da sua empresa.</p>
+      <div className="theme-showcase">
+        {themeOptions.map((t, i) => <button key={t.id} className="theme-card" onClick={() => setPreview({ ...demoContent, theme: t.id })}>
+          <ThemePhone content={demoContent} theme={t.id} index={i} />
+          <span className="theme-card-text"><strong>{t.name}</strong><span>{t.description}</span><em>Ver modelo completo</em></span>
         </button>)}
       </div>
       <div className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-950 space-y-2">
@@ -58,9 +50,6 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
       </div>
     </>}
     {!enabled && <button onClick={check} disabled={busy} className="text-sm text-emerald-700 underline">Já paguei · verificar liberação</button>}
-    {preview && <div className="studio-preview-modal" role="dialog" aria-modal="true" aria-label="Exemplo de mini site">
-      <button className="studio-modal-close" autoFocus onClick={() => setPreview(null)} onKeyDown={e => { if (e.key === "Escape") setPreview(null); }}>Fechar exemplo</button>
-      <MiniLanding content={preview} demo />
-    </div>}
+    {preview && <MiniPreviewModal content={preview} demo label="Exemplo de mini site" onClose={() => setPreview(null)} onTheme={theme => setPreview({ ...preview, theme })} />}
   </section>;
 }
