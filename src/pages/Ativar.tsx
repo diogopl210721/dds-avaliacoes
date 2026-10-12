@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { ArrowRight, ExternalLink, PartyPopper, Search, Zap } from "lucide-react";
 import { callFunction } from "../lib/supabaseClient";
-import { MenuPlaca, Campo, BotaoEnviar, CopiarBotao, somente4Digitos } from "../components/PlacaUi";
+import { AuthShell, MenuPlaca, Campo, BotaoEnviar, CodigoPlaca, Erro, TituloForm, somente4Digitos } from "../components/PlacaUi";
 
 // Ativação da placa. Quando a pessoa chega pelo QR/NFC da própria placa, o
 // link já traz o código e a chave secreta (`k`): ela só informa nome, link e
@@ -75,107 +76,90 @@ export default function Ativar() {
     }
   }
 
+  const moldura = {
+    eyebrow: "Ativação da placa",
+    title: <>Sua placa pronta em <span className="font-serif italic font-normal dds-spectrum-text">2 minutos.</span></>,
+    text: "Sem criar conta. Informe o nome da empresa, cole o link de avaliação do Google e escolha uma senha de 4 números.",
+    points: ["Funciona com QR Code e NFC", "Troque o link quando quiser, sem reimprimir", "Acompanhe os acessos no seu sistema"],
+  };
+
   if (concluido) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md bg-white rounded-xl shadow p-6 text-center space-y-4">
-          <h1 className="text-xl font-semibold">Sua placa está ativada! 🎉</h1>
-          <p className="text-gray-600">{nomeEmpresa}</p>
+      <AuthShell {...moldura}>
+        <div className="text-center dds-rise">
+          <span className="mx-auto grid place-items-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-[0_16px_32px_-12px_#059669]"><PartyPopper size={30} /></span>
+          <h1 className="mt-5 font-display text-2xl font-extrabold tracking-[-.03em]">Sua placa está ativada!</h1>
+          <p className="mt-1 text-ink-muted">{nomeEmpresa}</p>
+        </div>
 
-          <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 space-y-3 text-left">
-            <p className="text-sm text-gray-600 text-center">
-              Anote — você vai precisar para trocar o link ou ver as estatísticas:
-            </p>
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <div className="text-xs text-gray-400">Código da placa</div>
-                <div className="font-mono text-lg font-semibold">{concluido.codigo}</div>
-              </div>
-              <CopiarBotao texto={concluido.codigo} rotulo="Copiar" />
-            </div>
-            <div>
-              <div className="text-xs text-gray-400">Sua senha</div>
-              <div className="font-mono text-lg font-semibold tracking-widest">{concluido.senha}</div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => navigate("/sistema")}
-              className="px-5 py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600"
-            >
-              Acesse meu sistema
-            </button>
-            <button
-              onClick={() => navigate("/")}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Voltar ao início
-            </button>
+        <div className="mt-6 space-y-3">
+          <p className="text-sm text-ink-soft text-center">Anote: você vai precisar para trocar o link ou ver as estatísticas.</p>
+          <CodigoPlaca codigo={concluido.codigo} grande />
+          <div className="rounded-2xl border border-[#dbe5f4] bg-[#f7faff] px-4 py-3">
+            <div className="text-[11px] font-semibold uppercase tracking-[.12em] text-ink-muted">Sua senha</div>
+            <div className="font-mono text-2xl font-bold tracking-[.4em]">{concluido.senha}</div>
           </div>
         </div>
-      </div>
+
+        <div className="mt-6 flex flex-col gap-2">
+          <button onClick={() => navigate("/sistema")} className="dds-btn dds-btn-primary dds-btn-lg dds-btn-block">
+            Acesse meu sistema <ArrowRight size={18} />
+          </button>
+          <button onClick={() => navigate("/")} className="dds-btn dds-btn-outline dds-btn-block">Voltar ao início</button>
+        </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-xl shadow p-6">
-        <MenuPlaca />
+    <AuthShell {...moldura}>
+      <MenuPlaca />
 
-        <h1 className="text-xl font-semibold mb-1">
-          {viaPlaca ? "Sua placa ainda não foi ativada" : "Ativar placa DDS Avaliações"}
-        </h1>
-        <p className="text-sm text-gray-500 mb-4">
-          Leva 2 minutos. Sem criar conta.
-        </p>
+      <TituloForm
+        icon={<Zap size={20} />}
+        titulo={viaPlaca ? "Sua placa ainda não foi ativada" : "Ativar placa DDS Avaliações"}
+        texto="Leva 2 minutos. Sem criar conta."
+      />
 
-        {viaPlaca && (
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 mb-4">
-            <div>
-              <div className="text-xs text-gray-400">Código da placa</div>
-              <div className="font-mono font-semibold">{codigoDoLink.toUpperCase()}</div>
-            </div>
-            <CopiarBotao texto={codigoDoLink.toUpperCase()} rotulo="📋 Copiar" />
+      {viaPlaca && <div className="mb-5"><CodigoPlaca codigo={codigoDoLink.toUpperCase()} /></div>}
+
+      <form onSubmit={salvar} className="space-y-4">
+        {!viaPlaca && (
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Campo label="Código da placa" value={codigo} onChange={setCodigo} placeholder="Ex: DDS215" />
+            <Campo
+              label="PIN da placa"
+              value={pin}
+              onChange={setPin}
+              placeholder="0000"
+              ajuda="O PIN que veio com a placa."
+            />
           </div>
         )}
 
-        <form onSubmit={salvar} className="space-y-3">
-          {!viaPlaca && (
-            <>
-              <Campo label="Código da placa" value={codigo} onChange={setCodigo} placeholder="Ex: DDS215" />
-              <Campo
-                label="PIN da placa"
-                value={pin}
-                onChange={setPin}
-                placeholder="0000"
-                ajuda="O PIN que veio com a placa."
-              />
-            </>
-          )}
+        <Campo
+          label="Nome da empresa"
+          value={nomeEmpresa}
+          onChange={setNomeEmpresa}
+          placeholder="Ex: Padaria do João"
+        />
 
-          <Campo
-            label="Nome da empresa"
-            value={nomeEmpresa}
-            onChange={setNomeEmpresa}
-            placeholder="Ex: Padaria do João"
-          />
+        <Campo
+          label="1. Cole o link de avaliação do Google"
+          value={linkAvaliacao}
+          onChange={setLinkAvaliacao}
+          placeholder="https://..."
+          inputMode="url"
+          ajuda="É o link para o cliente deixar a avaliação da sua empresa."
+        />
 
-          <Campo
-            label="1. Cole o link de avaliação do Google"
-            value={linkAvaliacao}
-            onChange={setLinkAvaliacao}
-            placeholder="https://..."
-            inputMode="url"
-            ajuda="É o link para o cliente deixar a avaliação da sua empresa."
-          />
+        <div className="rounded-2xl border border-dashed border-[#c9d8ef] bg-[#f7faff] p-4 space-y-3">
+          <p className="flex items-center gap-2 text-sm font-semibold text-ink"><Search size={16} className="text-brand-600" /> Não tenho o link: procurar empresa aqui</p>
+          <a href="https://www.replifast.com/google-review-link-generator" target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-outline dds-btn-block">Procurar empresa no RepliFast <ExternalLink size={16} /></a>
+          <p className="text-xs text-ink-muted leading-relaxed">O gerador abre em outra aba. Procure sua empresa, copie o link de avaliação e volte para colar no campo acima.</p>
+        </div>
 
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-3">
-            <p className="text-sm font-medium text-gray-700">Não tenho o link — procurar empresa aqui</p>
-            <a href="https://www.replifast.com/google-review-link-generator" target="_blank" rel="noopener noreferrer" className="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white hover:bg-brand-600">Procurar empresa no RepliFast ↗</a>
-            <p className="text-xs text-gray-600">O gerador abre em outra aba. Procure sua empresa, copie o link de avaliação e volte para colar no campo acima.</p>
-          </div>
-
+        <div className="grid sm:grid-cols-2 gap-4">
           <Campo
             label="2. Crie uma senha de 4 números"
             value={senha}
@@ -183,7 +167,6 @@ export default function Ativar() {
             placeholder="0000"
             inputMode="numeric"
             maxLength={4}
-            ajuda="Escolha 4 números que você lembre. Serve para trocar o link e ver as estatísticas depois."
           />
           <Campo
             label="Digite a senha de novo para confirmar"
@@ -193,17 +176,17 @@ export default function Ativar() {
             inputMode="numeric"
             maxLength={4}
           />
-          {senha2.length === 4 && (
-            <p className={`text-xs ${senha === senha2 ? "text-green-600" : "text-red-600"}`}>
-              {senha === senha2 ? "✓ As senhas conferem" : "As senhas não são iguais"}
-            </p>
-          )}
+        </div>
+        <p className="dds-help !mt-2">Escolha 4 números que você lembre. Serve para trocar o link e ver as estatísticas depois.</p>
+        {senha2.length === 4 && (
+          <p className={`text-sm font-semibold ${senha === senha2 ? "text-emerald-600" : "text-rose-600"}`}>
+            {senha === senha2 ? "✓ As senhas conferem" : "As senhas não são iguais"}
+          </p>
+        )}
 
-          {erro && <p className="text-sm text-red-600">{erro}</p>}
-          <BotaoEnviar carregando={carregando}>⚡ Ativar minha placa</BotaoEnviar>
-        </form>
-      </div>
-    </div>
+        {erro && <Erro>{erro}</Erro>}
+        <BotaoEnviar carregando={carregando}><Zap size={18} /> Ativar minha placa</BotaoEnviar>
+      </form>
+    </AuthShell>
   );
 }
-

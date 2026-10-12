@@ -20,7 +20,7 @@
 :where(.mini-landing) button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 .mini-landing a,.mini-landing button{touch-action:manipulation}
 .mini-landing a:focus-visible,.mini-landing button:focus-visible,.mini-landing summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-.mini-demo-label{position:relative;z-index:4;background:#e5eee1;color:#3f6639;text-align:center;font:500 11px/1.4 'DM Sans',system-ui,sans-serif;padding:7px 10px}
+.mini-demo-label{position:relative;z-index:4;background:#e3edfb;color:#1d4a8f;text-align:center;font:500 11px/1.4 'DM Sans',system-ui,sans-serif;padding:7px 10px}
 
 /* ---------- Primeira dobra ---------- */
 .mini-hero{position:relative;padding:clamp(22px,7cqi,36px) var(--pad) clamp(28px,8cqi,40px);perspective:1100px;perspective-origin:50% 25%;text-align:center;

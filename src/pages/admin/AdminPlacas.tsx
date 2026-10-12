@@ -1,10 +1,17 @@
-import { useEffect, useState } from "react";
+import { lazy, ReactNode, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  ArrowLeft, ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Download, History, KeyRound, Layers, Lock,
+  Pause, Phone, Play, Plus, RotateCcw, Search, Sparkles, Store, Trash2, Unlock, X, Zap, CheckCircle2, Clock3,
+} from "lucide-react";
 import { supabase, callFunction } from "../../lib/supabaseClient";
 import { publicStorageUrl } from "../../lib/storage";
 import { scanLink } from "../../lib/scanLink";
-import MiniStudio from "../MiniStudio";
 import type { PlateMiniAccess } from "../../components/PlateMiniOffer";
+import { Aurora, BrandMark, CountUp, Spinner } from "../../components/ui/Fx";
+import { ScreenLoading } from "../../components/ui/Screen";
+
+const MiniStudio = lazy(() => import("../MiniStudio"));
 
 type DdsLinkResumo = {
   id: string;
@@ -315,348 +322,388 @@ export default function AdminPlacas() {
   }
 
   if (miniEditor) return <>
-    <div className="bg-white p-3 flex items-center justify-between gap-3 border-b"><button className="text-sm text-emerald-700" onClick={() => { setMiniEditor(null); carregar(); }}>← Voltar às placas</button><span className="text-xs text-gray-500">Montando o mini site da placa {miniEditor.codigo}</span></div>
-    <MiniStudio plateAccess={miniEditor} />
+    <div className="sticky top-0 z-40 flex items-center justify-between gap-3 px-4 py-2.5 bg-navy-950 text-white border-b border-white/10">
+      <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8fd8ff] hover:text-white" onClick={() => { setMiniEditor(null); carregar(); }}><ArrowLeft size={16} /> Voltar às placas</button>
+      <span className="text-xs text-[#a7b7d1]">Montando o mini site da placa {miniEditor.codigo}</span>
+    </div>
+    <Suspense fallback={<ScreenLoading light label="Abrindo o estúdio…" />}><MiniStudio plateAccess={miniEditor} /></Suspense>
   </>;
 
+  const ativas = plates.filter(p => p.status === "ATIVA").length;
+  const aguardando = plates.filter(p => p.status === "AGUARDANDO_ATIVACAO" || p.status === "CRIADA").length;
+  const miniLiberados = plates.filter(p => p.mini_site_enabled).length;
+
   return (
-    <div className="max-w-6xl mx-auto p-6 space-y-6">
-      <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block">
-        ← Voltar ao início
-      </Link>
-      <div className="flex items-center justify-between gap-3 flex-wrap"><h1 className="text-2xl font-bold">Placas</h1><Link to="/minisite" className="px-4 py-2 rounded-lg bg-emerald-800 text-white text-sm">Estúdio de mini páginas →</Link></div>
-
-      <div className="bg-white rounded-xl shadow p-4 flex items-end gap-3">
-        <label className="block">
-          <span className="text-sm text-gray-600">Quantidade</span>
-          <input
-            type="number"
-            min={1}
-            max={100}
-            value={quantidade}
-            onChange={(e) => setQuantidade(Number(e.target.value))}
-            className="mt-1 w-28 rounded-lg border border-gray-300 px-3 py-2"
-          />
-        </label>
-        <button
-          onClick={criarLote}
-          disabled={criando}
-          className="px-4 py-2 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 disabled:opacity-50"
-        >
-          {criando ? "Gerando..." : "Gerar placas"}
-        </button>
-      </div>
-
-      {erro && <p className="text-sm text-red-600">{erro}</p>}
-
-      {loteCriado && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-          <p className="font-medium mb-2">
-            {loteCriado.length} placa(s) criada(s). Baixe agora — o PIN em texto só fica fácil de
-            copiar aqui e na lista abaixo.
-          </p>
-          <div className="flex gap-3">
-            <button onClick={baixarCsv} className="px-3 py-1.5 rounded-lg border hover:bg-gray-100 text-sm">
-              Baixar CSV (código + PIN + URLs)
-            </button>
-            <button onClick={baixarPngsIndividualmente} className="px-3 py-1.5 rounded-lg border hover:bg-gray-100 text-sm">
-              Baixar QR Codes (PNG)
+    <div className="min-h-[100dvh] bg-[#f4f6fb] pb-16">
+      <header className="dds-dark overflow-hidden">
+        <Aurora calm />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+          <BrandMark />
+          <nav className="flex items-center gap-2">
+            <Link to="/minisite" className="dds-btn dds-btn-ghost-dark dds-btn-sm"><Sparkles size={15} /><span className="hidden sm:inline">Estúdio de mini páginas</span><span className="sm:hidden">Estúdio</span></Link>
+            <Link to="/" className="dds-btn dds-btn-ghost-dark dds-btn-sm hidden sm:inline-flex">Início</Link>
+          </nav>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-24 sm:pb-28 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+          <div className="dds-rise">
+            <p className="text-xs font-bold tracking-[.2em] uppercase text-[#66e0ff]">Painel administrativo</p>
+            <h1 className="mt-2 font-display text-[clamp(32px,4.5vw,48px)] font-extrabold tracking-[-.045em] leading-none text-white">Placas</h1>
+            <p className="mt-3 text-[15px] text-[#a7b7d1] max-w-lg">Gere lotes, acompanhe o status e gerencie o link de cada placa.</p>
+          </div>
+          <div className="dds-glass rounded-2xl p-2 flex items-end gap-2 self-start lg:self-auto dds-rise" style={{ ["--d" as string]: ".1s" }}>
+            <label className="block">
+              <span className="block px-1 pb-1 text-[11px] font-semibold text-[#a7b7d1]">Quantidade</span>
+              <input
+                type="number"
+                min={1}
+                max={100}
+                value={quantidade}
+                onChange={(e) => setQuantidade(Number(e.target.value))}
+                className="w-24 rounded-xl border border-white/15 bg-navy-950/60 px-3 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-400/20"
+              />
+            </label>
+            <button onClick={criarLote} disabled={criando} className="dds-btn dds-btn-glow">
+              {criando ? <><Spinner /> Gerando...</> : <><Plus size={18} /> Gerar placas</>}
             </button>
           </div>
         </div>
-      )}
+      </header>
 
-      <input
-        value={busca}
-        onChange={(e) => aoBuscar(e.target.value)}
-        placeholder="Pesquisar por código, empresa..."
-        className="w-full rounded-lg border border-gray-300 px-3 py-2"
-      />
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          {carregando ? (
-            <p className="p-4 text-gray-500">Carregando...</p>
-          ) : filtradas.length === 0 ? (
-            <p className="p-4 text-gray-500 text-sm">Nenhuma placa encontrada.</p>
-          ) : (
-            <>
-              {/* Celular: uma linha por placa (sem tabela), pra caber inteira na
-                  tela — toca pra abrir os detalhes e as ações no painel abaixo. */}
-              <ul className="divide-y md:hidden">
-                {paginadas.map((p) => (
-                  <li
-                    key={p.id}
-                    onClick={() => abrirDetalhe(p)}
-                    className={`flex items-center gap-3 px-3 py-3 cursor-pointer hover:bg-brand-50 ${
-                      selecionada?.id === p.id ? "bg-brand-50" : ""
-                    }`}
-                  >
-                    <span className="font-mono font-semibold text-sm shrink-0">{p.codigo}</span>
-                    <span className="text-xs text-gray-400 truncate flex-1 min-w-0">
-                      {p.companies?.nome ?? "—"}
-                    </span>
-                    <StatusBadge status={p.status} />
-                  </li>
-                ))}
-              </ul>
-
-              {/* Desktop: tabela original, com as ações na própria linha. */}
-              <table className="w-full text-sm hidden md:table">
-                <thead className="bg-gray-100 text-left">
-                  <tr>
-                    <th className="p-3">Código</th>
-                    <th className="p-3">PIN</th>
-                    <th className="p-3">Empresa</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginadas.map((p) => (
-                    <tr
-                      key={p.id}
-                      onClick={() => abrirDetalhe(p)}
-                      className={`border-t cursor-pointer hover:bg-brand-50 ${
-                        selecionada?.id === p.id ? "bg-brand-50" : ""
-                      }`}
-                    >
-                      <td className="p-3 font-mono">{p.codigo}</td>
-                      <td className="p-3 font-mono">
-                        {p.pin ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              copiarTexto(p.pin!, "pin");
-                            }}
-                            title="Copiar PIN"
-                            className="hover:underline"
-                          >
-                            {p.pin}
-                          </button>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="p-3">{p.companies?.nome ?? "—"}</td>
-                      <td className="p-3">
-                        <StatusBadge status={p.status} />
-                      </td>
-                      <td className="p-3 space-x-2" onClick={(e) => e.stopPropagation()}>
-                        {p.status !== "BLOQUEADA" ? (
-                          <AcaoLink onClick={() => alterarStatus(p.id, "BLOQUEADA")}>Bloquear</AcaoLink>
-                        ) : (
-                          <AcaoLink onClick={() => alterarStatus(p.id, "ATIVA")}>Desbloquear</AcaoLink>
-                        )}
-                        <AcaoLink onClick={() => transferirPlaca(p.id)}>Transferir</AcaoLink>
-                        <AcaoLink onClick={() => novoPin(p.codigo, p.id)}>Novo PIN</AcaoLink>
-                        <AcaoLink onClick={() => resetarPlaca(p.codigo, p.id)}>Resetar</AcaoLink>
-                        <AcaoLink onClick={() => excluirPlaca(p.codigo, p.id)}>Excluir</AcaoLink>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-          {!carregando && filtradas.length > 0 && (
-            <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t bg-gray-50 text-sm">
-              <button
-                onClick={() => setPagina((p) => Math.max(0, p - 1))}
-                disabled={paginaAtual === 0}
-                className="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100 disabled:opacity-40"
-              >
-                ← Anterior
-              </button>
-              <span className="text-gray-500">
-                Página {paginaAtual + 1} de {totalPaginas} · {filtradas.length} placa(s)
-              </span>
-              <button
-                onClick={() => setPagina((p) => Math.min(totalPaginas - 1, p + 1))}
-                disabled={paginaAtual >= totalPaginas - 1}
-                className="px-3 py-1 rounded-lg border bg-white hover:bg-gray-100 disabled:opacity-40"
-              >
-                Próximo →
-              </button>
-            </div>
-          )}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <Kpi icon={<Layers size={19} />} label="Placas no painel" value={plates.length} loading={carregando} d={0} />
+          <Kpi icon={<CheckCircle2 size={19} />} label="Ativas" value={ativas} loading={carregando} d={.05} tone="green" />
+          <Kpi icon={<Clock3 size={19} />} label="Aguardando ativação" value={aguardando} loading={carregando} d={.1} tone="amber" />
+          <Kpi icon={<Sparkles size={19} />} label="Mini sites liberados" value={miniLiberados} loading={carregando} d={.15} tone="violet" />
         </div>
 
-        {selecionada && (
-          <div className="bg-white rounded-xl shadow p-4 space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-mono font-semibold">{selecionada.codigo}</p>
-                <p className="text-sm text-gray-500">
-                  PIN:{" "}
-                  {selecionada.pin ? (
-                    <button
-                      onClick={() => copiarTexto(selecionada.pin!, "pin")}
-                      className="font-mono hover:underline"
-                    >
-                      {selecionada.pin}
-                      {copiado === "pin" ? " ✓ copiado" : ""}
-                    </button>
-                  ) : (
-                    "—"
-                  )}
-                </p>
-              </div>
-              {selecionada.dds_links?.qr_png_path && (
-                <img
-                  src={publicStorageUrl("qr-codes", selecionada.dds_links.qr_png_path)}
-                  alt="QR Code"
-                  className="w-20 h-20 border rounded"
+        {erro && <p className="dds-error" role="alert">{erro}</p>}
+
+        {loteCriado && (
+          <div className="dds-rise rounded-[22px] border border-amber-200 bg-gradient-to-br from-amber-50 to-[#fff8e8] p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <p className="flex items-start gap-3 font-medium text-amber-950">
+              <span className="grid place-items-center w-10 h-10 shrink-0 rounded-xl bg-amber-400/20 text-amber-700"><Zap size={18} /></span>
+              <span>{loteCriado.length} placa(s) criada(s). Baixe agora — o PIN em texto só fica fácil de copiar aqui e na lista abaixo.</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={baixarCsv} className="dds-btn dds-btn-outline dds-btn-sm"><Download size={15} /> Baixar CSV (código + PIN + URLs)</button>
+              <button onClick={baixarPngsIndividualmente} className="dds-btn dds-btn-outline dds-btn-sm"><Download size={15} /> Baixar QR Codes (PNG)</button>
+            </div>
+          </div>
+        )}
+
+        <div className={`grid gap-5 items-start ${selecionada ? "lg:grid-cols-[minmax(0,1fr)_420px]" : ""}`}>
+          <section className="dds-card overflow-hidden">
+            <div className="p-3 sm:p-4 border-b border-[#eef2f8] flex items-center gap-3">
+              <label className="relative flex-1">
+                <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8d9bb5]" aria-hidden="true" />
+                <input
+                  value={busca}
+                  onChange={(e) => aoBuscar(e.target.value)}
+                  placeholder="Pesquisar por código, empresa..."
+                  className="dds-input pl-11 !py-2.5"
+                  aria-label="Pesquisar placas"
                 />
-              )}
+              </label>
+              <span className="hidden sm:block text-sm text-ink-muted whitespace-nowrap">{filtradas.length} placa(s)</span>
             </div>
 
-            <div className="text-sm space-y-1">
-              <p><span className="text-gray-500">Empresa:</span> {selecionada.companies?.nome ?? "—"}</p>
-              <p><span className="text-gray-500">Status da placa:</span> <StatusBadge status={selecionada.status} /></p>
-              {selecionada.dds_links && (
-                <p><span className="text-gray-500">Status do link:</span> {selecionada.dds_links.status}</p>
-              )}
-              {scansTotal && (
-                <p>
-                  <span className="text-gray-500">Acessos:</span> {scansTotal.total} (QR {scansTotal.qr} / NFC {scansTotal.nfc})
-                </p>
-              )}
-            </div>
-
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
-              <h3 className="font-semibold text-emerald-950">Mini site do cliente</h3>
-              <p className="text-sm text-emerald-900">{selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema, ou você monta por ele aqui.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
-              {!selecionada.mini_site_enabled && <button onClick={liberarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="rounded-lg bg-emerald-800 text-white px-4 py-2 text-sm disabled:opacity-50">{salvando ? 'Liberando…' : 'Pagamento confirmado · liberar mini site'}</button>}
-              {selecionada.mini_site_enabled && <button onClick={montarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="rounded-lg bg-emerald-800 text-white px-4 py-2 text-sm disabled:opacity-50">{salvando ? 'Abrindo…' : 'Montar mini site'}</button>}
-              {selecionada.status !== 'ATIVA' && <p className="text-xs text-gray-600">A placa precisa estar ativa para a liberação.</p>}
-            </div>
-
-            <div className="flex flex-wrap gap-2 md:hidden">
-              {selecionada.status !== "BLOQUEADA" ? (
-                <AcaoBotao onClick={() => alterarStatus(selecionada.id, "BLOQUEADA")}>Bloquear</AcaoBotao>
-              ) : (
-                <AcaoBotao onClick={() => alterarStatus(selecionada.id, "ATIVA")}>Desbloquear</AcaoBotao>
-              )}
-              <AcaoBotao onClick={() => transferirPlaca(selecionada.id)}>Transferir</AcaoBotao>
-              <AcaoBotao onClick={() => novoPin(selecionada.codigo, selecionada.id)}>Novo PIN</AcaoBotao>
-              <AcaoBotao onClick={() => resetarPlaca(selecionada.codigo, selecionada.id)}>Resetar</AcaoBotao>
-              <AcaoBotao onClick={() => excluirPlaca(selecionada.codigo, selecionada.id)}>Excluir</AcaoBotao>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-medium">Telefones deixados antes de avaliar ({leads.length})</p>
-                {leads.length > 0 && (
-                  <button
-                    onClick={() => copiarTexto(leads.map((l) => l.telefone).join(", "), "pin")}
-                    className="text-xs text-brand-600 hover:underline"
-                  >
-                    Copiar todos
-                  </button>
-                )}
-              </div>
-              {leads.length === 0 ? (
-                <p className="text-xs text-gray-400">Nenhum telefone deixado ainda.</p>
-              ) : (
-                <ul className="text-xs space-y-1 max-h-32 overflow-y-auto">
-                  {leads.map((l, i) => (
-                    <li key={i} className="text-gray-600 flex justify-between gap-2">
-                      <span className="font-mono">{l.telefone}</span>
-                      <span className="text-gray-400">{new Date(l.created_at).toLocaleString("pt-BR")}</span>
+            {carregando ? (
+              <div className="p-4 space-y-3" aria-busy="true">{[0, 1, 2, 3, 4].map(i => <div key={i} className="dds-skel h-11" />)}</div>
+            ) : filtradas.length === 0 ? (
+              <p className="p-8 text-center text-ink-muted text-sm">Nenhuma placa encontrada.</p>
+            ) : (
+              <>
+                {/* Celular: uma linha por placa (sem tabela), pra caber inteira na
+                    tela — toca pra abrir os detalhes e as ações no painel. */}
+                <ul className="divide-y divide-[#eef2f8] md:hidden">
+                  {paginadas.map((p) => (
+                    <li
+                      key={p.id}
+                      onClick={() => abrirDetalhe(p)}
+                      className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-[#f5f9ff] ${selecionada?.id === p.id ? "bg-[#eef6ff]" : ""}`}
+                    >
+                      <span className="font-mono font-bold text-sm shrink-0">{p.codigo}</span>
+                      <span className="text-sm text-ink-muted truncate flex-1 min-w-0">{p.companies?.nome ?? "—"}</span>
+                      <StatusBadge status={p.status} />
+                      <ChevronRight size={16} className="text-[#b9c6dc] shrink-0" />
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
 
-            {selecionada.dds_links ? (
-              <>
-                <div className="text-sm space-y-2 bg-gray-50 rounded-lg p-3">
-                  <LinkParaCopiar
-                    label="Link do QR Code"
-                    valor={scanLink(selecionada.dds_links.slug, "qr")}
-                    copiado={copiado === "qr"}
-                    onCopiar={() => copiarTexto(scanLink(selecionada.dds_links!.slug, "qr"), "qr")}
-                  />
-                  <LinkParaCopiar
-                    label="Link do NFC"
-                    valor={scanLink(selecionada.dds_links.slug, "nfc")}
-                    copiado={copiado === "nfc"}
-                    onCopiar={() => copiarTexto(scanLink(selecionada.dds_links!.slug, "nfc"), "nfc")}
-                  />
-                  <p className="text-xs text-gray-400">
-                    Grave este link do NFC (com o app NFC Tools, por exemplo) na etiqueta física — é o
-                    mesmo QR, só muda o final (?src=nfc), pra separar os acessos nas estatísticas.
-                  </p>
-                </div>
-
-                <div className="flex gap-2">
-                  {selecionada.dds_links.qr_png_path && (
-                    <a
-                      href={publicStorageUrl("qr-codes", selecionada.dds_links.qr_png_path)}
-                      download
-                      className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-100"
-                    >
-                      Baixar PNG
-                    </a>
-                  )}
-                  {selecionada.dds_links.qr_svg_path && (
-                    <a
-                      href={publicStorageUrl("qr-codes", selecionada.dds_links.qr_svg_path)}
-                      download
-                      className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-100"
-                    >
-                      Baixar SVG
-                    </a>
-                  )}
-                  <button onClick={alternarPausaLink} className="text-xs px-3 py-1.5 rounded-lg border hover:bg-gray-100">
-                    {selecionada.dds_links.status === "PAUSADO" ? "Reativar link" : "Pausar link"}
-                  </button>
-                </div>
-
-                <div>
-                  <label className="text-sm text-gray-600">Alterar destino (link de avaliação)</label>
-                  <div className="flex gap-2 mt-1">
-                    <input
-                      value={novoDestino}
-                      onChange={(e) => setNovoDestino(e.target.value)}
-                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    />
-                    <button
-                      onClick={salvarNovoDestino}
-                      disabled={salvando}
-                      className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-50"
-                    >
-                      Salvar
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-1">
-                    A imagem do QR não muda — só o destino do redirecionamento.
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium mb-1">Histórico de alterações</p>
-                  {historico.length === 0 ? (
-                    <p className="text-xs text-gray-400">Nenhuma alteração registrada ainda.</p>
-                  ) : (
-                    <ul className="text-xs space-y-1 max-h-32 overflow-y-auto">
-                      {historico.map((h, i) => (
-                        <li key={i} className="text-gray-500">
-                          {new Date(h.created_at).toLocaleString("pt-BR")} — {h.destino_anterior ?? "(nenhum)"} → {h.destino_novo}
-                        </li>
+                {/* Desktop: tabela, com as ações na própria linha. */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[11px] uppercase tracking-[.1em] text-ink-muted bg-[#f9fbfe]">
+                        <th className="px-4 py-3 font-semibold">Código</th>
+                        <th className="px-4 py-3 font-semibold">PIN</th>
+                        <th className="px-4 py-3 font-semibold">Empresa</th>
+                        <th className="px-4 py-3 font-semibold">Status</th>
+                        <th className="px-4 py-3 font-semibold text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginadas.map((p) => (
+                        <tr
+                          key={p.id}
+                          onClick={() => abrirDetalhe(p)}
+                          className={`group border-t border-[#eef2f8] cursor-pointer transition-colors hover:bg-[#f5f9ff] ${selecionada?.id === p.id ? "bg-[#eef6ff] shadow-[inset_3px_0_0_#1a6fe0]" : ""}`}
+                        >
+                          <td className="px-4 py-3 font-mono font-bold">{p.codigo}</td>
+                          <td className="px-4 py-3 font-mono">
+                            {p.pin ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copiarTexto(p.pin!, "pin");
+                                }}
+                                title="Copiar PIN"
+                                className="rounded-md px-1.5 py-0.5 -mx-1.5 hover:bg-[#e3efff] hover:text-brand-700"
+                              >
+                                {p.pin}
+                              </button>
+                            ) : (
+                              <span className="text-[#b9c6dc]">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 max-w-[220px] truncate">{p.companies?.nome ?? <span className="text-[#b9c6dc]">—</span>}</td>
+                          <td className="px-4 py-3">
+                            <StatusBadge status={p.status} />
+                          </td>
+                          <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex justify-end gap-1">
+                              {p.status !== "BLOQUEADA" ? (
+                                <AcaoIcone rotulo="Bloquear" onClick={() => alterarStatus(p.id, "BLOQUEADA")}><Lock size={15} /></AcaoIcone>
+                              ) : (
+                                <AcaoIcone rotulo="Desbloquear" onClick={() => alterarStatus(p.id, "ATIVA")}><Unlock size={15} /></AcaoIcone>
+                              )}
+                              <AcaoIcone rotulo="Transferir" onClick={() => transferirPlaca(p.id)}><ArrowLeftRight size={15} /></AcaoIcone>
+                              <AcaoIcone rotulo="Novo PIN" onClick={() => novoPin(p.codigo, p.id)}><KeyRound size={15} /></AcaoIcone>
+                              <AcaoIcone rotulo="Resetar" onClick={() => resetarPlaca(p.codigo, p.id)}><RotateCcw size={15} /></AcaoIcone>
+                              <AcaoIcone rotulo="Excluir" perigo onClick={() => excluirPlaca(p.codigo, p.id)}><Trash2 size={15} /></AcaoIcone>
+                            </div>
+                          </td>
+                        </tr>
                       ))}
-                    </ul>
-                  )}
+                    </tbody>
+                  </table>
                 </div>
               </>
-            ) : (
-              <p className="text-sm text-gray-400">Esta placa não tem link dinâmico associado.</p>
             )}
-          </div>
-        )}
-      </div>
+            {!carregando && filtradas.length > 0 && (
+              <div className="flex items-center justify-between gap-2 px-3 sm:px-4 py-3 border-t border-[#eef2f8] bg-[#f9fbfe] text-sm">
+                <button onClick={() => setPagina((p) => Math.max(0, p - 1))} disabled={paginaAtual === 0} className="dds-btn dds-btn-outline dds-btn-sm">
+                  <ChevronLeft size={15} /> Anterior
+                </button>
+                <span className="text-ink-muted text-center">
+                  Página {paginaAtual + 1} de {totalPaginas}<span className="hidden sm:inline"> · {filtradas.length} placa(s)</span>
+                </span>
+                <button onClick={() => setPagina((p) => Math.min(totalPaginas - 1, p + 1))} disabled={paginaAtual >= totalPaginas - 1} className="dds-btn dds-btn-outline dds-btn-sm">
+                  Próximo <ChevronRight size={15} />
+                </button>
+              </div>
+            )}
+          </section>
+
+          {selecionada && (
+            // No celular o painel abre como uma folha por cima da lista; no computador fica ao lado.
+            <div className="fixed inset-0 z-50 flex items-end bg-navy-950/50 backdrop-blur-[2px] lg:contents" onClick={() => setSelecionada(null)}>
+              <aside
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-h-[90dvh] overflow-y-auto dds-scroll rounded-t-[28px] bg-white shadow-lift lg:rounded-[22px] lg:border lg:border-[#e3e8f2] lg:max-h-[calc(100dvh-2rem)] lg:sticky lg:top-4 dds-rise"
+                aria-label={`Detalhes da placa ${selecionada.codigo}`}
+              >
+                <div className="sticky top-0 z-10 bg-white/90 backdrop-blur px-5 pt-4 pb-3 border-b border-[#eef2f8]">
+                  <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-[#d6deec] lg:hidden" />
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xl font-extrabold tracking-wide">{selecionada.codigo}</p>
+                      <p className="text-sm text-ink-muted">
+                        PIN:{" "}
+                        {selecionada.pin ? (
+                          <button onClick={() => copiarTexto(selecionada.pin!, "pin")} className="font-mono font-semibold text-ink hover:text-brand-700">
+                            {selecionada.pin}
+                            {copiado === "pin" ? " ✓ copiado" : ""}
+                          </button>
+                        ) : (
+                          "—"
+                        )}
+                      </p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      {selecionada.dds_links?.qr_png_path && (
+                        <img
+                          src={publicStorageUrl("qr-codes", selecionada.dds_links.qr_png_path)}
+                          alt="QR Code"
+                          className="w-16 h-16 rounded-xl border border-[#e3e8f2] bg-white p-1"
+                        />
+                      )}
+                      <button onClick={() => setSelecionada(null)} className="grid place-items-center w-9 h-9 rounded-xl text-ink-muted hover:bg-[#f1f4f9] hover:text-ink" aria-label="Fechar detalhes"><X size={18} /></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-5">
+                  <dl className="grid grid-cols-2 gap-2.5 text-sm">
+                    <Info rotulo="Empresa" className="col-span-2"><span className="flex items-center gap-2"><Store size={15} className="text-ink-muted" />{selecionada.companies?.nome ?? "—"}</span></Info>
+                    <Info rotulo="Status da placa"><StatusBadge status={selecionada.status} /></Info>
+                    <Info rotulo="Status do link">{selecionada.dds_links ? <LinkBadge status={selecionada.dds_links.status} /> : "—"}</Info>
+                    <Info rotulo="Acessos" className="col-span-2">
+                      {scansTotal ? (
+                        <span className="flex items-baseline gap-3"><strong className="font-display text-2xl font-extrabold">{scansTotal.total}</strong><span className="text-ink-muted">QR {scansTotal.qr} · NFC {scansTotal.nfc}</span></span>
+                      ) : selecionada.dds_links ? <span className="dds-skel block h-7 w-32" /> : "—"}
+                    </Info>
+                  </dl>
+
+                  <div className="relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br from-navy-800 to-navy-950">
+                    <div aria-hidden="true" className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-[radial-gradient(closest-side,#399cff66,transparent)]" />
+                    <h3 className="relative flex items-center gap-2 font-display font-bold"><Sparkles size={16} className="text-[#66e0ff]" /> Mini site do cliente</h3>
+                    <p className="relative mt-1 text-sm text-[#a7b7d1]">{selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema, ou você monta por ele aqui.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
+                    <div className="relative mt-3">
+                      {!selecionada.mini_site_enabled && <button onClick={liberarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="dds-btn dds-btn-glow dds-btn-sm">{salvando ? 'Liberando…' : 'Pagamento confirmado · liberar mini site'}</button>}
+                      {selecionada.mini_site_enabled && <button onClick={montarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="dds-btn dds-btn-glow dds-btn-sm">{salvando ? 'Abrindo…' : 'Montar mini site'}</button>}
+                      {selecionada.status !== 'ATIVA' && <p className="mt-2 text-xs text-[#a7b7d1]">A placa precisa estar ativa para a liberação.</p>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <p className="dds-label">Ações da placa</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selecionada.status !== "BLOQUEADA" ? (
+                        <AcaoBotao onClick={() => alterarStatus(selecionada.id, "BLOQUEADA")}><Lock size={14} /> Bloquear</AcaoBotao>
+                      ) : (
+                        <AcaoBotao onClick={() => alterarStatus(selecionada.id, "ATIVA")}><Unlock size={14} /> Desbloquear</AcaoBotao>
+                      )}
+                      <AcaoBotao onClick={() => transferirPlaca(selecionada.id)}><ArrowLeftRight size={14} /> Transferir</AcaoBotao>
+                      <AcaoBotao onClick={() => novoPin(selecionada.codigo, selecionada.id)}><KeyRound size={14} /> Novo PIN</AcaoBotao>
+                      <AcaoBotao onClick={() => resetarPlaca(selecionada.codigo, selecionada.id)}><RotateCcw size={14} /> Resetar</AcaoBotao>
+                      <AcaoBotao perigo onClick={() => excluirPlaca(selecionada.codigo, selecionada.id)}><Trash2 size={14} /> Excluir</AcaoBotao>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-ink"><Phone size={15} className="text-brand-600" /> Telefones deixados antes de avaliar ({leads.length})</p>
+                      {leads.length > 0 && (
+                        <button onClick={() => copiarTexto(leads.map((l) => l.telefone).join(", "), "pin")} className="text-xs font-semibold text-brand-600 hover:text-brand-700">
+                          Copiar todos
+                        </button>
+                      )}
+                    </div>
+                    {leads.length === 0 ? (
+                      <p className="text-xs text-ink-muted">Nenhum telefone deixado ainda.</p>
+                    ) : (
+                      <ul className="text-xs space-y-1.5 max-h-36 overflow-y-auto dds-scroll pr-1">
+                        {leads.map((l, i) => (
+                          <li key={i} className="flex justify-between gap-2 rounded-lg bg-[#f7f9fd] px-2.5 py-1.5">
+                            <span className="font-mono text-ink">{l.telefone}</span>
+                            <span className="text-ink-muted">{new Date(l.created_at).toLocaleString("pt-BR")}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {selecionada.dds_links ? (
+                    <>
+                      <div className="space-y-3 rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] p-3.5">
+                        <LinkParaCopiar
+                          label="Link do QR Code"
+                          valor={scanLink(selecionada.dds_links.slug, "qr")}
+                          copiado={copiado === "qr"}
+                          onCopiar={() => copiarTexto(scanLink(selecionada.dds_links!.slug, "qr"), "qr")}
+                        />
+                        <LinkParaCopiar
+                          label="Link do NFC"
+                          valor={scanLink(selecionada.dds_links.slug, "nfc")}
+                          copiado={copiado === "nfc"}
+                          onCopiar={() => copiarTexto(scanLink(selecionada.dds_links!.slug, "nfc"), "nfc")}
+                        />
+                        <p className="text-xs text-ink-muted leading-relaxed">
+                          Grave este link do NFC (com o app NFC Tools, por exemplo) na etiqueta física — é o
+                          mesmo QR, só muda o final (?src=nfc), pra separar os acessos nas estatísticas.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {selecionada.dds_links.qr_png_path && (
+                          <a href={publicStorageUrl("qr-codes", selecionada.dds_links.qr_png_path)} download className="dds-btn dds-btn-outline dds-btn-sm">
+                            <Download size={14} /> Baixar PNG
+                          </a>
+                        )}
+                        {selecionada.dds_links.qr_svg_path && (
+                          <a href={publicStorageUrl("qr-codes", selecionada.dds_links.qr_svg_path)} download className="dds-btn dds-btn-outline dds-btn-sm">
+                            <Download size={14} /> Baixar SVG
+                          </a>
+                        )}
+                        <button onClick={alternarPausaLink} className="dds-btn dds-btn-outline dds-btn-sm">
+                          {selecionada.dds_links.status === "PAUSADO" ? <><Play size={14} /> Reativar link</> : <><Pause size={14} /> Pausar link</>}
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="dds-label" htmlFor="novo-destino">Alterar destino (link de avaliação)</label>
+                        <div className="flex gap-2">
+                          <input id="novo-destino" value={novoDestino} onChange={(e) => setNovoDestino(e.target.value)} className="dds-input !py-2.5 text-sm" />
+                          <button onClick={salvarNovoDestino} disabled={salvando} className="dds-btn dds-btn-primary">
+                            Salvar
+                          </button>
+                        </div>
+                        <p className="dds-help">A imagem do QR não muda — só o destino do redirecionamento.</p>
+                      </div>
+
+                      <div>
+                        <p className="flex items-center gap-2 text-sm font-semibold text-ink mb-2"><History size={15} className="text-brand-600" /> Histórico de alterações</p>
+                        {historico.length === 0 ? (
+                          <p className="text-xs text-ink-muted">Nenhuma alteração registrada ainda.</p>
+                        ) : (
+                          <ol className="relative text-xs space-y-3 max-h-40 overflow-y-auto dds-scroll pl-4 border-l-2 border-[#e3e8f2]">
+                            {historico.map((h, i) => (
+                              <li key={i} className="relative text-ink-muted break-all">
+                                <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-brand-400 ring-4 ring-white" />
+                                <span className="block font-semibold text-ink">{new Date(h.created_at).toLocaleString("pt-BR")}</span>
+                                {h.destino_anterior ?? "(nenhum)"} → {h.destino_novo}
+                              </li>
+                            ))}
+                          </ol>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-ink-muted">Esta placa não tem link dinâmico associado.</p>
+                  )}
+                </div>
+              </aside>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Kpi({ icon, label, value, loading, d, tone = "blue" }: { icon: ReactNode; label: string; value: number; loading: boolean; d: number; tone?: "blue" | "green" | "amber" | "violet" }) {
+  const tones = {
+    blue: "",
+    green: "!bg-gradient-to-br !from-emerald-50 !to-emerald-100 !text-emerald-700 !shadow-[inset_0_0_0_1px_#a7f3d0]",
+    amber: "!bg-gradient-to-br !from-amber-50 !to-amber-100 !text-amber-700 !shadow-[inset_0_0_0_1px_#fde68a]",
+    violet: "!bg-gradient-to-br !from-[#f3f0ff] !to-[#e6e0ff] !text-[#6d5ae6] !shadow-[inset_0_0_0_1px_#d9d1ff]",
+  };
+  return (
+    <div className="dds-card dds-lift p-4 sm:p-5 dds-rise" style={{ ["--d" as string]: `${d}s` }}>
+      <span className={`dds-icon-tile !w-10 !h-10 ${tones[tone]}`}>{icon}</span>
+      <p className="mt-3 font-display text-[28px] sm:text-[32px] leading-none font-extrabold tracking-[-.04em]">{loading ? <span className="dds-skel inline-block h-7 w-12 align-middle" /> : <CountUp value={value} />}</p>
+      <p className="mt-1 text-[13px] text-ink-muted">{label}</p>
+    </div>
+  );
+}
+
+function Info({ rotulo, children, className = "" }: { rotulo: string; children: ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-xl border border-[#eef2f8] bg-[#f9fbfe] px-3 py-2.5 ${className}`}>
+      <dt className="text-[11px] font-semibold uppercase tracking-[.08em] text-ink-muted">{rotulo}</dt>
+      <dd className="mt-1 text-ink">{children}</dd>
     </div>
   );
 }
@@ -674,39 +721,38 @@ function LinkParaCopiar({
 }) {
   return (
     <div>
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-xs font-semibold text-ink-soft mb-1">{label}</p>
       <div className="flex gap-2">
         <input
           readOnly
           value={valor}
           onFocus={(e) => e.target.select()}
-          className="flex-1 min-w-0 rounded border border-gray-200 bg-white px-2 py-1 text-xs font-mono"
+          className="flex-1 min-w-0 rounded-xl border border-[#dbe3f0] bg-white px-2.5 py-2 text-xs font-mono text-ink-soft"
         />
-        <button
-          onClick={onCopiar}
-          className="shrink-0 text-xs px-3 py-1 rounded-lg border hover:bg-gray-100 whitespace-nowrap"
-        >
-          {copiado ? "Copiado!" : "Copiar"}
+        <button onClick={onCopiar} className="dds-btn dds-btn-outline dds-btn-sm shrink-0">
+          {copiado ? <><CheckCircle2 size={14} className="text-emerald-600" /> Copiado!</> : <><Copy size={14} /> Copiar</>}
         </button>
       </div>
     </div>
   );
 }
 
-function AcaoLink({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function AcaoIcone({ children, onClick, rotulo, perigo = false }: { children: ReactNode; onClick: () => void; rotulo: string; perigo?: boolean }) {
   return (
-    <button onClick={onClick} className="text-brand-600 hover:underline text-xs">
+    <button
+      onClick={onClick}
+      title={rotulo}
+      aria-label={rotulo}
+      className={`grid place-items-center w-8 h-8 rounded-lg text-ink-muted transition-colors ${perigo ? "hover:bg-rose-50 hover:text-rose-600" : "hover:bg-[#e3efff] hover:text-brand-700"}`}
+    >
       {children}
     </button>
   );
 }
 
-function AcaoBotao({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function AcaoBotao({ children, onClick, perigo = false }: { children: ReactNode; onClick: () => void; perigo?: boolean }) {
   return (
-    <button
-      onClick={onClick}
-      className="text-xs px-3 py-1.5 rounded-lg border text-brand-600 hover:bg-brand-50"
-    >
+    <button onClick={onClick} className={`dds-btn dds-btn-outline dds-btn-sm ${perigo ? "!text-rose-600 hover:!bg-rose-50 hover:!border-rose-200" : ""}`}>
       {children}
     </button>
   );
@@ -723,18 +769,25 @@ function baixarArquivo(conteudo: string, nome: string, tipo: string) {
 }
 
 const statusStyles: Record<string, string> = {
-  ATIVA: "bg-green-100 text-green-700",
-  AGUARDANDO_ATIVACAO: "bg-yellow-100 text-yellow-700",
-  CRIADA: "bg-gray-100 text-gray-700",
-  BLOQUEADA: "bg-red-100 text-red-700",
-  DESATIVADA: "bg-gray-200 text-gray-500",
+  ATIVA: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+  AGUARDANDO_ATIVACAO: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+  CRIADA: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
+  BLOQUEADA: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
+  DESATIVADA: "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
+};
+const statusLabel: Record<string, string> = {
+  ATIVA: "Ativa",
+  AGUARDANDO_ATIVACAO: "Aguardando",
+  CRIADA: "Criada",
+  BLOQUEADA: "Bloqueada",
+  DESATIVADA: "Desativada",
 };
 
 function StatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusStyles[status] ?? ""}`}>
-      {status}
-    </span>
-  );
+  return <span className={`dds-status ${statusStyles[status] ?? "bg-slate-100 text-slate-600"}`} title={status}>{statusLabel[status] ?? status}</span>;
 }
 
+function LinkBadge({ status }: { status: string }) {
+  const ativo = status !== "PAUSADO";
+  return <span className={`dds-status ${ativo ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" : "bg-amber-50 text-amber-700 ring-1 ring-amber-200"}`}>{ativo ? "Ativo" : "Pausado"}</span>;
+}

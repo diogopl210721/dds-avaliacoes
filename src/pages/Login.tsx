@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
+import { ArrowUpRight, LogIn } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { withTimeout } from "../lib/withTimeout";
+import { AuthShell, Erro, TituloForm } from "../components/PlacaUi";
+import { Spinner } from "../components/ui/Fx";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -41,45 +44,47 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <form onSubmit={entrar} className="w-full max-w-sm bg-white rounded-xl shadow p-6 space-y-3">
-        <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block mb-1">
-          ← Voltar
-        </Link>
-        <Link to="/minisite" className="text-sm text-emerald-700 block">Estúdio de mini páginas →</Link>
-        <h1 className="text-xl font-semibold mb-2">Entrar no painel</h1>
+    <AuthShell
+      eyebrow="Painel"
+      title={<>Entre no seu <span className="font-serif italic font-normal dds-spectrum-text">painel.</span></>}
+      text="Acesso com e-mail e senha para administradores e contas do DDS Avaliações."
+      points={["Placas, QR Codes e links em um só lugar", "Estúdio de mini páginas"]}
+    >
+      <TituloForm icon={<LogIn size={20} />} titulo="Entrar no painel" texto="Use o e-mail e a senha da sua conta." />
+      <form onSubmit={entrar} className="space-y-4">
         <label className="block">
-          <span className="text-sm text-gray-600">E-mail</span>
+          <span className="dds-label">E-mail</span>
           <input
             type="email"
             autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="dds-input"
+            placeholder="voce@empresa.com.br"
           />
         </label>
         <label className="block">
-          <span className="text-sm text-gray-600">Senha</span>
+          <span className="dds-label">Senha</span>
           <input
             type="password"
             autoComplete="current-password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
-            className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            className="dds-input"
           />
         </label>
-        {erro && <p className="text-sm text-red-600" role="alert">{erro}</p>}
-        <button
-          type="submit"
-          disabled={carregando}
-          className="w-full py-2.5 rounded-lg bg-brand-500 text-white font-medium hover:bg-brand-600 disabled:opacity-50"
-        >
-          {carregando ? "Entrando..." : "Entrar"}
+        {erro && <Erro>{erro}</Erro>}
+        <button type="submit" disabled={carregando} className="dds-btn dds-btn-primary dds-btn-lg dds-btn-block mt-2">
+          {carregando ? <><Spinner /> Entrando...</> : "Entrar"}
         </button>
       </form>
-    </div>
+      <div className="mt-6 pt-5 border-t border-[#e8edf5] flex flex-wrap items-center justify-between gap-3 text-sm">
+        <span className="text-ink-muted">Tem uma placa? Use o código e a senha.</span>
+        <Link to="/sistema" className="font-semibold text-brand-600 hover:text-brand-700">Meu sistema</Link>
+      </div>
+      <Link to="/minisite" className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:text-brand-700">Estúdio de mini páginas <ArrowUpRight size={15} /></Link>
+    </AuthShell>
   );
 }
-
