@@ -66,7 +66,7 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
   }
 
   function applyResult(r: Lookup) {
-    if (r.error) { setError(r.error); return; }
+    if (r.error) { fallback(r.error); return; }
     if (r.candidates?.length) { setCandidates(r.candidates); return; }
     if (!r.place) return;
     const seg = r.place.types.length ? detectSegment([r.place.primaryType, ...r.place.types]) : segment;
@@ -82,8 +82,15 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
     if (demo) { fill(null, segment, variant); notify('Na demonstração a busca no Google fica desligada. Os textos prontos foram aplicados.'); return; }
     setBusy(true);
     try { applyResult(await lookup(placeId)); }
-    catch (e: any) { setError(e.message || 'A busca no Google não respondeu agora. Tente de novo ou preencha manualmente.'); }
+    catch (e: any) { fallback(e.message || 'A busca no Google não respondeu agora.'); }
     finally { setBusy(false); }
+  }
+
+  // Sem os dados do Google, os textos prontos entram mesmo assim: ninguém fica parado esperando.
+  function fallback(message: string) {
+    fill(place, segment, variant);
+    setError(`${message.replace(/\s*Tente de novo ou preencha manualmente\.?$/, '')} Os textos prontos foram aplicados; complete telefone, endereço e horários.`);
+    notify('Textos prontos aplicados. Revise e complete os dados de contato.');
   }
 
   function another() { const v = variant + 1; setVariant(v); fill(place, segment, v); notify('Nova versão dos textos aplicada.'); }
