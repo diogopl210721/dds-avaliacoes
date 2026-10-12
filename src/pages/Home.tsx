@@ -1,8 +1,8 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, ArrowUpRight, BarChart3, Cake, FileSpreadsheet, KeyRound, LayoutDashboard, Link2,
-  Nfc, QrCode, RefreshCcw, ScanLine, Smartphone, Sparkles, Star, Zap,
+  ArrowDown, ArrowRight, ArrowUpRight, BarChart3, Cake, Camera, CheckCircle2, Clapperboard, FileSpreadsheet, Handshake, KeyRound, LayoutDashboard, Link2,
+  MessageCircle, MonitorSmartphone, Nfc, Palette, QrCode, RefreshCcw, ScanLine, Smartphone, Sparkles, Star, Workflow, Zap,
 } from "lucide-react";
 import { Aurora, BrandMark, Stars, Tilt, spotMove, useReveal } from "../components/ui/Fx";
 import Plaque from "../components/ui/Plaque";
@@ -15,13 +15,36 @@ const prefetch = {
 };
 const intent = (load: () => Promise<unknown>) => ({ onPointerEnter: () => { load(); }, onTouchStart: () => { load(); }, onFocus: () => { load(); } });
 
+// Contato comercial da DDS (WhatsApp). Cada botão manda uma mensagem diferente, para saber o interesse.
+const WHATS = "5541991542931";
+const WHATS_LABEL = "(41) 99154-2931";
+const wa = (msg: string) => `https://wa.me/${WHATS}?text=${encodeURIComponent(msg)}`;
+const MSG_PLACA = "Olá! Vim pelo site da DDS Avaliações e quero um orçamento da plaquinha de avaliação para a minha empresa.";
+const msgServico = (servico: string) => `Olá! Vim pelo site da DDS Avaliações e quero um orçamento de ${servico}.`;
+
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export default function Home() {
   const ref = useReveal<HTMLDivElement>();
+  const hero = useRef<HTMLElement>(null);
+  const offerCta = useRef<HTMLAnchorElement>(null);
+  const [pastHero, setPastHero] = useState(false);
+  const [ctaInView, setCtaInView] = useState(false);
   const year = new Date().getFullYear();
+  // O WhatsApp flutuante só aparece depois da primeira dobra: quem veio ativar não é incomodado.
+  useEffect(() => {
+    const el = hero.current; if (!el || !("IntersectionObserver" in window)) return;
+    const io = new IntersectionObserver(([e]) => setPastHero(!e.isIntersecting && e.boundingClientRect.top < 0), { threshold: 0 });
+    io.observe(el);
+    // Some enquanto o botão grande da oferta está na tela (não ficam dois iguais).
+    const cta = offerCta.current;
+    const io2 = cta ? new IntersectionObserver(([e]) => setCtaInView(e.isIntersecting), { threshold: 0 }) : null;
+    if (cta && io2) io2.observe(cta);
+    return () => { io.disconnect(); io2?.disconnect(); };
+  }, []);
+  const showFloat = pastHero && !ctaInView;
   return (
     <div ref={ref} className="dds-dark min-h-[100dvh] overflow-x-clip">
       <Aurora />
@@ -32,7 +55,8 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-1 text-sm text-[#b9c8e2]">
             <button onClick={() => scrollToId("como-funciona")} className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Como funciona</button>
             <button onClick={() => scrollToId("recursos")} className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Recursos</button>
-            <Link to="/demo" {...intent(prefetch.demo)} className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Mini site</Link>
+            <button onClick={() => scrollToId("servicos")} className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">Serviços</button>
+            <button onClick={() => scrollToId("quero")} className="ml-1 px-3 py-2 rounded-lg font-semibold text-[#66e0ff] hover:text-white hover:bg-white/5 transition">Quero a minha</button>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/sistema" {...intent(prefetch.sistema)} className="dds-btn dds-btn-ghost-dark dds-btn-sm sm:px-4">Meu sistema</Link>
@@ -43,7 +67,7 @@ export default function Home() {
 
       <main>
         {/* Primeira dobra */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 lg:pt-20 pb-16 lg:pb-24 grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-8 items-center">
+        <section ref={hero} className="max-w-6xl mx-auto px-4 sm:px-6 pt-12 sm:pt-16 lg:pt-20 pb-16 lg:pb-24 grid lg:grid-cols-[1.05fr_.95fr] gap-12 lg:gap-8 items-center">
           <div>
             <span className="dds-eyebrow dds-rise"><span className="dds-pulse-dot" />Placas de avaliação Google · QR Code + NFC</span>
             <h1 className="font-display font-extrabold text-[clamp(40px,7vw,76px)] leading-[1.02] tracking-[-.045em] mt-6 dds-rise" style={{ ["--d" as string]: ".08s" }}>
@@ -56,6 +80,10 @@ export default function Home() {
               <Link to="/cadastrar" {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-lg">Ativar minha placa <ArrowRight size={18} /></Link>
               <Link to="/sistema" {...intent(prefetch.sistema)} className="dds-btn dds-btn-ghost-dark dds-btn-lg"><LayoutDashboard size={18} /> Acessar meu sistema</Link>
             </div>
+            <button onClick={() => scrollToId("quero")} className="group mt-4 inline-flex items-center gap-2 text-[15px] text-[#a7b7d1] hover:text-white transition dds-rise" style={{ ["--d" as string]: ".28s" }}>
+              Ainda não tem a sua? <span className="font-semibold text-[#66e0ff] underline decoration-[#66e0ff55] underline-offset-4 group-hover:decoration-[#66e0ff]">Quero uma plaquinha</span>
+              <ArrowDown size={16} className="text-[#66e0ff] transition-transform group-hover:translate-y-0.5" />
+            </button>
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#a7b7d1] dds-rise" style={{ ["--d" as string]: ".32s" }}>
               <li className="flex items-center gap-2"><Zap size={16} className="text-[#66e0ff]" /> Sem baixar nada</li>
               <li className="flex items-center gap-2"><Smartphone size={16} className="text-[#66e0ff]" /> iPhone e Android</li>
@@ -100,23 +128,68 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Mini site */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10 lg:py-16">
-          <div data-reveal className="dds-spectrum-border rounded-[32px] overflow-hidden">
-            <div className="relative rounded-[32px] bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 p-7 sm:p-10 lg:p-14 grid lg:grid-cols-2 gap-10 items-center">
-              <div>
-                <span className="dds-eyebrow"><Sparkles size={14} className="text-[#66e0ff]" />Novo · Mini site</span>
-                <h2 className="mt-5 font-display text-[clamp(30px,4.4vw,48px)] font-extrabold leading-[1.05] tracking-[-.04em]">Sua empresa. <span className="font-serif italic font-normal dds-spectrum-text">Seu mini site.</span></h2>
-                <p className="mt-4 text-[#a7b7d1] text-[16px] leading-relaxed max-w-md">Página pronta com fotos, serviços, WhatsApp e redes sociais, publicada em <strong className="text-white font-semibold">ddsinovacao.com.br/suaempresa</strong>. São 9 modelos com efeitos 3D e 4 combinações de cores cada.</p>
-                <Link to="/demo" {...intent(prefetch.demo)} className="mt-7 dds-btn dds-btn-glow">Ver os 9 modelos <ArrowUpRight size={18} /></Link>
+        {/* Oferta para quem ainda não tem a placa */}
+        <section id="quero" className="scroll-mt-20 max-w-6xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+          <div data-reveal className="dds-spectrum-border rounded-[32px]">
+            <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#10244f] via-navy-900 to-navy-950 p-7 sm:p-10 lg:p-14 grid lg:grid-cols-[1.15fr_.85fr] gap-10 lg:gap-14 items-center">
+              <div aria-hidden="true" className="absolute -right-24 -top-24 w-[420px] h-[420px] rounded-full bg-[radial-gradient(closest-side,#399cff40,transparent)]" />
+              <div className="relative min-w-0">
+                <span className="dds-eyebrow"><Sparkles size={14} className="text-[#66e0ff]" />Ainda não tem a sua placa?</span>
+                <h2 className="mt-5 font-display text-[clamp(30px,4.4vw,50px)] font-extrabold leading-[1.05] tracking-[-.04em] text-white">Transforme clientes satisfeitos em <span className="font-serif italic font-normal dds-spectrum-text">avaliações no Google.</span></h2>
+                <p className="mt-4 text-[16px] sm:text-[17px] leading-relaxed text-[#a7b7d1] max-w-xl">A placa fica no balcão, na mesa ou na parede. O cliente aproxima o celular e avalia a sua empresa em segundos. Você acompanha tudo pelo sistema.</p>
+                <ul className="mt-6 grid sm:grid-cols-2 gap-x-6 gap-y-3 text-[15px] text-[#d6e3f8]">
+                  {["Placa com QR Code e NFC", "Sistema com acessos e contatos", "Aniversariantes para mandar parabéns", "Troca do link sem reimprimir", "Mini site da empresa (opcional)", "Funciona em iPhone e Android"].map(t => (
+                    <li key={t} className="flex items-start gap-2.5"><CheckCircle2 size={18} className="mt-0.5 shrink-0 text-[#66e0ff]" />{t}</li>
+                  ))}
+                </ul>
+                <div className="mt-8 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <a ref={offerCta} href={wa(MSG_PLACA)} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-whats dds-btn-lg !whitespace-normal text-center"><MessageCircle size={20} /> Pedir orçamento sem compromisso</a>
+                  <span className="text-sm text-[#8b9bb8]">Resposta pelo WhatsApp<br className="hidden sm:block" /> <strong className="font-semibold text-[#cfe0fb]">{WHATS_LABEL}</strong></span>
+                </div>
               </div>
-              <MiniPhones />
+              <div className="relative mx-auto w-full max-w-[300px] lg:max-w-[340px]" aria-hidden="true">
+                <div className="dds-stage dds-float">
+                  <Tilt base={{ x: 8, y: -14 }}><div className="dds-plaque-edge" /><Plaque name="Sua empresa" /></Tilt>
+                </div>
+                <div className="dds-chip-float -left-3 sm:-left-10 top-[14%]" style={{ animationDelay: "-2s" }}>
+                  <span className="grid place-items-center w-8 h-8 rounded-xl bg-emerald-400/15 text-emerald-300"><MessageCircle size={16} /></span>
+                  <span>Orçamento<small>sem compromisso</small></span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
+        {/* Serviços da DDS Inovação */}
+        <section id="servicos" className="scroll-mt-20 max-w-6xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+          <SectionTitle eyebrow="Mais da DDS Inovação" title={<>Resolvemos as <span className="font-serif italic font-normal text-brand-300">suas dores.</span></>} />
+          <p data-reveal className="mt-4 max-w-xl text-[16px] leading-relaxed text-[#a7b7d1]">Do site ao vídeo para as redes: soluções digitais para a sua empresa aparecer mais e atender melhor.</p>
+
+          <div data-reveal className="mt-10 relative overflow-hidden rounded-[28px] border border-white/10 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 p-7 sm:p-10 grid lg:grid-cols-2 gap-10 items-center">
+            <div>
+              <span className="dds-eyebrow"><Smartphone size={14} className="text-[#66e0ff]" />Mini site para empresas</span>
+              <h3 className="mt-5 font-display text-[clamp(26px,3.6vw,40px)] font-extrabold leading-[1.05] tracking-[-.04em] text-white">Sua empresa. <span className="font-serif italic font-normal dds-spectrum-text">Seu mini site.</span></h3>
+              <p className="mt-4 text-[#a7b7d1] text-[16px] leading-relaxed max-w-md">Página pronta com fotos, serviços, WhatsApp e redes sociais, publicada em <strong className="text-white font-semibold">ddsinovacao.com.br/suaempresa</strong>. São 9 modelos com efeitos 3D.</p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                <Link to="/demo" {...intent(prefetch.demo)} className="dds-btn dds-btn-glow">Ver os 9 modelos <ArrowUpRight size={18} /></Link>
+                <a href={wa(msgServico("um mini site para a minha empresa"))} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-ghost-dark"><MessageCircle size={17} /> Pedir orçamento</a>
+              </div>
+            </div>
+            <MiniPhones />
+          </div>
+
+          <div className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Service icon={<MonitorSmartphone size={20} />} title="Sites e landing pages" text="Páginas rápidas e bonitas, feitas para transformar visitas em contatos no WhatsApp." msg={msgServico("um site ou landing page")} />
+            <Service icon={<Workflow size={20} />} title="Sistemas sob medida" text="Controles, painéis e automações do jeito que a sua empresa trabalha." msg={msgServico("um sistema sob medida")} />
+            <Service icon={<Palette size={20} />} title="Identidade visual e design" text="Logo, cores e peças que deixam a sua marca profissional e lembrada." msg={msgServico("identidade visual e design")} />
+            <Service icon={<Camera size={20} />} title="Filmagens com drone" text="Imagens aéreas que mostram o seu espaço de um jeito que impressiona." msg={msgServico("filmagem com drone")} />
+            <Service icon={<Clapperboard size={20} />} title="Vídeos curtos com IA" text="Vídeos para as redes, com apresentadores criados por IA divulgando o seu negócio." msg={msgServico("vídeos curtos com IA para divulgar meu negócio")} />
+            <Service icon={<Handshake size={20} />} title="E muito mais" text="Tem outro desafio? Conte pra gente e encontramos a solução." msg="Olá! Vim pelo site da DDS Avaliações e quero conversar sobre um projeto." cta="Conversar no WhatsApp" dashed />
+          </div>
+        </section>
+
         {/* Já tem a placa */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 lg:py-24">
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-16 lg:pb-24">
           <SectionTitle eyebrow="Já tem a sua placa?" title={<>Tudo em um <span className="font-serif italic font-normal text-brand-300">só lugar.</span></>} />
           <div className="mt-10 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <QuickTile to="/cadastrar" load={prefetch.ativar} icon={<Zap size={20} />} title="Ativar placa" text="Leva 2 minutos" />
@@ -134,11 +207,20 @@ export default function Home() {
             <p>Placas de avaliação com QR Code e NFC.</p>
           </div>
           <div className="flex flex-col sm:items-end gap-1.5">
+            <a href={wa(MSG_PLACA)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[#cfe0fb] hover:text-white transition"><MessageCircle size={14} className="text-emerald-300" /> WhatsApp {WHATS_LABEL}</a>
             <a href="https://www.ddsinovacao.com.br/" className="inline-flex items-center gap-1.5 text-[#cfe0fb] hover:text-white transition">Uma solução DDS Inovação <ArrowUpRight size={14} /></a>
             <p>© {year} DDS Inovação. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
+
+      <a
+        href={wa(MSG_PLACA)} target="_blank" rel="noopener noreferrer"
+        aria-label="Pedir orçamento pelo WhatsApp" aria-hidden={!showFloat} tabIndex={showFloat ? 0 : -1}
+        className={`fixed z-40 right-4 bottom-4 sm:right-6 sm:bottom-6 dds-btn dds-btn-whats rounded-full shadow-[0_16px_40px_-12px_#12a150] transition-all duration-500 ${showFloat ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6 pointer-events-none"}`}
+      >
+        <MessageCircle size={20} /> <span className="hidden sm:inline">Pedir orçamento</span><span className="sm:hidden">Orçamento</span>
+      </a>
     </div>
   );
 }
@@ -256,6 +338,19 @@ function MiniPhones() {
         </div>
       ))}
     </div>
+  );
+}
+
+function Service({ icon, title, text, msg, cta = "Pedir orçamento", dashed = false }: { icon: ReactNode; title: string; text: string; msg: string; cta?: string; dashed?: boolean }) {
+  return (
+    <article data-reveal onPointerMove={spotMove} className={`dds-spot dds-card-dark p-6 flex flex-col transition-colors hover:border-white/20 ${dashed ? "!border-dashed !border-white/20 !bg-transparent" : ""}`}>
+      <span className="dds-icon-tile dark">{icon}</span>
+      <h3 className="mt-4 font-display text-lg font-bold tracking-tight text-white">{title}</h3>
+      <p className="mt-1.5 text-[15px] leading-relaxed text-[#a7b7d1] flex-1">{text}</p>
+      <a href={wa(msg)} target="_blank" rel="noopener noreferrer" className="group mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#66e0ff] hover:text-white transition">
+        <MessageCircle size={16} /> {cta} <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
+      </a>
+    </article>
   );
 }
 
