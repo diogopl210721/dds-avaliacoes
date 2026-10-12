@@ -24,7 +24,7 @@ function cleanContent(raw: any) {
   if (!c.name) throw new Error("Preencha o nome da empresa.");
   for (const key of ["facebook", "website", "maps", "review", "logo", "cover"]) c[key] = url(raw[key]);
   c.instagram = text(raw.instagram).startsWith("@") ? text(raw.instagram) : url(raw.instagram);
-  c.theme = ["elegance", "viva", "essencial"].includes(raw.theme) ? raw.theme : "elegance";
+  c.theme = ["elegance", "viva", "essencial", "brasa", "aura", "navalha", "vital", "impulso", "refugio"].includes(raw.theme) ? raw.theme : "elegance";
   if (!Array.isArray(raw.gallery) || raw.gallery.length > 12 || !Array.isArray(raw.products) || raw.products.length > 60) throw new Error("Use até 12 fotos e 60 produtos.");
   c.gallery = raw.gallery.map(url);
   c.products = raw.products.map((p: any) => ({ id: text(p?.id, 100), name: text(p?.name), description: text(p?.description), price: text(p?.price, 100), image: url(p?.image) }));

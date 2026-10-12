@@ -12,6 +12,14 @@ export function ThemePhone({ content, theme, index = 0 }: { content: MiniContent
   const stage = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   usePhoneTilt(stage);
+  // Pausa as animações dos celulares que estão fora da tela (são até nove de uma vez).
+  useEffect(() => {
+    const el = stage.current;
+    if (!el || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(([e]) => el.classList.toggle('is-paused', !e.isIntersecting), { rootMargin: '80px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   useEffect(() => {
     const el = screen.current;
     if (!el) return;
@@ -53,11 +61,17 @@ export function MiniPreviewModal({ content, demo = false, label, onClose, onThem
   }, [onClose]);
   return <div className="studio-preview-modal" role="dialog" aria-modal="true" aria-label={label}>
     <div className="mini-modal-bar">
-      {onTheme ? <div className="mini-modal-themes" role="group" aria-label="Escolher modelo">
-        {themeOptions.map(t => <button key={t.id} aria-pressed={content.theme === t.id} onClick={() => onTheme(t.id)}>{t.name}</button>)}
-      </div> : <span className="mini-modal-title">{label}</span>}
+      {onTheme ? <ThemeChips current={content.theme} onTheme={onTheme} /> : <span className="mini-modal-title">{label}</span>}
       <button className="mini-modal-close" autoFocus onClick={onClose}><X size={18} /> Fechar</button>
     </div>
     <MiniLanding key={content.theme} content={content} demo={demo} />
+  </div>;
+}
+
+function ThemeChips({ current, onTheme }: { current: MiniTheme; onTheme: (theme: MiniTheme) => void }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => { box.current?.querySelector<HTMLElement>('[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest', inline: 'center' }); }, [current]);
+  return <div className="mini-modal-themes" role="group" aria-label="Escolher modelo" ref={box}>
+    {themeOptions.map(t => <button key={t.id} aria-pressed={current === t.id} onClick={() => onTheme(t.id)}>{t.name}<small>{t.niche}</small></button>)}
   </div>;
 }

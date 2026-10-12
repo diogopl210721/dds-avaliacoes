@@ -1,14 +1,7 @@
 export type Product = { id: string; name: string; description: string; price: string; image: string };
-export type MiniContent = { name: string; tagline: string; description: string; phone: string; address: string; hours: string; instagram: string; facebook: string; website: string; maps: string; review: string; logo: string; cover: string; gallery: string[]; products: Product[]; theme: 'elegance' | 'viva' | 'essencial' };
+export type MiniContent = { name: string; tagline: string; description: string; phone: string; address: string; hours: string; instagram: string; facebook: string; website: string; maps: string; review: string; logo: string; cover: string; gallery: string[]; products: Product[]; theme: MiniTheme };
+export type MiniTheme = 'elegance' | 'viva' | 'essencial' | 'brasa' | 'aura' | 'navalha' | 'vital' | 'impulso' | 'refugio';
 export type MiniRecord = { id: string; slug: string; published: boolean; content: MiniContent };
-export type MiniTheme = MiniContent['theme'];
-// Os IDs (elegance, viva, essencial) ficam iguais: são os valores aceitos pela
-// função plate-mini e gravados em mini_pages.content.theme. Só o visual mudou.
-export const themeOptions: { id: MiniTheme; name: string; description: string; tag: string }[] = [
-  { id: 'elegance', name: 'Noir', description: 'Tons de café e dourado, com a foto da capa flutuando em 3D.', tag: 'SOFISTICADO' },
-  { id: 'viva', name: 'Vibe', description: 'Cores vivas, formas em movimento e botões que saltam da tela.', tag: 'CHEIO DE ENERGIA' },
-  { id: 'essencial', name: 'Cristal', description: 'Claro e leve, com vidro, profundidade e luz em movimento.', tag: 'MODERNO' },
-];
 // Versão enxuta do conteúdo para as miniaturas animadas (evita renderizar 60 produtos três vezes).
 export function thumbContent(c: MiniContent, theme: MiniTheme): MiniContent { return { ...c, theme, products: c.products.slice(0, 4), gallery: c.gallery.slice(0, 6) }; }
 export const blankContent: MiniContent = { name: '', tagline: '', description: '', phone: '', address: '', hours: '', instagram: '', facebook: '', website: '', maps: '', review: '', logo: '', cover: '', gallery: [], products: [], theme: 'elegance' };
@@ -20,3 +13,33 @@ export function slugify(value: string) { return value.normalize('NFD').replace(/
 export function publicLink(slug: string) { return `${location.origin}${location.pathname}#/loja/${slug}`; }
 
 export function imageUrl(value: string) { return /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value) ? value : safeUrl(value); }
+
+// Todos os IDs abaixo precisam estar na lista aceita pela função plate-mini
+// (supabase/functions/plate-mini/index.ts), senão o tema volta para "elegance".
+export const MINI_THEMES: MiniTheme[] = ['brasa', 'aura', 'navalha', 'vital', 'impulso', 'refugio', 'elegance', 'viva', 'essencial'];
+
+const item = (id: string, name: string, description: string, price = '') => ({ id, name, description, price, image: '' });
+const demo = (c: Partial<MiniContent>): MiniContent => ({ ...blankContent, ...c });
+
+// Empresas fictícias de cada segmento, só para as prévias.
+export const nicheDemos: Partial<Record<MiniTheme, MiniContent>> = {
+  brasa: demo({ theme: 'brasa', name: 'Brasa & Lenha', tagline: 'Pizza no forno a lenha, do jeito que tem que ser.', description: 'Massa de fermentação lenta, molho de tomate da casa e forno aceso a 400 °C. Venha comer aqui ou peça para levar.', address: 'Rua das Brasas, 450 · Curitiba, PR', hours: 'Terça a domingo · 18h às 23h30', products: [item('b1', 'Margherita', 'Molho de tomate, muçarela de búfala e manjericão.', '59,90'), item('b2', 'Calabresa artesanal', 'Calabresa defumada, cebola roxa e azeitonas.', '56,90'), item('b3', 'Burger na brasa', 'Blend de 180 g, cheddar e cebola caramelizada.', '36,90'), item('b4', 'Petit gâteau', 'Com sorvete de creme.', '24,00')] }),
+  aura: demo({ theme: 'aura', name: 'Studio Lumière', tagline: 'Cabelo, pele e unhas com cuidado de verdade.', description: 'Um espaço tranquilo para você se cuidar, com profissionais especializadas e produtos de alta qualidade.', address: 'Rua das Pérolas, 210 · Curitiba, PR', hours: 'Segunda a sábado · 9h às 20h', products: [item('a1', 'Corte e escova', 'Corte personalizado com finalização.', '120,00'), item('a2', 'Coloração', 'Mechas, tonalização ou cor global.', '190,00'), item('a3', 'Design de sobrancelhas', 'Com henna ou linha.', '45,00'), item('a4', 'Manicure e pedicure', 'Esmaltação tradicional ou em gel.', '65,00')] }),
+  navalha: demo({ theme: 'navalha', name: 'Fio de Navalha', tagline: 'Corte, barba e uma boa conversa.', description: 'Atendimento com hora marcada, toalha quente e acabamento na navalha. Café passado na hora enquanto você espera.', address: 'Rua da Navalha, 88 · Curitiba, PR', hours: 'Segunda a sábado · 9h às 21h', products: [item('n1', 'Corte masculino', 'Máquina e tesoura, com lavagem.', '45,00'), item('n2', 'Barba completa', 'Toalha quente e navalha.', '35,00'), item('n3', 'Corte e barba', 'O combo completo.', '70,00'), item('n4', 'Pigmentação', 'Barba ou cabelo.', '30,00')] }),
+  vital: demo({ theme: 'vital', name: 'Clínica Bem Viver', tagline: 'Saúde perto de você, com atendimento humano.', description: 'Equipe multidisciplinar para cuidar de você e da sua família, com consultas, fisioterapia e acompanhamento contínuo.', address: 'Rua do Bem-Estar, 1500 · Curitiba, PR', hours: 'Segunda a sexta · 7h às 19h\nSábado · 8h às 12h', products: [item('v1', 'Clínica geral', 'Consultas e check-up anual.'), item('v2', 'Fisioterapia', 'Reabilitação e dores crônicas.'), item('v3', 'Odontologia', 'Limpeza, clareamento e implantes.'), item('v4', 'Nutrição', 'Planos alimentares personalizados.')] }),
+  impulso: demo({ theme: 'impulso', name: 'Arena Impulso', tagline: 'Treine forte. Evolua todo dia.', description: 'Musculação, cross training e aulas coletivas com professores em todos os horários. Aberto cedo e até tarde.', address: 'Av. do Movimento, 3000 · Curitiba, PR', hours: 'Segunda a sexta · 5h às 23h\nSábado e domingo · 8h às 14h', products: [item('i1', 'Plano mensal', 'Musculação livre, todos os horários.', '109,90'), item('i2', 'Cross training', 'Aulas em grupo de 60 minutos.', '149,90'), item('i3', 'Plano anual', 'Valor mensal no plano de 12 meses.', '89,90'), item('i4', 'Personal trainer', 'Treino individual com avaliação física.')] }),
+  refugio: demo({ theme: 'refugio', name: 'Recanto Vale Verde', tagline: 'Chalés no meio da mata, a 40 minutos da cidade.', description: 'Piscina, trilhas, café colonial e silêncio. Ideal para descansar, celebrar e reunir a família.', address: 'Estrada do Vale Verde, km 8 · Campo Largo, PR', hours: 'Check-in a partir das 14h\nCheck-out até 12h', products: [item('r1', 'Chalé casal', 'Diária com café colonial.', '390,00'), item('r2', 'Chalé família', 'Até 5 pessoas, com cozinha.', '520,00'), item('r3', 'Day use', 'Piscina, trilhas e almoço.', '95,00'), item('r4', 'Eventos', 'Casamentos e confraternizações ao ar livre.')] }),
+};
+export const themeOptions: { id: MiniTheme; name: string; niche: string; description: string; tag: string }[] = [
+  { id: 'brasa', name: 'Brasa', niche: 'Gastronomia', description: 'Restaurantes, pizzarias e hamburguerias. Brasas subindo pela tela e cardápio com preços.', tag: 'GASTRONOMIA' },
+  { id: 'aura', name: 'Aura', niche: 'Beleza e estética', description: 'Salões, estética e spas. Fundo líquido furta-cor e brilho delicado.', tag: 'BELEZA E ESTÉTICA' },
+  { id: 'navalha', name: 'Navalha', niche: 'Barbearias', description: 'Barbearias e estúdios masculinos. Poste de barbeiro em 3D, cromado e fumaça.', tag: 'BARBEARIAS' },
+  { id: 'vital', name: 'Vital', niche: 'Saúde', description: 'Clínicas, consultórios e terapias. Linha de batimento ao vivo e visual calmo.', tag: 'SAÚDE' },
+  { id: 'impulso', name: 'Impulso', niche: 'Fitness', description: 'Academias, crossfit e estúdios. Túnel de velocidade e faixas em movimento.', tag: 'FITNESS' },
+  { id: 'refugio', name: 'Refúgio', niche: 'Hospedagem', description: 'Pousadas, chácaras e hotéis fazenda. Paisagem em camadas que se move com você.', tag: 'HOSPEDAGEM' },
+  { id: 'elegance', name: 'Noir', niche: 'Cafés e marcas premium', description: 'Tons de café e dourado, com a foto da capa flutuando em 3D.', tag: 'SOFISTICADO' },
+  { id: 'viva', name: 'Vibe', niche: 'Lojas e negócios jovens', description: 'Cores vivas, formas em movimento e botões que saltam da tela.', tag: 'CHEIO DE ENERGIA' },
+  { id: 'essencial', name: 'Cristal', niche: 'Serviços em geral', description: 'Claro e leve, com vidro, profundidade e luz em movimento.', tag: 'MODERNO' },
+];
+// Conteúdo de exemplo para mostrar um modelo: a empresa fictícia do segmento, ou o café.
+export function demoFor(theme: MiniTheme): MiniContent { return nicheDemos[theme] ?? { ...demoContent, theme }; }

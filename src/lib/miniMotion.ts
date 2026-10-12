@@ -91,6 +91,20 @@ export function useMiniMotion(ref: RefObject<HTMLElement>, enabled: boolean, sig
       cleanups.push(() => { hero.removeEventListener('pointermove', move); hero.removeEventListener('pointerleave', leave); root.classList.remove('has-pointer'); });
     }
 
+    // 5. No Android, a capa também inclina com o giroscópio (o iPhone exigiria pedir permissão, então fica com a flutuação automática).
+    const DOE = (window as any).DeviceOrientationEvent;
+    if (!root.classList.contains('has-pointer') && DOE && typeof DOE.requestPermission !== 'function') {
+      let raf = 0, gx = 0, gy = 0;
+      const onTilt = (e: DeviceOrientationEvent) => {
+        if (e.gamma == null || e.beta == null) return;
+        gx = clamp(e.gamma / 22); gy = clamp((e.beta - 45) / 22);
+        root.classList.add('has-gyro');
+        if (!raf) raf = requestAnimationFrame(() => { raf = 0; root.style.setProperty('--px', gx.toFixed(3)); root.style.setProperty('--py', gy.toFixed(3)); });
+      };
+      window.addEventListener('deviceorientation', onTilt);
+      cleanups.push(() => { window.removeEventListener('deviceorientation', onTilt); cancelAnimationFrame(raf); });
+    }
+
     return () => cleanups.forEach(fn => fn());
   }, [ref, enabled, signature]);
 }
