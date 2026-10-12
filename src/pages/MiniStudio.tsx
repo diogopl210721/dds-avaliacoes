@@ -1,87 +1,420 @@
-import { useEffect, useRef, useState } from 'react';
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { LayoutDashboard, PanelsTopLeft, Tags, ImagePlus, Palette, Eye, Copy, ArrowUpRight, Plus, Trash2, Check, Search, Save, Upload, Menu, LogIn, X, Smartphone, ChevronRight, Sparkles } from 'lucide-react';
+import QRCode from 'qrcode';
+import {
+  LayoutTemplate, Palette, PanelsTopLeft, Rocket, Tags, Eye, Copy, ArrowUpRight, Check, Search, Save, Upload, Menu, LogIn, X, Smartphone, ChevronRight,
+  ChevronLeft, Sparkles, ThumbsUp, Building2, ShoppingBag, Star, Images, CalendarCheck, Wallet, HelpCircle, Megaphone, MapPin, Share2,
+  QrCode, ExternalLink, EyeOff, AlertTriangle,
+} from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, callFunction } from '../lib/supabaseClient';
-import { MiniContent, MiniRecord, blankContent, demoContent, slugify, safeUrl, publicLink, themeOptions } from '../lib/miniPage';
-import MiniLanding from '../components/MiniLanding';
+import {
+  MiniContent, MiniRecord, blankContent, demoContent, normalizeContent, slugify, safeUrl, validEmail, siteLink, themeOptions,
+  LIMITS, PAYMENT_OPTIONS, BENEFIT_ICONS, uid, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
+} from '../lib/miniPage';
+import { PALETTES } from '../lib/miniPalettes';
+import { compressImage, ImageKind } from '../lib/miniImage';
+import { loadFonts } from '../lib/miniFonts';
+import MiniLanding, { ICONS } from '../components/MiniLanding';
 import { MiniPreviewModal, ThemePhone } from '../components/MiniThemes';
+import { Field, Area, PhotoBox, Section, ListEditor, Chips, useOpen } from '../components/StudioFields';
 import Analise from './Analise';
 import type { PlateMiniAccess } from '../components/PlateMiniOffer';
 import TrocarLink from './TrocarLink';
 import Recuperar from './Recuperar';
 import '../mini.css';
 
-type Tab = 'painel' | 'cadastro' | 'fotos' | 'estilo' | 'placa';
-const items: {tab:Tab; label:string; icon:typeof Eye}[] = [{tab:'painel',label:'Minha Página',icon:LayoutDashboard},{tab:'cadastro',label:'Dados da empresa',icon:PanelsTopLeft},{tab:'fotos',label:'Fotos e produtos',icon:ImagePlus},{tab:'estilo',label:'Escolha seu estilo',icon:Palette},{tab:'placa',label:'Minha plaquinha',icon:Tags}];
-export default function MiniStudio({demo = false, plateAccess}: {demo?:boolean; plateAccess?:PlateMiniAccess}) {
+type Step = 'modelo' | 'cores' | 'conteudo' | 'publicar' | 'placa';
+type Vars = CSSProperties & Record<`--${string}`, string | number>;
+const STEPS: { id: Step; label: string; short: string; icon: typeof Eye }[] = [
+  { id: 'modelo', label: 'Modelo', short: '1', icon: LayoutTemplate },
+  { id: 'cores', label: 'Cores', short: '2', icon: Palette },
+  { id: 'conteudo', label: 'Conteúdo', short: '3', icon: PanelsTopLeft },
+  { id: 'publicar', label: 'Publicar', short: '4', icon: Rocket },
+];
+const ICON_NAMES: Record<string, string> = { shield: 'Escudo', clock: 'Relógio', star: 'Estrela', heart: 'Coração', truck: 'Entrega', award: 'Prêmio', leaf: 'Folha', sparkles: 'Brilho', thumbs: 'Positivo', wrench: 'Ferramenta', smile: 'Sorriso', zap: 'Raio', calendar: 'Agenda', users: 'Pessoas', wallet: 'Preço', pin: 'Local' };
+const URL_FIELDS: { key: keyof MiniContent; label: string }[] = [
+  { key: 'maps', label: 'Localização no Google' }, { key: 'review', label: 'Avaliar no Google' }, { key: 'facebook', label: 'Facebook' }, { key: 'youtube', label: 'YouTube' },
+  { key: 'website', label: 'Site' }, { key: 'video', label: 'Vídeo' }, { key: 'booking', label: 'Agendamento' }, { key: 'delivery', label: 'Delivery' }, { key: 'menu', label: 'Cardápio' },
+];
+
+export default function MiniStudio({ demo = false, plateAccess }: { demo?: boolean; plateAccess?: PlateMiniAccess }) {
   const { user, loading: authLoading } = useAuth();
-  const [tab,setTab] = useState<Tab>('painel');
-  const [c,setC] = useState<MiniContent>(demo ? structuredClone(demoContent) : structuredClone(blankContent));
-  const [records,setRecords] = useState<MiniRecord[]>([]);
-  const [id,setId] = useState<string | null>(null);
-  const [slug,setSlug] = useState(demo ? 'aurora-cafe' : '');
-  const [published,setPublished] = useState(false);
-  const [busy,setBusy] = useState(false);
-  const [loaded,setLoaded] = useState(demo);
-  const [notice,setNotice] = useState('');
-  const [error,setError] = useState('');
-  const [dirty,setDirty] = useState(false);
-  const [mobileMenu,setMobileMenu] = useState(false);
-  const [preview,setPreview] = useState(false);
-  const [query,setQuery] = useState('');
-  const [results,setResults] = useState<any[]>([]);
-  const [plateTab,setPlateTab] = useState('inicio');
-  const [isAdmin,setIsAdmin] = useState(false);
-  const [accountChecked,setAccountChecked] = useState(false);
+  const [step, setStep] = useState<Step>('modelo');
+  const [c, setC] = useState<MiniContent>(demo ? structuredClone(demoContent) : structuredClone(blankContent));
+  const [records, setRecords] = useState<MiniRecord[]>([]);
+  const [id, setId] = useState<string | null>(null);
+  const [slug, setSlug] = useState(demo ? 'aurora-cafe' : '');
+  const [slugState, setSlugState] = useState<{ status: 'idle' | 'checking' | 'ok' | 'taken'; message?: string }>({ status: 'idle' });
+  const [published, setPublished] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [loaded, setLoaded] = useState(demo);
+  const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<any[]>([]);
+  const [plateTab, setPlateTab] = useState('inicio');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [accountChecked, setAccountChecked] = useState(false);
+  const { open, toggle } = useOpen('inicio');
   const noticeTimer = useRef<ReturnType<typeof setTimeout>>();
-  function notify(message:string) { setNotice(message); clearTimeout(noticeTimer.current); noticeTimer.current=setTimeout(()=>setNotice(''),6000); }
-  function field<K extends keyof MiniContent>(key:K,value:MiniContent[K]) { setC(old=>({...old,[key]:value})); setDirty(true); }
-  function select(record:MiniRecord) { setId(record.id); setSlug(record.slug); setC({...structuredClone(blankContent), ...record.content}); setPublished(record.published); setDirty(false); }
-  useEffect(() => { if (!plateAccess) return; if (plateAccess.page) select(plateAccess.page); else { setC({ ...structuredClone(blankContent), name: plateAccess.company?.nome ?? '', review: plateAccess.company?.write_a_review_uri ?? '' }); setSlug(slugify(plateAccess.company?.nome ?? '')); setTab('cadastro'); } setLoaded(true); }, [plateAccess]);
-  useEffect(()=> { if (demo || plateAccess || !user) return; let active=true; (async()=>{const {data,error}=await supabase.from('mini_pages').select('id,slug,published,content').eq('owner_id',user.id).order('updated_at',{ascending:false}); if(!active)return; if(error)setError('Não foi possível carregar suas páginas. Tente atualizar.'); else {setRecords(data??[]); if(data?.length)select(data[0]);} setLoaded(true); const {data:profile}=await supabase.from('profiles').select('role').eq('id',user.id).maybeSingle(); if(active){setIsAdmin(profile?.role==='admin');setAccountChecked(true);}})(); return()=>{active=false;clearTimeout(noticeTimer.current);}; },[user?.id,demo,plateAccess]);
-  useEffect(()=>{ if(!dirty)return; const warn=(e:BeforeUnloadEvent)=>{e.preventDefault(); e.returnValue='';}; window.addEventListener('beforeunload',warn); return()=>window.removeEventListener('beforeunload',warn); },[dirty]);
-  function go(next:Tab){setTab(next);setMobileMenu(false);setError('');}
-  function newPage(){if(dirty && !confirm('Descartar as alterações não salvas e criar uma nova página?'))return; setId(null);setC(structuredClone(blankContent));setSlug('');setPublished(false);setDirty(false);go('cadastro');}
-  async function save(makePublic:boolean){
-    setError(''); if(!c.name.trim())return setError('Preencha o nome da empresa na aba Dados da empresa.');
-    const validSlug=slugify(slug||c.name); if(validSlug.length<3)return setError('O endereço deve ter pelo menos 3 letras ou números.');
-    for(const key of ['maps','review','facebook','website'] as const)if(c[key]&&!safeUrl(c[key]))return setError('Use links completos começando com https://. Confira os links da empresa.');
-    if(c.instagram&&!c.instagram.startsWith('@')&&!safeUrl(c.instagram))return setError('Use @usuario ou o link completo do Instagram.');
-    if(demo){setSlug(validSlug);setDirty(false);notify('Prévia atualizada. A demonstração não publica nem salva dados reais.');return;}
-    if(plateAccess) {
+  const top = useRef<HTMLDivElement>(null);
+
+  function notify(message: string) { setNotice(message); clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 7000); }
+  function field<K extends keyof MiniContent>(key: K, value: MiniContent[K]) { setC(old => ({ ...old, [key]: value })); setDirty(true); }
+  function select(record: MiniRecord) { setId(record.id); setSlug(record.slug); setC(normalizeContent(record.content)); setPublished(record.published); setDirty(false); }
+  useEffect(() => { loadFonts(themeOptions.map(t => t.id)); }, []);
+  useEffect(() => {
+    if (!plateAccess) return;
+    if (plateAccess.page) { select(plateAccess.page); setStep('conteudo'); }
+    else { setC({ ...structuredClone(blankContent), name: plateAccess.company?.nome ?? '', review: plateAccess.company?.write_a_review_uri ?? '' }); setSlug(slugify(plateAccess.company?.nome ?? '')); setStep('modelo'); }
+    setLoaded(true);
+  }, [plateAccess]);
+  useEffect(() => {
+    if (demo || plateAccess || !user) return; let active = true;
+    (async () => {
+      const { data, error } = await supabase.from('mini_pages').select('id,slug,published,content').eq('owner_id', user.id).order('updated_at', { ascending: false });
+      if (!active) return;
+      if (error) setError('Não foi possível carregar suas páginas. Tente atualizar.'); else { setRecords((data ?? []) as MiniRecord[]); if (data?.length) { select(data[0] as MiniRecord); setStep('conteudo'); } }
+      setLoaded(true);
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (active) { setIsAdmin(profile?.role === 'admin'); setAccountChecked(true); }
+    })();
+    return () => { active = false; clearTimeout(noticeTimer.current); };
+  }, [user?.id, demo, plateAccess]);
+  useEffect(() => { if (!dirty) return; const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; }; window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn); }, [dirty]);
+
+  function go(next: Step) { setStep(next); setMobileMenu(false); setError(''); top.current?.scrollIntoView({ block: 'start' }); window.scrollTo({ top: 0 }); }
+  function newPage() { if (dirty && !confirm('Descartar as alterações não salvas e criar uma nova página?')) return; setId(null); setC(structuredClone(blankContent)); setSlug(''); setPublished(false); setDirty(false); go('modelo'); }
+
+  function validate(): string {
+    if (!c.name.trim()) return 'Preencha o nome da empresa em Conteúdo → Primeira impressão.';
+    const validSlug = slugify(slug || c.name);
+    if (validSlug.length < 3) return 'O endereço da página deve ter pelo menos 3 letras ou números.';
+    for (const f of URL_FIELDS) { const v = c[f.key] as string; if (v && !safeUrl(v)) return `O link de ${f.label} precisa ser completo, começando com https://.`; }
+    if (c.instagram && !c.instagram.startsWith('@') && !safeUrl(c.instagram)) return 'Use @usuario ou o link completo do Instagram.';
+    if (c.tiktok && !c.tiktok.startsWith('@') && !safeUrl(c.tiktok)) return 'Use @usuario ou o link completo do TikTok.';
+    if (c.email && !validEmail(c.email)) return 'Confira o e-mail: ele precisa ter @ e domínio, como contato@empresa.com.br.';
+    if (c.palette === 'brand' && !/^#[0-9a-f]{6}$/i.test(c.brandColor)) return 'Escolha a cor da sua marca em Cores, ou selecione uma das 4 combinações.';
+    return '';
+  }
+
+  async function checkSlug(value: string) {
+    const s = slugify(value);
+    if (s.length < 3) { setSlugState({ status: 'taken', message: 'Use pelo menos 3 letras ou números.' }); return false; }
+    if (!plateAccess) { setSlugState({ status: 'idle' }); return true; }
+    setSlugState({ status: 'checking' });
+    try {
+      const r = await callFunction<{ available: boolean; message?: string }>('plate-mini', { action: 'check-slug', codigo: plateAccess.codigo, senha: plateAccess.senha, slug: s });
+      setSlugState(r.available ? { status: 'ok' } : { status: 'taken', message: r.message || 'Esse endereço já está em uso. Escolha outro.' });
+      return r.available;
+    } catch { setSlugState({ status: 'idle' }); return true; }
+  }
+
+  async function save(makePublic: boolean) {
+    setError('');
+    const problem = validate(); if (problem) { setError(problem); return; }
+    const validSlug = slugify(slug || c.name);
+    if (demo) { setSlug(validSlug); setDirty(false); notify('Prévia atualizada. A demonstração não publica nem salva dados reais.'); return; }
+    if (plateAccess) {
       setBusy(true);
       try {
-        const {page} = await callFunction<{page:MiniRecord}>('plate-mini', { action:'save', codigo:plateAccess.codigo, senha:plateAccess.senha, slug:validSlug, content:c, published:makePublic });
-        setId(page.id); setSlug(page.slug); setPublished(page.published); setDirty(false);
-        notify(makePublic ? 'Mini site publicado! Copie seu link para compartilhar.' : 'Alterações salvas.');
-      } catch(e:any) { setError(e.message || 'Não foi possível salvar.'); }
+        const { page } = await callFunction<{ page: MiniRecord }>('plate-mini', { action: 'save', codigo: plateAccess.codigo, senha: plateAccess.senha, slug: validSlug, content: c, published: makePublic });
+        setId(page.id); setSlug(page.slug); setPublished(page.published); setDirty(false); setSlugState({ status: 'ok' });
+        notify(makePublic ? 'Página publicada! O link já funciona. A prévia com foto no WhatsApp fica pronta em alguns minutos.' : 'Alterações salvas. A página não está publicada.');
+        if (makePublic) go('publicar');
+      } catch (e: any) { setError(e.message || 'Não foi possível salvar.'); }
       finally { setBusy(false); }
       return;
     }
-    if(!user)return setError('Entre na sua conta para salvar.');
+    if (!user) { setError('Entre na sua conta para salvar.'); return; }
     setBusy(true);
-    try { const payload={owner_id:user.id,slug:validSlug,content:c,published:makePublic,updated_at:new Date().toISOString()}; const request=id ? supabase.from('mini_pages').update(payload).eq('id',id).eq('owner_id',user.id) : supabase.from('mini_pages').insert(payload); const {data,error}=await request.select('id,slug,published,content').single(); if(error)throw error; setId(data.id);setSlug(data.slug);setPublished(data.published);setDirty(false);setRecords(old=>[data,...old.filter(r=>r.id!==data.id)]);notify(makePublic?'Página publicada! Seu link está pronto para compartilhar.':'Rascunho salvo.'); }
-    catch(e:any){setError(e.code==='23505'?'Esse endereço já está em uso. Escolha outro nome para o link.':e.message||'Não foi possível salvar.');}finally{setBusy(false);}
+    try {
+      const payload = { owner_id: user.id, slug: validSlug, content: c, published: makePublic, updated_at: new Date().toISOString() };
+      const request = id ? supabase.from('mini_pages').update(payload).eq('id', id).eq('owner_id', user.id) : supabase.from('mini_pages').insert(payload);
+      const { data, error } = await request.select('id,slug,published,content').single(); if (error) throw error;
+      setId(data.id); setSlug(data.slug); setPublished(data.published); setDirty(false); setRecords(old => [data as MiniRecord, ...old.filter(r => r.id !== data.id)]);
+      notify(makePublic ? 'Página publicada! O link já funciona.' : 'Rascunho salvo.');
+      if (makePublic) go('publicar');
+    } catch (e: any) { setError(e.code === '23505' ? 'Esse endereço já está em uso. Escolha outro nome para o link.' : e.message || 'Não foi possível salvar.'); }
+    finally { setBusy(false); }
   }
-  async function upload(file:File,apply:(url:string)=>void){setError('');if(!['image/jpeg','image/png','image/webp'].includes(file.type))return setError('Escolha uma foto JPG, PNG ou WebP.');if(file.size>5*1024*1024)return setError('A foto deve ter no máximo 5 MB.');if(demo){const reader=new FileReader();reader.onload=()=>{apply(String(reader.result));setDirty(true);notify('Foto adicionada à prévia.');};reader.readAsDataURL(file);return;}if(plateAccess){setBusy(true);try{const ticket=await callFunction<{path:string;token:string;url:string}>('plate-mini',{action:'upload',codigo:plateAccess.codigo,senha:plateAccess.senha,mime:file.type,size:file.size});const {error}=await supabase.storage.from('mini-page-images').uploadToSignedUrl(ticket.path,ticket.token,file,{contentType:file.type});if(error)throw error;apply(ticket.url);setDirty(true);notify('Foto enviada. Salve a página para aplicar.');}catch(e:any){setError(e.message||'Não foi possível enviar a foto.');}finally{setBusy(false);}return;}if(!user)return;setBusy(true);try{const path=`${user.id}/${crypto.randomUUID()}.${file.type.split('/')[1]}`;const {error}=await supabase.storage.from('mini-page-images').upload(path,file,{contentType:file.type,upsert:false});if(error)throw error;apply(supabase.storage.from('mini-page-images').getPublicUrl(path).data.publicUrl);setDirty(true);notify('Foto enviada. Salve a página para aplicar.');}catch(e:any){setError(e.message||'Não foi possível enviar a foto.');}finally{setBusy(false);}}
-  async function search(){if(demo)return notify('A busca no Google funciona na sua conta. Aqui você pode testar o cadastro manual.');if(!query.trim())return setError('Digite o nome e a cidade da empresa, ou o link do Google.');setBusy(true);setError('');try{const data=await callFunction<{places:any[]}>('search-company',{action:'search',query:query.trim()});setResults(data.places??[]);if(!data.places?.length)notify('Nenhum resultado. Tente nome e cidade ou preencha manualmente.');}catch(e:any){setError(e.message||'Busca indisponível. Você pode preencher manualmente.');}finally{setBusy(false);}}
-  async function importPlace(place:any){setBusy(true);setError('');try{const p=await callFunction<any>('search-company',{action:'select',placeId:place.id});if(!p.nome)throw new Error('Dados não disponíveis. Preencha manualmente.');setC(old=>({...old,name:p.nome,address:p.endereco??old.address,maps:p.google_maps_uri??old.maps,review:p.write_a_review_uri??old.review}));if(!id)setSlug(slugify(p.nome));setDirty(true);setResults([]);notify('Dados importados. Confira e complete telefone, fotos e redes sociais.');}catch(e:any){setError(e.message);}finally{setBusy(false);}}
-  async function copy(){if(demo)return notify('Este é um exemplo. Entre na sua conta e publique para gerar um link real.');if(!published||dirty)return setError('Publique as alterações antes de copiar o link.');try{await navigator.clipboard.writeText(publicLink(slug));notify('Link copiado!');}catch{setError(`Copie este link: ${publicLink(slug)}`);}}
-  if(!demo && !plateAccess && !authLoading && !user)return <div className="studio-empty"><span className="studio-brand">DDS <em>Avaliações</em></span><h1>Sua empresa, com uma presença que impressiona.</h1><p>Entre com sua conta para criar e publicar mini páginas.</p><Link className="studio-primary" to="/login?next=minisite"><LogIn size={18}/> Entrar na minha conta</Link><Link to="/demo">Explorar demonstração</Link></div>;
-  if(!demo && !plateAccess && user && !accountChecked)return <div className="studio-empty">Verificando acesso…</div>;
-  if(!demo && !plateAccess && user && accountChecked && !isAdmin)return <Navigate to="/sistema" replace/>;
-  if(!loaded)return <div className="studio-empty">Carregando suas páginas…</div>;
-  const editor = <>
-    {tab==='painel' && <><div className="studio-heading"><span className="studio-kicker">SUA PRESENÇA DIGITAL</span><h1>Seu negócio merece<br/><em>uma primeira impressão incrível.</em></h1><p>Uma página completa. Um link. Novas possibilidades.</p></div><div className="studio-summary"><div className="studio-summary-cover" style={c.cover?{backgroundImage:`url("${c.cover}")`}:undefined}><span className="studio-status">{demo?'Demonstração':dirty?'Alterações não salvas':published?'Publicado':'Rascunho'}</span></div><div className="studio-summary-content"><div className="studio-summary-logo">{c.logo?<img src={c.logo} alt="Logo"/>:(c.name||'D').slice(0,1)}</div><h2>{c.name||'Vamos criar sua página?'}</h2><p>{c.tagline||'Adicione a identidade da sua empresa e encante seus clientes.'}</p><div className="studio-actions"><button className="studio-secondary" onClick={()=>go('cadastro')}><PanelsTopLeft size={17}/> Editar página</button><button className="studio-primary" onClick={copy}><Copy size={17}/> Copiar link</button></div></div></div><div className="studio-shortcuts"><button onClick={()=>go('fotos')}><ImagePlus/><strong>Conte sua história</strong><span>Fotos, produtos e serviços</span><ChevronRight/></button><button onClick={()=>go('estilo')}><Palette/><strong>Dê seu toque</strong><span>Nove modelos com efeitos em 3D</span><ChevronRight/></button><button onClick={()=>go('placa')}><Tags/><strong>Conecte sua plaquinha</strong><span>As funções que você já usa</span><ChevronRight/></button></div></>}
-    {tab==='cadastro' && <><Title kicker="01 · DADOS DA EMPRESA" title="Vamos apresentar sua empresa" text="Comece pelo Google ou preencha os dados do seu jeito."/>{!plateAccess && <div className="studio-card"><div className="studio-import"><Search size={20}/><div><strong>Encontre sua empresa no Google</strong><p>Nome e cidade funcionam melhor. Links podem não trazer resultados.</p></div></div><div className="studio-search"><input aria-label="Nome, cidade ou link do Google" placeholder="Ex.: Aurora Café, Campo Largo" value={query} onChange={e=>setQuery(e.target.value)}/><button className="studio-primary" disabled={busy} onClick={search}><Search size={16}/> Buscar</button></div>{results.map(p=><button className="studio-search-result" key={p.id} onClick={()=>importPlace(p)} disabled={busy}><strong>{p.displayName?.text}</strong><span>{p.formattedAddress}</span><ArrowUpRight size={17}/></button>)}</div>}<div className="studio-card studio-form"><Field label="Nome da empresa *" value={c.name} onChange={v=>{field('name',v);if(!id)setSlug(slugify(v));}} placeholder="Nome do seu negócio"/><Field label="Frase de destaque" value={c.tagline} onChange={v=>field('tagline',v)} placeholder="Uma frase que dá vontade de conhecer"/><label className="studio-wide">Apresentação<textarea rows={3} value={c.description} onChange={e=>field('description',e.target.value)} placeholder="O que torna sua empresa especial?" maxLength={1800}/></label><Field label="WhatsApp com DDD" value={c.phone} onChange={v=>field('phone',v)} placeholder="41 99999-9999"/><Field label="Horários de atendimento" value={c.hours} onChange={v=>field('hours',v)} placeholder="Segunda a sábado · 8h às 19h"/><div className="studio-wide"><Field label="Endereço completo" value={c.address} onChange={v=>field('address',v)}/></div><Field label="Instagram" value={c.instagram} onChange={v=>field('instagram',v)} placeholder="@suaempresa"/><Field label="Facebook" value={c.facebook} onChange={v=>field('facebook',v)} placeholder="https://facebook.com/..."/><Field label="Localização no Google" value={c.maps} onChange={v=>field('maps',v)} placeholder="https://maps.google.com/..."/><Field label="Link para avaliar no Google" value={c.review} onChange={v=>field('review',v)} placeholder="https://..."/><Field label="Site (opcional)" value={c.website} onChange={v=>field('website',v)} placeholder="https://..."/><Field label="Nome no endereço do mini site" value={slug} onChange={v=>{setSlug(slugify(v));setDirty(true);}} placeholder="nome-da-empresa"/><p className="studio-wide studio-hint">Campos vazios não aparecem na página. Confira os dados antes de publicar.</p></div><button className="studio-primary studio-next" onClick={()=>go('fotos')}>Fotos e produtos <ChevronRight size={18}/></button></>}
-    {tab==='fotos' && <><Title kicker="02 · FOTOS E PRODUTOS" title="Deixe sua marca aparecer" text="Fotos reais valorizam seu espaço e o que você oferece."/><div className="studio-photo-grid"><PhotoBox title="Sua logo" url={c.logo} disabled={busy} onFile={f=>upload(f,url=>field('logo',url))} onRemove={()=>field('logo','')}/><PhotoBox title="Foto de capa" url={c.cover} disabled={busy} onFile={f=>upload(f,url=>field('cover',url))} onRemove={()=>field('cover','')}/></div><div className="studio-card"><div className="studio-section-title"><h2>Galeria do seu negócio</h2><span>{c.gallery.length}/12 fotos</span></div><div className="studio-gallery-editor">{c.gallery.map((image,i)=><div key={i}><img src={image} alt={`Foto ${i+1}`}/><button aria-label={`Excluir foto ${i+1}`} onClick={()=>field('gallery',c.gallery.filter((_,index)=>index!==i))}><X size={15}/></button></div>)}{c.gallery.length<12 && <label className="studio-upload-small"><Plus/><span>Adicionar foto</span><input aria-label="Adicionar foto à galeria" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e=>{if(e.target.files?.[0])upload(e.target.files[0],url=>setC(old=>({...old,gallery:[...old.gallery,url].slice(0,12)})));e.target.value='';}}/></label>}</div></div><div className="studio-section-title"><h2>Produtos e serviços</h2><button className="studio-secondary" onClick={()=>field('products',[...c.products,{id:crypto.randomUUID(),name:'',description:'',price:'',image:''}])}><Plus size={16}/> Adicionar</button></div>{c.products.map((p,i)=><div className="studio-product-editor studio-card" key={p.id}><PhotoBox title="Foto do destaque" url={p.image} disabled={busy} onFile={f=>upload(f,url=>setC(old=>({...old,products:old.products.map(item=>item.id===p.id?{...item,image:url}:item)})))} onRemove={()=>field('products',c.products.map(item=>item.id===p.id?{...item,image:''}:item))}/><div><Field label="Nome do produto ou serviço" value={p.name} onChange={v=>field('products',c.products.map(item=>item.id===p.id?{...item,name:v}:item))}/><Field label="Descrição" value={p.description} onChange={v=>field('products',c.products.map(item=>item.id===p.id?{...item,description:v}:item))}/><Field label="Preço em R$ (opcional)" value={p.price} onChange={v=>field('products',c.products.map(item=>item.id===p.id?{...item,price:v}:item))} placeholder="14,00"/><button className="studio-remove" onClick={()=>field('products',c.products.filter(item=>item.id!==p.id))}><Trash2 size={15}/> Remover destaque {i+1}</button></div></div>)}<p className="studio-hint">JPG, PNG ou WebP · Até 5 MB por imagem. O catálogo pode ficar vazio.</p><button className="studio-primary studio-next" onClick={()=>go('estilo')}>Escolher meu estilo <ChevronRight size={18}/></button></>}
-    {tab==='estilo' && <><Title kicker="03 · SEU ESTILO" title="Uma página com a sua personalidade" text="Escolha a combinação que mais valoriza seu negócio. Você pode mudar depois."/><div className="studio-themes">{themeOptions.map((t,i)=><button className={`studio-theme ${c.theme===t.id?'selected':''}`} key={t.id} aria-pressed={c.theme===t.id} onClick={()=>field('theme',t.id)}><ThemePhone content={c} theme={t.id} index={i}/><span className="studio-theme-tag">{t.niche}</span><span className="studio-theme-choice">{t.name}{c.theme===t.id&&<Check size={18}/>}</span><p>{t.description}</p></button>)}</div><div className="studio-card studio-ready"><Sparkles/><div><h2>Pronto para compartilhar?</h2><p>Confira a prévia ao lado e publique quando estiver tudo certo.</p></div><button className="studio-primary" onClick={()=>save(true)} disabled={busy}>{demo?'Atualizar prévia':'Publicar página'} <ArrowUpRight size={17}/></button></div></>}
-    {tab==='placa' && <><Title kicker="SUA PLAQUINHA · SEU CONTROLE" title="Um toque. Muitas possibilidades." text="Os recursos do DDS Avaliações continuam disponíveis aqui."/>{demo?<div className="studio-card"><Tags size={36}/><h2>Seu sistema de placas, integrado</h2><p>A demonstração protege suas placas: nenhuma configuração real será alterada.</p><div className="studio-feature-list"><span>Cadastro e ativação</span><span>Troca de destino do QR e NFC</span><span>Recuperação de código e senha</span><span>Análise por dia, mês, ano e origem</span><span>Contatos e aniversariantes</span><span>Exportação Excel e PDF</span></div><Link className="studio-primary" to="/minisite">Entrar no meu painel <ArrowUpRight size={17}/></Link></div>:<><div className="studio-plate-tabs">{[{id:'inicio',label:'Visão geral'},{id:'analise',label:'Análise e contatos'},{id:'editar',label:'Alterar destino'},{id:'recuperar',label:'Recuperar acesso'}].map(t=><button key={t.id} className={plateTab===t.id?'active':''} onClick={()=>setPlateTab(t.id)}>{t.label}</button>)}</div>{plateTab==='inicio'?<div className="studio-card"><div className="studio-plate-art"><Tags size={42}/><span>DDS AVALIAÇÕES</span><h2>Sua conexão começa<br/>com um toque.</h2><Smartphone size={30}/></div><div className="studio-actions"><Link className="studio-primary" to="/cadastrar">Cadastrar / ativar placa</Link><button className="studio-secondary" onClick={()=>setPlateTab('analise')}>Acessos, contatos e relatórios</button>{isAdmin&&<Link className="studio-secondary" to="/admin">Administrar placas e QR Codes</Link>}</div><p className="studio-hint">Para levar sua placa ao mini site, publique a página, copie seu link e use Alterar destino com o código e a senha da placa.</p></div>:<div className="studio-legacy">{plateTab==='analise'?<Analise/>:plateTab==='editar'?<TrocarLink/>:<Recuperar/>}</div>}</>}</>}
-  </>;
-  return <div className="studio"><aside className={`studio-sidebar ${mobileMenu?'open':''}`}><Link className="studio-brand" to="/">DDS <em>Avaliações</em></Link><div className="studio-sidebar-caption">SEU NEGÓCIO, EM DESTAQUE</div><nav>{items.filter(item=>!plateAccess||item.tab!=='placa').map(({tab:next,label,icon:Icon})=><button key={next} className={tab===next?'active':''} onClick={()=>go(next)}><Icon size={19}/>{label}</button>)}</nav><div className="studio-sidebar-bottom"><div className="studio-sidebar-tip"><Sparkles size={22}/><strong>Uma presença que encanta.</strong><p>Sua página pronta para a bio, WhatsApp e plaquinha NFC.</p></div><Link to={demo?'/minisite':'/'}>{demo?'Entrar na minha conta':'Voltar ao DDS Avaliações'} <ArrowUpRight size={15}/></Link></div></aside><div className="studio-workspace"><header className="studio-topbar"><button className="studio-mobile-toggle" onClick={()=>setMobileMenu(!mobileMenu)} aria-label="Abrir menu"><Menu/></button><span><span className="studio-top-dot"/>{demo?'Demonstração interativa':'Estúdio da sua página'}</span><div><button className="studio-secondary" onClick={()=>setPreview(true)}><Eye size={16}/> Prévia</button><button className="studio-primary" onClick={()=>save(true)} disabled={busy}><Upload size={16}/>{busy?'Aguarde…':demo?'Testar publicação':'Publicar'}</button></div></header>{demo&&<div className="studio-demo-banner">Você está testando uma empresa fictícia. Edite tudo à vontade; nada é publicado ou salvo nesta demonstração.</div>}<div className="studio-content"><main>{!demo&&!plateAccess&&<div className="studio-records"><select aria-label="Selecionar mini página" value={id??''} onChange={e=>{const r=records.find(r=>r.id===e.target.value);if(r && (!dirty||confirm('Descartar alterações não salvas?')))select(r);}}><option value="">Nova mini página</option>{records.map(r=><option key={r.id} value={r.id}>{r.content.name}</option>)}</select><button className="studio-secondary" onClick={newPage}><Plus size={16}/> Nova página</button></div>}{error&&<div className="studio-error" role="alert">{error}</div>}{editor}{tab!=='placa'&&<div className="studio-save-row"><span>{dirty?'Você tem alterações não salvas.':demo?'Explore os estilos e veja a prévia mudar.':published?'Página publicada.':'Sua página está em rascunho.'}</span><button className="studio-secondary" onClick={()=>save(published)} disabled={busy}><Save size={16}/>{demo?'Atualizar prévia':'Salvar alterações'}</button></div>}</main>{tab!=='placa'&&<aside className="studio-preview"><div className="studio-preview-heading"><Smartphone size={17}/><strong>Assim seu cliente vai ver</strong><span>AO VIVO</span></div><div className="studio-phone"><div className="studio-phone-notch"/><div className="studio-phone-scroll"><MiniLanding content={c} demo={demo}/></div></div><button className="studio-preview-expand" onClick={()=>setPreview(true)}>Abrir prévia completa <ArrowUpRight size={15}/></button></aside>}</div></div>{notice&&<div className="studio-toast" role="status"><Check size={18}/>{notice}</div>}{preview&&<MiniPreviewModal content={c} demo={demo} label="Prévia da página" onClose={()=>setPreview(false)}/>}</div>;
-}
-function Title({kicker,title,text}:{kicker:string;title:string;text:string}){return <div className="studio-heading"><span className="studio-kicker">{kicker}</span><h1>{title}</h1><p>{text}</p></div>;}
-function Field({label,value,onChange,placeholder=''}:{label:string;value:string;onChange:(v:string)=>void;placeholder?:string}){return <label>{label}<input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} maxLength={1000}/></label>;}
-function PhotoBox({title,url,disabled,onFile,onRemove}:{title:string;url:string;disabled:boolean;onFile:(f:File)=>void;onRemove:()=>void}){return <div className="studio-photo-box"><h3>{title}</h3><label>{url?<img src={url} alt={title}/>:<div><ImagePlus size={27}/><span>Escolher imagem</span></div>}<input aria-label={title} type="file" accept="image/jpeg,image/png,image/webp" disabled={disabled} onChange={e=>{if(e.target.files?.[0])onFile(e.target.files[0]);e.target.value='';}}/><span className="studio-photo-edit"><Upload size={15}/>{url?'Trocar foto':'Enviar foto'}</span></label>{url&&<button className="studio-photo-remove" onClick={onRemove} aria-label={`Remover ${title}`}><Trash2 size={15}/></button>}</div>;}
 
+  async function upload(original: File, kind: ImageKind, apply: (url: string) => void) {
+    setError('');
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(original.type)) { setError('Escolha uma foto JPG, PNG ou WebP.'); return; }
+    setBusy(true);
+    const file = await compressImage(original, kind);
+    if (file.size > 5 * 1024 * 1024) { setBusy(false); setError('A foto deve ter no máximo 5 MB.'); return; }
+    try {
+      if (demo) { const url = await new Promise<string>(res => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(file); }); apply(url); setDirty(true); notify('Foto adicionada à prévia.'); return; }
+      if (plateAccess) {
+        const ticket = await callFunction<{ path: string; token: string; url: string }>('plate-mini', { action: 'upload', codigo: plateAccess.codigo, senha: plateAccess.senha, mime: file.type, size: file.size });
+        const { error } = await supabase.storage.from('mini-page-images').uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+        if (error) throw error;
+        apply(ticket.url); setDirty(true); notify('Foto enviada. Publique ou salve para aplicar.'); return;
+      }
+      if (!user) return;
+      const path = `${user.id}/${crypto.randomUUID()}.${file.type.split('/')[1]}`;
+      const { error } = await supabase.storage.from('mini-page-images').upload(path, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      apply(supabase.storage.from('mini-page-images').getPublicUrl(path).data.publicUrl); setDirty(true); notify('Foto enviada. Publique ou salve para aplicar.');
+    } catch (e: any) { setError(e.message || 'Não foi possível enviar a foto.'); }
+    finally { setBusy(false); }
+  }
+
+  async function search() {
+    if (demo) { notify('A busca no Google funciona na sua conta. Aqui você pode testar o cadastro manual.'); return; }
+    if (!query.trim()) { setError('Digite o nome e a cidade da empresa, ou o link do Google.'); return; }
+    setBusy(true); setError('');
+    try { const data = await callFunction<{ places: any[] }>('search-company', { action: 'search', query: query.trim() }); setResults(data.places ?? []); if (!data.places?.length) notify('Nenhum resultado. Tente nome e cidade ou preencha manualmente.'); }
+    catch (e: any) { setError(e.message || 'Busca indisponível. Você pode preencher manualmente.'); }
+    finally { setBusy(false); }
+  }
+  async function importPlace(place: any) {
+    setBusy(true); setError('');
+    try {
+      const p = await callFunction<any>('search-company', { action: 'select', placeId: place.id });
+      if (!p.nome) throw new Error('Dados não disponíveis. Preencha manualmente.');
+      setC(old => ({ ...old, name: p.nome, address: p.endereco ?? old.address, maps: p.google_maps_uri ?? old.maps, review: p.write_a_review_uri ?? old.review }));
+      if (!id) setSlug(slugify(p.nome)); setDirty(true); setResults([]); notify('Dados importados. Confira e complete telefone, fotos e redes sociais.');
+    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
+  }
+
+  const link = slug ? siteLink(slug) : '';
+  async function copyLink() {
+    if (demo) { notify('Este é um exemplo. Na página real, este botão copia o seu link.'); return; }
+    if (!published || dirty) { setError('Publique as alterações antes de copiar o link.'); return; }
+    try { await navigator.clipboard.writeText(link); notify('Link copiado!'); } catch { setError(`Copie este link: ${link}`); }
+  }
+  async function downloadQr() {
+    if (!link) return;
+    try {
+      const url = await QRCode.toDataURL(link, { width: 1024, margin: 2, errorCorrectionLevel: 'M' });
+      const a = document.createElement('a'); a.href = url; a.download = `qr-${slug}.png`; a.click();
+    } catch { setError('Não foi possível gerar o QR Code.'); }
+  }
+  async function unpublish() {
+    if (!confirm('Tirar a página do ar? O link vai mostrar que a página não está disponível. Você pode publicar de novo quando quiser.')) return;
+    await save(false);
+  }
+
+  const filled = useMemo(() => ({
+    inicio: !!(c.name && c.phone && c.headline), porque: c.benefits.length > 0, sobre: !!(c.description || c.mission || c.vision || c.values), servicos: c.products.length > 0,
+    prova: c.stats.length + c.testimonials.length + c.brands.length > 0, fotos: c.gallery.length > 0 || !!c.video, acoes: !!(c.booking || c.delivery || c.menu),
+    pagamento: c.payments.length > 0 || !!c.pixKey, faq: c.faq.length > 0, final: !!c.finalTitle, contato: !!(c.address || c.email || c.hours), redes: !!(c.instagram || c.facebook || c.tiktok || c.youtube || c.website),
+  }), [c]);
+
+  if (!demo && !plateAccess && !authLoading && !user) return <div className="studio-empty"><span className="studio-brand">DDS <em>Avaliações</em></span><h1>Sua empresa, com uma presença que impressiona.</h1><p>Entre com sua conta para criar e publicar mini páginas.</p><Link className="studio-primary" to="/login?next=minisite"><LogIn size={18} /> Entrar na minha conta</Link><Link to="/demo">Explorar demonstração</Link></div>;
+  if (!demo && !plateAccess && user && !accountChecked) return <div className="studio-empty">Verificando acesso…</div>;
+  if (!demo && !plateAccess && user && accountChecked && !isAdmin) return <Navigate to="/sistema" replace />;
+  if (!loaded) return <div className="studio-empty">Carregando suas páginas…</div>;
+
+  const stepIndex = STEPS.findIndex(s => s.id === step);
+  const nav = (back?: Step, next?: Step, nextLabel?: string) => <div className="sw-nav">
+    {back ? <button className="studio-secondary" onClick={() => go(back)}><ChevronLeft size={17} /> Voltar</button> : <span />}
+    {next && <button className="studio-primary" onClick={() => go(next)}>{nextLabel} <ChevronRight size={17} /></button>}
+  </div>;
+
+  const sections = <>
+    <Section id="inicio" icon={<Sparkles size={19} />} title="Primeira impressão" hint="Nome, promessa, botão do WhatsApp e foto de capa" filled={filled.inicio} open={open === 'inicio'} onToggle={toggle}>
+      {!plateAccess && <div className="sf-import"><div className="studio-import"><Search size={20} /><div><strong>Encontre a empresa no Google</strong><p>Nome e cidade funcionam melhor.</p></div></div><div className="studio-search"><input aria-label="Nome, cidade ou link do Google" placeholder="Ex.: Aurora Café, Campo Largo" value={query} onChange={e => setQuery(e.target.value)} /><button className="studio-primary" disabled={busy} onClick={search}><Search size={16} /> Buscar</button></div>{results.map(p => <button className="studio-search-result" key={p.id} onClick={() => importPlace(p)} disabled={busy}><strong>{p.displayName?.text}</strong><span>{p.formattedAddress}</span><ArrowUpRight size={17} /></button>)}</div>}
+      <div className="sf-grid">
+        <Field label="Nome da empresa *" value={c.name} onChange={v => { field('name', v); if (!id && !published) setSlug(slugify(v)); }} placeholder="Nome do seu negócio" max={100} />
+        <Field label="WhatsApp com DDD *" value={c.phone} onChange={v => field('phone', v)} placeholder="41 99999-9999" type="tel" max={30} />
+        <div className="sf-wide"><Area label="Título forte (sua promessa)" value={c.headline} onChange={v => field('headline', v)} rows={2} max={140} placeholder="Ex.: Instalação de gás com segurança e agilidade para o seu negócio" hint="O que você resolve para o cliente, em uma frase. Aparece grande no topo." /></div>
+        <div className="sf-wide"><Area label="Subtítulo" value={c.tagline} onChange={v => field('tagline', v)} rows={2} max={200} placeholder="Ex.: Atendimento 24h, técnicos certificados e orçamento em 10 minutos." /></div>
+        <Field label="Texto do botão principal" value={c.ctaText} onChange={v => field('ctaText', v)} max={40} placeholder="Ex.: Solicite um orçamento rápido" hint="Leva para o seu WhatsApp." />
+        <Field label="Mensagem pronta do WhatsApp" value={c.ctaMessage} onChange={v => field('ctaMessage', v)} max={300} placeholder="Ex.: Olá! Quero um orçamento." />
+      </div>
+      <div className="studio-photo-grid"><PhotoBox title="Foto de capa (imagem de impacto)" url={c.cover} disabled={busy} onFile={f => upload(f, 'cover', url => field('cover', url))} onRemove={() => field('cover', '')} /><PhotoBox title="Logo" url={c.logo} contain disabled={busy} onFile={f => upload(f, 'logo', url => field('logo', url))} onRemove={() => field('logo', '')} /></div>
+      <p className="studio-hint">Prefira uma foto real do seu serviço, equipe ou produto. JPG, PNG ou WebP; fotos grandes são reduzidas automaticamente.</p>
+    </Section>
+
+    <Section id="porque" icon={<ThumbsUp size={19} />} title="Por que escolher você" hint="Benefícios com ícones, até 6" filled={filled.porque} open={open === 'porque'} onToggle={toggle}>
+      <p className="sf-help">Fale do ganho para o cliente, não só da característica. Ex.: "Atendimento 24h", "Instalação sem sujeira", "Garantia estendida".</p>
+      <ListEditor<Benefit> items={c.benefits} max={LIMITS.benefits} addLabel="Adicionar benefício" empty="Nenhum benefício ainda." onChange={v => field('benefits', v)} make={() => ({ id: uid(), icon: 'star', title: '', text: '' })}
+        render={(b, set) => <>
+          <div className="sf-icons" role="radiogroup" aria-label="Ícone">{BENEFIT_ICONS.map(k => { const I = ICONS[k]; return <button key={k} role="radio" aria-checked={b.icon === k} title={ICON_NAMES[k]} aria-label={ICON_NAMES[k]} onClick={() => set({ icon: k })}><I size={17} /></button>; })}</div>
+          <Field label="Título" value={b.title} onChange={v => set({ title: v })} max={60} placeholder="Atendimento 24h" />
+          <Field label="Texto curto" value={b.text} onChange={v => set({ text: v })} max={160} placeholder="Estamos prontos quando você precisar." />
+        </>} />
+    </Section>
+
+    <Section id="sobre" icon={<Building2 size={19} />} title="Sobre a empresa" hint="Quem somos, missão, visão e valores" filled={filled.sobre} open={open === 'sobre'} onToggle={toggle}>
+      <Area label="Quem somos" value={c.description} onChange={v => field('description', v)} rows={4} max={1800} placeholder="Conte a história e o que torna sua empresa especial." />
+      <div className="sf-grid sf-grid-3"><Area label="Missão" value={c.mission} onChange={v => field('mission', v)} max={500} /><Area label="Visão" value={c.vision} onChange={v => field('vision', v)} max={500} /><Area label="Valores" value={c.values} onChange={v => field('values', v)} max={500} /></div>
+    </Section>
+
+    <Section id="servicos" icon={<ShoppingBag size={19} />} title="Serviços e produtos" hint="Com preço e foto, se quiser" filled={filled.servicos} open={open === 'servicos'} onToggle={toggle}>
+      <ListEditor<Product> items={c.products} max={LIMITS.products} addLabel="Adicionar serviço ou produto" empty="Nenhum item ainda. Sem fotos, a lista aparece como cardápio com preços." onChange={v => field('products', v)} make={() => ({ id: uid(), name: '', description: '', price: '', image: '' })}
+        render={(p, set) => <div className="sf-product">
+          <PhotoBox title="Foto (opcional)" url={p.image} disabled={busy} onFile={f => upload(f, 'photo', url => setC(old => ({ ...old, products: old.products.map(x => x.id === p.id ? { ...x, image: url } : x) })))} onRemove={() => set({ image: '' })} />
+          <div><Field label="Nome" value={p.name} onChange={v => set({ name: v })} max={100} /><Field label="Descrição" value={p.description} onChange={v => set({ description: v })} max={300} /><Field label="Preço em R$ (opcional)" value={p.price} onChange={v => set({ price: v })} max={30} placeholder="59,90" /></div>
+        </div>} />
+    </Section>
+
+    <Section id="prova" icon={<Star size={19} />} title="Prova social" hint="Números, depoimentos e marcas atendidas" filled={filled.prova} open={open === 'prova'} onToggle={toggle}>
+      <h4 className="sf-sub">Números de impacto</h4>
+      <ListEditor<Stat> items={c.stats} max={LIMITS.stats} addLabel="Adicionar número" empty="Ex.: +500 instalações realizadas, 10 anos no mercado." onChange={v => field('stats', v)} make={() => ({ id: uid(), value: '', label: '' })}
+        render={(s, set) => <div className="sf-grid"><Field label="Número" value={s.value} onChange={v => set({ value: v })} max={20} placeholder="+500" /><Field label="Descrição" value={s.label} onChange={v => set({ label: v })} max={60} placeholder="instalações realizadas" /></div>} />
+      <h4 className="sf-sub">Depoimentos de clientes</h4>
+      <p className="sf-help">Use só depoimentos reais, com autorização de quem escreveu.</p>
+      <ListEditor<Testimonial> items={c.testimonials} max={LIMITS.testimonials} addLabel="Adicionar depoimento" empty="Nenhum depoimento ainda." onChange={v => field('testimonials', v)} make={() => ({ id: uid(), name: '', text: '', stars: 5 })}
+        render={(t, set) => <><Area label="Depoimento" value={t.text} onChange={v => set({ text: v })} rows={3} max={400} /><div className="sf-grid"><Field label="Nome do cliente" value={t.name} onChange={v => set({ name: v })} max={60} placeholder="Maria S." /><label className="sf-field">Estrelas<select value={t.stars} onChange={e => set({ stars: Number(e.target.value) })}>{[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{'★'.repeat(n)} ({n})</option>)}</select></label></div></>} />
+      <h4 className="sf-sub">Marcas e clientes atendidos</h4>
+      <div className="studio-gallery-editor">{c.brands.map((image, i) => <div key={i}><img src={image} alt={`Marca ${i + 1}`} style={{ objectFit: 'contain', background: '#fff' }} /><button aria-label={`Excluir marca ${i + 1}`} onClick={() => field('brands', c.brands.filter((_, k) => k !== i))}><X size={15} /></button></div>)}
+        {c.brands.length < LIMITS.brands && <label className="studio-upload-small"><Upload /><span>Adicionar logo</span><input aria-label="Adicionar logo de cliente" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e => { if (e.target.files?.[0]) upload(e.target.files[0], 'logo', url => setC(old => ({ ...old, brands: [...old.brands, url].slice(0, LIMITS.brands) }))); e.target.value = ''; }} /></label>}</div>
+    </Section>
+
+    <Section id="fotos" icon={<Images size={19} />} title="Fotos e vídeo" hint="Galeria de até 12 fotos e um vídeo do YouTube" filled={filled.fotos} open={open === 'fotos'} onToggle={toggle}>
+      <div className="studio-gallery-editor">{c.gallery.map((image, i) => <div key={i}><img src={image} alt={`Foto ${i + 1}`} /><button aria-label={`Excluir foto ${i + 1}`} onClick={() => field('gallery', c.gallery.filter((_, k) => k !== i))}><X size={15} /></button></div>)}
+        {c.gallery.length < LIMITS.gallery && <label className="studio-upload-small"><Upload /><span>Adicionar foto</span><input aria-label="Adicionar foto à galeria" type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={e => { if (e.target.files?.[0]) upload(e.target.files[0], 'photo', url => setC(old => ({ ...old, gallery: [...old.gallery, url].slice(0, LIMITS.gallery) }))); e.target.value = ''; }} /></label>}</div>
+      <Field label="Link do vídeo" value={c.video} onChange={v => field('video', v)} max={300} placeholder="https://youtube.com/watch?v=…" hint={c.video && !youtubeId(c.video) ? 'Links do YouTube aparecem com o vídeo na página. Outros links viram um botão.' : 'Cole o link de um vídeo do YouTube.'} />
+    </Section>
+
+    <Section id="acoes" icon={<CalendarCheck size={19} />} title="Agendamento e pedidos" hint="Botões para agendar, delivery e cardápio" filled={filled.acoes} open={open === 'acoes'} onToggle={toggle}>
+      <Field label="Link de agendamento" value={c.booking} onChange={v => field('booking', v)} max={500} placeholder="https://…" hint="Sistema de agenda, Google Agenda, Booksy, Trinks…" />
+      <Field label="Link do delivery" value={c.delivery} onChange={v => field('delivery', v)} max={500} placeholder="https://www.ifood.com.br/…" />
+      <Field label="Link do cardápio completo" value={c.menu} onChange={v => field('menu', v)} max={500} placeholder="https://… (PDF ou página)" />
+    </Section>
+
+    <Section id="pagamento" icon={<Wallet size={19} />} title="Pagamento e Pix" hint="Formas aceitas e chave Pix para copiar" filled={filled.pagamento} open={open === 'pagamento'} onToggle={toggle}>
+      <Chips options={PAYMENT_OPTIONS} value={c.payments} onChange={v => field('payments', v)} />
+      <div className="sf-grid"><Field label="Chave Pix (opcional)" value={c.pixKey} onChange={v => field('pixKey', v)} max={140} placeholder="CNPJ, e-mail, telefone ou chave aleatória" /><Field label="Nome de quem recebe" value={c.pixName} onChange={v => field('pixName', v)} max={80} /></div>
+      <p className="sf-help">A chave aparece com um botão de copiar. Confira com cuidado antes de publicar.</p>
+    </Section>
+
+    <Section id="faq" icon={<HelpCircle size={19} />} title="Perguntas frequentes" hint="Tire dúvidas antes do primeiro contato" filled={filled.faq} open={open === 'faq'} onToggle={toggle}>
+      <ListEditor<Faq> items={c.faq} max={LIMITS.faq} addLabel="Adicionar pergunta" empty="Nenhuma pergunta ainda." onChange={v => field('faq', v)} make={() => ({ id: uid(), q: '', a: '' })}
+        render={(f, set) => <><Field label="Pergunta" value={f.q} onChange={v => set({ q: v })} max={160} /><Area label="Resposta" value={f.a} onChange={v => set({ a: v })} rows={2} max={600} /></>} />
+    </Section>
+
+    <Section id="final" icon={<Megaphone size={19} />} title="Chamada final" hint="O fechamento, antes do rodapé" filled={filled.final} open={open === 'final'} onToggle={toggle}>
+      <Field label="Título" value={c.finalTitle} onChange={v => field('finalTitle', v)} max={120} placeholder="Ex.: Evite paradas na sua operação" />
+      <Area label="Texto" value={c.finalText} onChange={v => field('finalText', v)} rows={2} max={300} placeholder="Ex.: Fale agora com nossa equipe e receba um orçamento em até 10 minutos." hint="Mostra urgência ou facilidade. O botão do WhatsApp aparece embaixo." />
+    </Section>
+
+    <Section id="contato" icon={<MapPin size={19} />} title="Contato e endereço" hint="E-mail, endereço, horários e Google" filled={filled.contato} open={open === 'contato'} onToggle={toggle}>
+      <div className="sf-grid">
+        <Field label="E-mail" value={c.email} onChange={v => field('email', v)} type="email" max={120} placeholder="contato@empresa.com.br" />
+        <div className="sf-wide"><Field label="Endereço completo" value={c.address} onChange={v => field('address', v)} max={300} /></div>
+        <div className="sf-wide"><Area label="Horários de atendimento" value={c.hours} onChange={v => field('hours', v)} rows={2} max={300} placeholder="Segunda a sexta · 8h às 18h" /></div>
+        <Field label="Localização no Google Maps" value={c.maps} onChange={v => field('maps', v)} max={500} placeholder="https://maps.google.com/…" />
+        <Field label="Link para avaliar no Google" value={c.review} onChange={v => field('review', v)} max={500} placeholder="https://…" />
+      </div>
+    </Section>
+
+    <Section id="redes" icon={<Share2 size={19} />} title="Redes sociais" hint="Instagram, Facebook, TikTok, YouTube e site" filled={filled.redes} open={open === 'redes'} onToggle={toggle}>
+      <div className="sf-grid">
+        <Field label="Instagram" value={c.instagram} onChange={v => field('instagram', v)} max={200} placeholder="@suaempresa" />
+        <Field label="TikTok" value={c.tiktok} onChange={v => field('tiktok', v)} max={200} placeholder="@suaempresa" />
+        <Field label="Facebook" value={c.facebook} onChange={v => field('facebook', v)} max={300} placeholder="https://facebook.com/…" />
+        <Field label="YouTube" value={c.youtube} onChange={v => field('youtube', v)} max={300} placeholder="https://youtube.com/@…" />
+        <div className="sf-wide"><Field label="Site (opcional)" value={c.website} onChange={v => field('website', v)} max={300} placeholder="https://…" /></div>
+      </div>
+    </Section>
+  </>;
+
+  const editor = <>
+    {step !== 'placa' && <ol className="sw-steps" aria-label="Etapas">{STEPS.map((s, i) => <li key={s.id} className={s.id === step ? 'is-current' : i < stepIndex ? 'is-done' : ''}><button onClick={() => go(s.id)} aria-current={s.id === step ? 'step' : undefined}><b>{i < stepIndex ? <Check size={14} /> : s.short}</b><span>{s.label}</span></button></li>)}</ol>}
+
+    {step === 'modelo' && <>
+      <Title kicker="Passo 1 de 4" title="Escolha o modelo" text="Seis modelos feitos para segmentos e três para qualquer negócio. Você pode trocar depois sem perder o conteúdo." />
+      <div className="studio-themes sw-themes">{themeOptions.map((t, i) => <button className={`studio-theme ${c.theme === t.id ? 'selected' : ''}`} key={t.id} aria-pressed={c.theme === t.id} onClick={() => field('theme', t.id)}>
+        <ThemePhone content={c} theme={t.id} index={i} /><span className="studio-theme-tag">{t.niche}</span><span className="studio-theme-choice">{t.name}{c.theme === t.id && <Check size={18} />}</span><p>{t.description}</p>
+      </button>)}</div>
+      {nav(undefined, 'cores', 'Escolher as cores')}
+    </>}
+
+    {step === 'cores' && <>
+      <Title kicker="Passo 2 de 4" title="Escolha as cores" text={`Quatro combinações pensadas para o modelo ${themeOptions.find(t => t.id === c.theme)?.name}, ou a cor exata da sua marca.`} />
+      <div className="sw-mobile-preview"><ThemePhone content={c} theme={c.theme} /></div>
+      <div className="sw-palettes" role="radiogroup" aria-label="Combinações de cores">
+        {PALETTES[c.theme].map(p => <button key={p.id} role="radio" aria-checked={c.palette === p.id} className="sw-palette" onClick={() => field('palette', p.id)}>
+          <span className="sw-swatch" style={{ '--s1': p.vars['--bg'], '--s2': p.vars['--fx1'], '--s3': p.vars['--accent'], '--s4': p.vars['--accent2'], '--s5': p.vars['--ink'] } as Vars}><i /><i /><i /><i /><i /></span>
+          <strong>{p.name}</strong>{c.palette === p.id && <Check size={18} />}
+        </button>)}
+        <div className={`sw-palette sw-brand${c.palette === 'brand' ? ' is-on' : ''}`}>
+          <label className="sw-brand-pick"><input type="color" value={/^#[0-9a-f]{6}$/i.test(c.brandColor) ? c.brandColor : '#1f6fd1'} onChange={e => { setC(old => ({ ...old, brandColor: e.target.value, palette: 'brand' })); setDirty(true); }} aria-label="Escolher a cor da marca" /></label>
+          <div><strong>Cor da minha marca</strong><Field label="Código da cor" value={c.brandColor} onChange={v => { const hex = v.startsWith('#') ? v : '#' + v; setC(old => ({ ...old, brandColor: hex.slice(0, 7), palette: /^#[0-9a-f]{6}$/i.test(hex) ? 'brand' : old.palette })); setDirty(true); }} placeholder="#1F6FD1" max={7} hint="Use a cor principal do logo. Ajustamos o tom para o texto ficar legível." /></div>
+        </div>
+      </div>
+      {nav('modelo', 'conteudo', 'Preencher o conteúdo')}
+    </>}
+
+    {step === 'conteudo' && <>
+      <Title kicker="Passo 3 de 4" title="Preencha o conteúdo" text="Comece pela primeira impressão. Seções vazias não aparecem na página." />
+      <div className="sf-sections">{sections}</div>
+      {nav('cores', 'publicar', 'Revisar e publicar')}
+    </>}
+
+    {step === 'publicar' && <>
+      <Title kicker="Passo 4 de 4" title="Publique sua página" text="Escolha o endereço e coloque no ar. Você pode editar e publicar de novo quando quiser." />
+      <div className="studio-card sw-publish">
+        <label className="sf-field">Endereço da página
+          <div className="sw-address"><span>www.ddsinovacao.com.br/</span><input value={slug} onChange={e => { setSlug(slugify(e.target.value)); setSlugState({ status: 'idle' }); setDirty(true); }} onBlur={() => checkSlug(slug)} placeholder="nome-da-empresa" maxLength={60} aria-label="Nome no endereço" /></div>
+        </label>
+        {slugState.status === 'checking' && <p className="sw-slug">Verificando…</p>}
+        {slugState.status === 'ok' && <p className="sw-slug is-ok"><Check size={15} /> Endereço disponível.</p>}
+        {slugState.status === 'taken' && <p className="sw-slug is-bad"><AlertTriangle size={15} /> {slugState.message}</p>}
+        <ul className="sw-check">
+          <CheckItem ok={!!c.name} label="Nome da empresa" />
+          <CheckItem ok={!!c.phone} label="WhatsApp" />
+          <CheckItem ok={!!c.headline} label="Título forte" soft />
+          <CheckItem ok={!!c.cover} label="Foto de capa" soft />
+          <CheckItem ok={c.products.length > 0} label="Serviços ou produtos" soft />
+          <CheckItem ok={c.benefits.length > 0} label="Benefícios" soft />
+        </ul>
+        <div className="studio-actions">
+          <button className="studio-primary" onClick={() => save(true)} disabled={busy || slugState.status === 'taken'}><Rocket size={17} />{busy ? 'Publicando…' : demo ? 'Testar publicação' : published ? 'Publicar alterações' : 'Publicar página'}</button>
+          <button className="studio-secondary" onClick={() => save(published)} disabled={busy}><Save size={17} />Salvar sem publicar</button>
+        </div>
+      </div>
+      {(published || demo) && <div className="studio-card sw-live">
+        <span className={`sw-badge${published && !dirty ? ' is-live' : ''}`}>{demo ? 'Demonstração' : dirty ? 'Alterações não publicadas' : 'No ar'}</span>
+        <h2>{link || siteLink('nome-da-empresa')}</h2>
+        <p>O link funciona assim que você publica. A prévia com foto e nome no WhatsApp e no Instagram fica pronta em alguns minutos.</p>
+        <div className="studio-actions">
+          <button className="studio-primary" onClick={copyLink}><Copy size={17} /> Copiar link</button>
+          {!demo && <a className="studio-secondary" href={link} target="_blank" rel="noreferrer"><ExternalLink size={17} /> Abrir página</a>}
+          <button className="studio-secondary" onClick={downloadQr} disabled={!link}><QrCode size={17} /> Baixar QR Code</button>
+          {!demo && published && <button className="studio-secondary" onClick={unpublish} disabled={busy}><EyeOff size={17} /> Tirar do ar</button>}
+        </div>
+        {plateAccess && <p className="studio-hint">Quer que a sua plaquinha abra este mini site? Use "Trocar o link da minha placa" no seu sistema e cole o link acima.</p>}
+      </div>}
+      {nav('conteudo')}
+    </>}
+
+    {step === 'placa' && <><Title kicker="Sua plaquinha · seu controle" title="Um toque. Muitas possibilidades." text="Os recursos do DDS Avaliações continuam disponíveis aqui." />{demo ? <div className="studio-card"><Tags size={36} /><h2>Seu sistema de placas, integrado</h2><p>A demonstração protege suas placas: nenhuma configuração real será alterada.</p><div className="studio-feature-list"><span>Cadastro e ativação</span><span>Troca de destino do QR e NFC</span><span>Recuperação de código e senha</span><span>Análise por dia, mês, ano e origem</span><span>Contatos e aniversariantes</span><span>Exportação Excel e PDF</span></div><Link className="studio-primary" to="/minisite">Entrar no meu painel <ArrowUpRight size={17} /></Link></div> : <><div className="studio-plate-tabs">{[{ id: 'inicio', label: 'Visão geral' }, { id: 'analise', label: 'Análise e contatos' }, { id: 'editar', label: 'Alterar destino' }, { id: 'recuperar', label: 'Recuperar acesso' }].map(t => <button key={t.id} className={plateTab === t.id ? 'active' : ''} onClick={() => setPlateTab(t.id)}>{t.label}</button>)}</div>{plateTab === 'inicio' ? <div className="studio-card"><div className="studio-plate-art"><Tags size={42} /><span>DDS AVALIAÇÕES</span><h2>Sua conexão começa<br />com um toque.</h2><Smartphone size={30} /></div><div className="studio-actions"><Link className="studio-primary" to="/cadastrar">Cadastrar / ativar placa</Link><button className="studio-secondary" onClick={() => setPlateTab('analise')}>Acessos, contatos e relatórios</button>{isAdmin && <Link className="studio-secondary" to="/admin">Administrar placas e QR Codes</Link>}</div></div> : <div className="studio-legacy">{plateTab === 'analise' ? <Analise /> : plateTab === 'editar' ? <TrocarLink /> : <Recuperar />}</div>}</>}</>}
+  </>;
+
+  const sideItems = [...STEPS.map(s => ({ id: s.id, label: `${s.short}. ${s.label}`, icon: s.icon })), ...(plateAccess ? [] : [{ id: 'placa' as Step, label: 'Minha plaquinha', icon: Tags }])];
+  return <div className="studio" ref={top}>
+    <aside className={`studio-sidebar ${mobileMenu ? 'open' : ''}`}><Link className="studio-brand" to="/">DDS <em>Avaliações</em></Link><div className="studio-sidebar-caption">SEU NEGÓCIO, EM DESTAQUE</div>
+      <nav>{sideItems.map(({ id: next, label, icon: Icon }) => <button key={next} className={step === next ? 'active' : ''} onClick={() => go(next)}><Icon size={19} />{label}</button>)}</nav>
+      <div className="studio-sidebar-bottom"><div className="studio-sidebar-tip"><Sparkles size={22} /><strong>Uma presença que encanta.</strong><p>Sua página pronta para a bio, o WhatsApp e a plaquinha NFC.</p></div><Link to={demo ? '/minisite' : '/'}>{demo ? 'Entrar na minha conta' : 'Voltar ao DDS Avaliações'} <ArrowUpRight size={15} /></Link></div></aside>
+    {mobileMenu && <button className="studio-scrim" aria-label="Fechar menu" onClick={() => setMobileMenu(false)} />}
+    <div className="studio-workspace">
+      <header className="studio-topbar"><button className="studio-mobile-toggle" onClick={() => setMobileMenu(!mobileMenu)} aria-label="Abrir menu"><Menu /></button><span><span className="studio-top-dot" />{demo ? 'Demonstração interativa' : published ? (dirty ? 'Alterações não publicadas' : 'Página no ar') : 'Rascunho'}</span>
+        <div><button className="studio-secondary" onClick={() => setPreview(true)}><Eye size={16} /> Prévia</button><button className="studio-primary" onClick={() => save(true)} disabled={busy}><Upload size={16} />{busy ? 'Aguarde…' : demo ? 'Testar' : 'Publicar'}</button></div></header>
+      {demo && <div className="studio-demo-banner">Você está testando uma empresa fictícia. Edite tudo à vontade; nada é publicado ou salvo nesta demonstração.</div>}
+      <div className="studio-content"><main>
+        {!demo && !plateAccess && <div className="studio-records"><select aria-label="Selecionar mini página" value={id ?? ''} onChange={e => { const r = records.find(r => r.id === e.target.value); if (r && (!dirty || confirm('Descartar alterações não salvas?'))) select(r); }}><option value="">Nova mini página</option>{records.map(r => <option key={r.id} value={r.id}>{normalizeContent(r.content).name}</option>)}</select><button className="studio-secondary" onClick={newPage}>Nova página</button></div>}
+        {error && <div className="studio-error" role="alert">{error}</div>}
+        {editor}
+      </main>
+        {step !== 'placa' && <aside className="studio-preview"><div className="studio-preview-heading"><Smartphone size={17} /><strong>Assim seu cliente vai ver</strong><span>AO VIVO</span></div><div className="studio-phone"><div className="studio-phone-notch" /><div className="studio-phone-scroll"><MiniLanding content={c} demo={demo} /></div></div><button className="studio-preview-expand" onClick={() => setPreview(true)}>Abrir prévia completa <ArrowUpRight size={15} /></button></aside>}
+      </div></div>
+    {notice && <div className="studio-toast" role="status"><Check size={18} />{notice}</div>}
+    {preview && <MiniPreviewModal content={c} demo={demo} label="Prévia da página" onClose={() => setPreview(false)} />}
+  </div>;
+}
+
+function Title({ kicker, title, text }: { kicker: string; title: string; text: string }) { return <div className="studio-heading"><span className="studio-kicker">{kicker}</span><h1>{title}</h1><p>{text}</p></div>; }
+function CheckItem({ ok, label, soft = false }: { ok: boolean; label: string; soft?: boolean }) {
+  return <li className={ok ? 'is-ok' : soft ? 'is-soft' : 'is-bad'}>{ok ? <Check size={15} /> : <AlertTriangle size={15} />}{label}{!ok && <small>{soft ? 'recomendado' : 'obrigatório'}</small>}</li>;
+}

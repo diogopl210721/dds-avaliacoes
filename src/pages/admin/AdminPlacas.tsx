@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { supabase, callFunction } from "../../lib/supabaseClient";
 import { publicStorageUrl } from "../../lib/storage";
 import { scanLink } from "../../lib/scanLink";
+import MiniStudio from "../MiniStudio";
+import type { PlateMiniAccess } from "../../components/PlateMiniOffer";
 
 type DdsLinkResumo = {
   id: string;
@@ -56,6 +58,7 @@ export default function AdminPlacas() {
   const [scansTotal, setScansTotal] = useState<{ total: number; qr: number; nfc: number } | null>(null);
   const [copiado, setCopiado] = useState<"qr" | "nfc" | "pin" | null>(null);
   const [leads, setLeads] = useState<{ telefone: string; created_at: string }[]>([]);
+  const [miniEditor, setMiniEditor] = useState<PlateMiniAccess | null>(null);
 
   useEffect(() => {
     carregar();
@@ -299,6 +302,23 @@ export default function AdminPlacas() {
     await carregar();
   }
 
+  // O administrador monta o mini site pelo cliente, com o mesmo código e senha da placa.
+  async function montarMiniSite() {
+    if (!selecionada?.pin) { setErro('Esta placa não tem senha cadastrada.'); return; }
+    setSalvando(true); setErro(null);
+    try {
+      const data = await callFunction<{ enabled: boolean; page: PlateMiniAccess['page']; company: PlateMiniAccess['company'] }>('plate-mini', { action: 'get', codigo: selecionada.codigo, senha: selecionada.pin });
+      if (!data.enabled) throw new Error('Libere o mini site desta placa antes de montar a página.');
+      setMiniEditor({ codigo: selecionada.codigo, senha: selecionada.pin, page: data.page, company: data.company });
+    } catch (e: any) { setErro(e.message || 'Não foi possível abrir o mini site.'); }
+    finally { setSalvando(false); }
+  }
+
+  if (miniEditor) return <>
+    <div className="bg-white p-3 flex items-center justify-between gap-3 border-b"><button className="text-sm text-emerald-700" onClick={() => { setMiniEditor(null); carregar(); }}>← Voltar às placas</button><span className="text-xs text-gray-500">Montando o mini site da placa {miniEditor.codigo}</span></div>
+    <MiniStudio plateAccess={miniEditor} />
+  </>;
+
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">
       <Link to="/" className="text-sm text-gray-400 hover:text-gray-600 inline-block">
@@ -506,8 +526,9 @@ export default function AdminPlacas() {
 
             <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 space-y-2">
               <h3 className="font-semibold text-emerald-950">Mini site do cliente</h3>
-              <p className="text-sm text-emerald-900">{selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
+              <p className="text-sm text-emerald-900">{selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema, ou você monta por ele aqui.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
               {!selecionada.mini_site_enabled && <button onClick={liberarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="rounded-lg bg-emerald-800 text-white px-4 py-2 text-sm disabled:opacity-50">{salvando ? 'Liberando…' : 'Pagamento confirmado · liberar mini site'}</button>}
+              {selecionada.mini_site_enabled && <button onClick={montarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="rounded-lg bg-emerald-800 text-white px-4 py-2 text-sm disabled:opacity-50">{salvando ? 'Abrindo…' : 'Montar mini site'}</button>}
               {selecionada.status !== 'ATIVA' && <p className="text-xs text-gray-600">A placa precisa estar ativa para a liberação.</p>}
             </div>
 

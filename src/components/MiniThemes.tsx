@@ -1,7 +1,9 @@
 import { CSSProperties, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
-import { MiniContent, MiniTheme, themeOptions, thumbContent } from '../lib/miniPage';
+import { MiniContent, MiniTheme, PaletteId, themeOptions, thumbContent } from '../lib/miniPage';
+import { PALETTES, paletteVars } from '../lib/miniPalettes';
 import { usePhoneTilt } from '../lib/miniMotion';
+import { useThemeFonts } from '../lib/miniFonts';
 import MiniLanding from './MiniLanding';
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
@@ -12,6 +14,7 @@ export function ThemePhone({ content, theme, index = 0 }: { content: MiniContent
   const stage = useRef<HTMLDivElement>(null);
   const screen = useRef<HTMLDivElement>(null);
   usePhoneTilt(stage);
+  useThemeFonts([theme]);
   // Pausa as animações dos celulares que estão fora da tela (são até nove de uma vez).
   useEffect(() => {
     const el = stage.current;
@@ -35,7 +38,8 @@ export function ThemePhone({ content, theme, index = 0 }: { content: MiniContent
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  return <div className={`tp-stage tp-${theme}`} ref={stage} style={{ '--i': index } as Vars} aria-hidden="true">
+  const vars = paletteVars(theme, content.palette, content.brandColor);
+  return <div className={`tp-stage tp-${theme}`} ref={stage} style={{ ...vars, '--i': index } as Vars} aria-hidden="true">
     <div className="tp-tilt"><div className="tp-float">
       <div className="tp-device">
         <div className="tp-screen" ref={screen}>
@@ -48,9 +52,19 @@ export function ThemePhone({ content, theme, index = 0 }: { content: MiniContent
   </div>;
 }
 
-// Prévia em tela cheia, com troca de modelo opcional.
-export function MiniPreviewModal({ content, demo = false, label, onClose, onTheme }: {
-  content: MiniContent; demo?: boolean; label: string; onClose: () => void; onTheme?: (theme: MiniTheme) => void;
+// Bolinhas com as 4 paletas do modelo (e a cor da marca, quando houver).
+export function PaletteDots({ theme, value, brandColor = '', onChange }: { theme: MiniTheme; value: PaletteId; brandColor?: string; onChange: (id: PaletteId) => void }) {
+  return <div className="palette-dots" role="radiogroup" aria-label="Cores">
+    {PALETTES[theme].map(p => <button key={p.id} role="radio" aria-checked={value === p.id} aria-label={p.name} title={p.name} onClick={() => onChange(p.id)}
+      style={{ '--a': p.vars['--accent'], '--b': p.vars['--bg'], '--c': p.vars['--fx1'] } as Vars} />)}
+    {brandColor && <button role="radio" aria-checked={value === 'brand'} aria-label="Cor da marca" title="Cor da marca" onClick={() => onChange('brand')}
+      style={{ '--a': brandColor, '--b': PALETTES[theme][0].vars['--bg'], '--c': brandColor } as Vars} />}
+  </div>;
+}
+
+// Prévia em tela cheia, com troca de modelo e de cores opcional.
+export function MiniPreviewModal({ content, demo = false, label, onClose, onTheme, onPalette }: {
+  content: MiniContent; demo?: boolean; label: string; onClose: () => void; onTheme?: (theme: MiniTheme) => void; onPalette?: (id: PaletteId) => void;
 }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -61,10 +75,13 @@ export function MiniPreviewModal({ content, demo = false, label, onClose, onThem
   }, [onClose]);
   return <div className="studio-preview-modal" role="dialog" aria-modal="true" aria-label={label}>
     <div className="mini-modal-bar">
-      {onTheme ? <ThemeChips current={content.theme} onTheme={onTheme} /> : <span className="mini-modal-title">{label}</span>}
+      <div className="mini-modal-controls">
+        {onTheme ? <ThemeChips current={content.theme} onTheme={onTheme} /> : <span className="mini-modal-title">{label}</span>}
+        {onPalette && <div className="mini-modal-palettes"><span>Cores</span><PaletteDots theme={content.theme} value={content.palette} brandColor={content.brandColor} onChange={onPalette} /></div>}
+      </div>
       <button className="mini-modal-close" autoFocus onClick={onClose}><X size={18} /> Fechar</button>
     </div>
-    <MiniLanding key={content.theme} content={content} demo={demo} />
+    <MiniLanding key={content.theme} content={content} demo={demo} floating />
   </div>;
 }
 

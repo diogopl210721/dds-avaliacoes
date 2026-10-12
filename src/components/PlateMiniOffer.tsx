@@ -36,7 +36,7 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
       {busy ? "Consultando liberação…" : enabled ? access?.page ? "Editar meu mini site" : "Criar meu mini site" : "Criar meu mini site · ver 9 modelos"}
     </button>
     {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-    {show && <><p className="text-sm text-gray-600">Seis modelos feitos para segmentos e três para qualquer negócio. Toque em um para ver a página completa. A sua terá as informações e fotos da sua empresa.</p>
+    {show && <><p className="text-sm text-gray-600">Seis modelos feitos para segmentos e três para qualquer negócio, cada um com 4 combinações de cores ou a cor da sua marca. Toque em um para ver a página completa. A sua terá as informações e fotos da sua empresa.</p>
       <div className="theme-showcase">
         {themeOptions.map((t, i) => <button key={t.id} className="theme-card" onClick={() => setPreview(demoFor(t.id))}>
           <ThemePhone content={demoFor(t.id)} theme={t.id} index={i} />
@@ -50,6 +50,6 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
       </div>
     </>}
     {!enabled && <button onClick={check} disabled={busy} className="text-sm text-emerald-700 underline">Já paguei · verificar liberação</button>}
-    {preview && <MiniPreviewModal content={preview} demo label="Exemplo de mini site" onClose={() => setPreview(null)} onTheme={theme => setPreview(demoFor(theme))} />}
+    {preview && <MiniPreviewModal content={preview} demo label="Exemplo de mini site" onClose={() => setPreview(null)} onTheme={theme => setPreview({ ...demoFor(theme), palette: preview.palette === "brand" ? "p1" : preview.palette })} onPalette={palette => setPreview({ ...preview, palette })} />}
   </section>;
 }

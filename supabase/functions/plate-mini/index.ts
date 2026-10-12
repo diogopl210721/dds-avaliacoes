@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
+import { cleanContent, text, RESERVED, SLUG_RE } from "./content.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -7,28 +8,27 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+const SITE = "https://www.ddsinovacao.com.br";
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), {
   status, headers: { ...cors, "Content-Type": "application/json", "Cache-Control": "no-store" },
 });
-function text(value: unknown, max = 1000) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
-function url(value: unknown) {
-  const s = text(value, 2000);
-  if (!s) return "";
-  try { const u = new URL(s); if (["https:", "http:"].includes(u.protocol)) return u.href; } catch { /* Invalid URL */ }
-  throw new Error("Confira os links: use endereços completos começando com https://.");
-}
-function cleanContent(raw: any) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Dados da página inválidos.");
-  const c: any = {};
-  for (const key of ["name", "tagline", "description", "phone", "address", "hours"]) c[key] = text(raw[key], key === "description" ? 1800 : 1000);
-  if (!c.name) throw new Error("Preencha o nome da empresa.");
-  for (const key of ["facebook", "website", "maps", "review", "logo", "cover"]) c[key] = url(raw[key]);
-  c.instagram = text(raw.instagram).startsWith("@") ? text(raw.instagram) : url(raw.instagram);
-  c.theme = ["elegance", "viva", "essencial", "brasa", "aura", "navalha", "vital", "impulso", "refugio"].includes(raw.theme) ? raw.theme : "elegance";
-  if (!Array.isArray(raw.gallery) || raw.gallery.length > 12 || !Array.isArray(raw.products) || raw.products.length > 60) throw new Error("Use até 12 fotos e 60 produtos.");
-  c.gallery = raw.gallery.map(url);
-  c.products = raw.products.map((p: any) => ({ id: text(p?.id, 100), name: text(p?.name), description: text(p?.description), price: text(p?.price, 100), image: url(p?.image) }));
-  return c;
+
+// O endereço www.ddsinovacao.com.br/<slug> está livre para esta página?
+async function slugCheck(slug: string, pageId: string | null): Promise<{ available: boolean; message?: string }> {
+  if (!SLUG_RE.test(slug)) return { available: false, message: "Use de 3 a 60 letras, números ou hífens." };
+  if (RESERVED.has(slug)) return { available: false, message: "Esse endereço é reservado. Escolha outro." };
+  const { data: other, error } = await db.from("mini_pages").select("id").eq("slug", slug).maybeSingle();
+  if (error) throw error;
+  if (other && other.id !== pageId) return { available: false, message: "Esse endereço já está em uso. Escolha outro." };
+  // Uma pasta ou outro sistema do site com esse nome também ocupa o endereço.
+  try {
+    const r = await fetch(`${SITE}/${slug}/`, { redirect: "manual", signal: AbortSignal.timeout(4000) });
+    if (r.status === 200) {
+      const page = await r.text();
+      if (!page.includes('name="dds-mini-page"')) return { available: false, message: "Esse endereço já é usado por outra página do site. Escolha outro." };
+    } else await r.body?.cancel();
+  } catch { /* Sem resposta do site: a validação do banco continua valendo. */ }
+  return { available: true };
 }
 
 Deno.serve(async (req) => {
@@ -59,6 +59,9 @@ Deno.serve(async (req) => {
     }
     // Every write is checked on the server, including signed photo uploads.
     if (!plate.mini_site_enabled) return json({ error: "Seu mini site aguarda liberação do administrador após o pagamento." }, 403);
+    const { data: existing, error: lookupError } = await db.from("mini_pages").select("id, slug").eq("plate_id", plate.id).eq("plate_company_id", plate.company_id).maybeSingle();
+    if (lookupError) throw lookupError;
+    if (body.action === "check-slug") return json(await slugCheck(text(body.slug, 60), existing?.id ?? null));
     if (body.action === "upload") {
       const mime = text(body.mime, 40);
       const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as Record<string, string>)[mime];
@@ -70,17 +73,19 @@ Deno.serve(async (req) => {
     }
     if (body.action === "save") {
       const slug = text(body.slug, 60);
-      if (!/^[a-z0-9][a-z0-9-]{1,58}[a-z0-9]$/.test(slug)) return json({ error: "Escolha um endereço de 3 a 60 letras e números." }, 400);
+      if (!SLUG_RE.test(slug)) return json({ error: "Escolha um endereço de 3 a 60 letras e números." }, 400);
       let content;
       try { content = cleanContent(body.content); } catch (e) { return json({ error: (e as Error).message }, 400); }
-      const { data: existing, error: lookupError } = await db.from("mini_pages").select("id").eq("plate_id", plate.id).eq("plate_company_id", plate.company_id).maybeSingle();
-      if (lookupError) throw lookupError;
+      if (!existing || existing.slug !== slug || body.published === true) {
+        const check = await slugCheck(slug, existing?.id ?? null);
+        if (!check.available) return json({ error: check.message }, 409);
+      }
       const payload = { plate_id: plate.id, plate_company_id: plate.company_id, owner_id: null, slug, content, published: body.published === true, updated_at: new Date().toISOString() };
       const query = existing ? db.from("mini_pages").update(payload).eq("id", existing.id).eq("plate_id", plate.id) : db.from("mini_pages").insert(payload);
       const { data: page, error } = await query.select("id, slug, content, published").single();
       if (error?.code === "23505") return json({ error: "Esse endereço já está em uso. Escolha outro nome." }, 409);
       if (error) throw error;
-      return json({ page });
+      return json({ page, url: `${SITE}/${page.slug}` });
     }
     return json({ error: "Ação inválida." }, 400);
   } catch (e) {
