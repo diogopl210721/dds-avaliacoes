@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 import { cleanContent, text, RESERVED, SLUG_RE } from "./content.ts";
+import { googleLookup } from "./google.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,14 @@ Deno.serve(async (req) => {
     const { data: existing, error: lookupError } = await db.from("mini_pages").select("id, slug").eq("plate_id", plate.id).eq("plate_company_id", plate.company_id).maybeSingle();
     if (lookupError) throw lookupError;
     if (body.action === "check-slug") return json(await slugCheck(text(body.slug, 60), existing?.id ?? null));
+    // Preenchimento automático: dados da empresa no Google (link do Maps ou "nome e cidade").
+    if (body.action === "google") {
+      const query = text(body.query, 500);
+      const placeId = text(body.placeId, 300);
+      if (!query && !placeId) return json({ error: "Cole o link do Google ou digite o nome e a cidade." }, 400);
+      try { return json(await googleLookup(query, placeId || undefined)); }
+      catch { return json({ error: "A busca no Google não respondeu agora. Tente de novo ou preencha manualmente." }, 502); }
+    }
     if (body.action === "upload") {
       const mime = text(body.mime, 40);
       const ext = ({ "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" } as Record<string, string>)[mime];

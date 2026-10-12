@@ -1,10 +1,10 @@
 import { CSSProperties, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import {
   MapPin, MessageCircle, Clock, Instagram, Star, ArrowUpRight, X, Globe, Facebook, Youtube, Mail, Phone, ShieldCheck, Heart, Truck, Award, Leaf,
-  Sparkles, ThumbsUp, Wrench, Smile, Zap, CalendarCheck, Users, Wallet, Plus, Copy, QrCode, CreditCard, Banknote, Receipt, UtensilsCrossed,
-  ArrowLeftRight, Bike, FileText, Play, UserPlus, Target, Eye, Gem, ChevronRight,
+  Sparkles, ThumbsUp, Wrench, Smile, Zap, CalendarCheck, Users, Wallet, Plus, UtensilsCrossed,
+  Bike, FileText, Play, UserPlus, Target, Eye, Gem, ChevronRight,
 } from 'lucide-react';
-import { MiniContent, MiniTheme, normalizeContent, safeUrl, imageUrl, whatsapp, youtubeId, PAYMENT_OPTIONS } from '../lib/miniPage';
+import { MiniContent, MiniTheme, normalizeContent, safeUrl, imageUrl, whatsapp, youtubeId, listTitleFor } from '../lib/miniPage';
 import { paletteVars, shaderColors } from '../lib/miniPalettes';
 import { useMiniMotion } from '../lib/miniMotion';
 import { useThemeFonts } from '../lib/miniFonts';
@@ -15,9 +15,7 @@ type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
 const CLASSIC: MiniTheme[] = ['elegance', 'viva', 'essencial'];
 const SHADERS: Partial<Record<MiniTheme, ShaderKind>> = { brasa: 'brasa', aura: 'aura', navalha: 'navalha', vital: 'vital', impulso: 'impulso' };
-const LIST_TITLE: Partial<Record<MiniTheme, string>> = { brasa: 'Cardápio', aura: 'Serviços', navalha: 'Serviços', vital: 'Especialidades', impulso: 'Planos e aulas', refugio: 'Hospedagem e lazer' };
 export const ICONS: Record<string, typeof Star> = { shield: ShieldCheck, clock: Clock, star: Star, heart: Heart, truck: Truck, award: Award, leaf: Leaf, sparkles: Sparkles, thumbs: ThumbsUp, wrench: Wrench, smile: Smile, zap: Zap, calendar: CalendarCheck, users: Users, wallet: Wallet, pin: MapPin };
-const PAY_ICONS: Record<string, typeof Star> = { pix: QrCode, credito: CreditCard, debito: CreditCard, dinheiro: Banknote, boleto: Receipt, vale: UtensilsCrossed, transferencia: ArrowLeftRight };
 
 // thumb: miniatura dos cartões (sem interação, sem WebGL).
 // floating: página inteira (pública ou prévia em tela cheia), com o botão flutuante do WhatsApp.
@@ -32,7 +30,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
   const heroCta = useRef<HTMLDivElement>(null);
   const vars = paletteVars(c.theme, c.palette, c.brandColor) as Vars;
   useThemeFonts(thumb ? [] : [c.theme]);
-  const counts = [c.products.length, c.gallery.length, c.benefits.length, c.stats.length, c.testimonials.length, c.brands.length, c.faq.length, c.payments.length, +!!c.description, +!!c.video, +!!c.cover, +!!c.headline, +!!(c.address || c.hours)].join('.');
+  const counts = [c.products.length, c.gallery.length, c.benefits.length, c.stats.length, c.testimonials.length, c.brands.length, c.faq.length, +!!c.description, +!!c.video, +!!c.cover, +!!c.headline, +!!(c.address || c.hours)].join('.');
   useMiniMotion(root, !thumb, `${c.theme}|${counts}`);
 
   const name = c.name || 'Sua empresa';
@@ -92,11 +90,6 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
   }, [floating, thumb, wa]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(''), 2600); return () => clearTimeout(id); }, [toast]);
 
-  async function copyPix() {
-    try { await navigator.clipboard.writeText(c.pixKey); setToast('Chave Pix copiada'); }
-    catch { setToast('Toque e segure a chave para copiar'); }
-  }
-
   const ctaButton = (extra = '') => wa
     ? <a className={`mini-wa ${extra}`} href={wa} target="_blank" rel="noreferrer" tabIndex={tab}><MessageCircle size={20} /><span>{ctaLabel}</span><ArrowUpRight size={18} /></a>
     : demo ? <div className={`mini-wa ${extra}`} title="Na página real, este botão abre o WhatsApp"><MessageCircle size={20} /><span>{ctaLabel}</span><ArrowUpRight size={18} /></div> : null;
@@ -147,7 +140,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
       </section>}
 
       {c.products.length > 0 && (withPhotos ? <section className="mini-sec">
-        <div className="mini-section-heading" data-reveal><h2>{LIST_TITLE[c.theme] ?? 'Nossos destaques'}</h2>{c.products.length > 1 && <span>Deslize para ver todos</span>}</div>
+        <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2>{c.products.length > 1 && <span>Deslize para ver todos</span>}</div>
         <div className={`mini-coverflow${c.products.length === 1 ? ' is-single' : ''}`} data-coverflow>
           {c.products.map((p, i) => <div className="mini-product" key={p.id} style={{ '--off': i, '--abs': Math.min(i, 2), zIndex: 10 - Math.min(i, 2) * 3 } as Vars}>
             {imageUrl(p.image) && <button className="mini-photo-button" onClick={() => open(p.image)} aria-label={`Ampliar ${p.name}`} tabIndex={tab}><img src={imageUrl(p.image)} alt={p.name} loading="lazy" /></button>}
@@ -160,7 +153,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
           </div>)}
         </div>
       </section> : <section className="mini-sec">
-        <div className="mini-section-heading" data-reveal><h2>{LIST_TITLE[c.theme] ?? 'Nossos destaques'}</h2></div>
+        <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2></div>
         <ul className="mini-menu">
           {c.products.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
             <div className="mini-menu-head"><h3>{p.name}</h3><i aria-hidden="true" />{p.price && <strong>R$ {p.price}</strong>}</div>
@@ -181,7 +174,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
           {quotes.map((x, i) => <figure className="mini-quote" key={x.id} data-reveal style={{ '--i': i } as Vars}>
             <div className="mini-stars" aria-label={`${x.stars || 5} de 5 estrelas`}>{Array.from({ length: Math.max(1, Math.min(5, x.stars || 5)) }, (_, k) => <Star key={k} size={16} fill="currentColor" />)}</div>
             <blockquote>{x.text}</blockquote>
-            {x.name && <figcaption><b aria-hidden="true">{x.name.slice(0, 1)}</b>{x.name}</figcaption>}
+            {x.name && <figcaption><b aria-hidden="true">{x.name.slice(0, 1)}</b><span>{x.name}{x.source === 'google' && <small className="mini-via">via Google</small>}</span></figcaption>}
           </figure>)}
         </div>
       </section>}
@@ -205,12 +198,6 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
 
       {actions.length > 0 && <section className="mini-sec mini-links" aria-label="Agendamento e pedidos">
         {actions.map((x, i) => <a className="mini-link" key={x.label} href={x.href} target="_blank" rel="noreferrer" data-reveal style={{ '--i': i } as Vars} tabIndex={tab}>{x.icon}<span>{x.label}</span><ChevronRight size={18} /></a>)}
-      </section>}
-
-      {(c.payments.length > 0 || c.pixKey) && <section className="mini-sec">
-        <h2 data-reveal>Formas de pagamento</h2>
-        {c.payments.length > 0 && <ul className="mini-pay" data-reveal>{PAYMENT_OPTIONS.filter(o => c.payments.includes(o.id)).map(o => { const Icon = PAY_ICONS[o.id] ?? Wallet; return <li key={o.id}><Icon size={17} />{o.label}</li>; })}</ul>}
-        {c.pixKey && <div className="mini-pix" data-reveal><small>CHAVE PIX</small><code>{c.pixKey}</code><button onClick={copyPix} tabIndex={tab}><Copy size={16} />Copiar</button>{c.pixName && <p>Em nome de {c.pixName}</p>}</div>}
       </section>}
 
       {faq.length > 0 && <section className="mini-sec">

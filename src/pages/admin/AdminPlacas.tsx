@@ -323,8 +323,8 @@ export default function AdminPlacas() {
 
   if (miniEditor) return <>
     <div className="sticky top-0 z-40 flex items-center justify-between gap-3 px-4 py-2.5 bg-navy-950 text-white border-b border-white/10">
-      <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8fd8ff] hover:text-white" onClick={() => { setMiniEditor(null); carregar(); }}><ArrowLeft size={16} /> Voltar às placas</button>
-      <span className="text-xs text-[#a7b7d1]">Montando o mini site da placa {miniEditor.codigo}</span>
+      <button className="inline-flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold text-[#8fd8ff] hover:text-white" onClick={() => { setMiniEditor(null); carregar(); }}><ArrowLeft size={16} /> Voltar às placas</button>
+      <span className="hidden sm:block text-xs text-[#a7b7d1]">Montando o mini site da placa {miniEditor.codigo}</span>
     </div>
     <Suspense fallback={<ScreenLoading light label="Abrindo o estúdio…" />}><MiniStudio plateAccess={miniEditor} /></Suspense>
   </>;

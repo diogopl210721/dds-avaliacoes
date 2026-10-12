@@ -2,22 +2,23 @@ import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import {
-  LayoutTemplate, Palette, PanelsTopLeft, Rocket, Tags, Eye, Copy, ArrowUpRight, Check, Search, Save, Upload, Menu, LogIn, X, Smartphone, ChevronRight,
-  ChevronLeft, Sparkles, ThumbsUp, Building2, ShoppingBag, Star, Images, CalendarCheck, Wallet, HelpCircle, Megaphone, MapPin, Share2,
+  LayoutTemplate, Palette, PanelsTopLeft, Rocket, Tags, Eye, Copy, ArrowUpRight, Check, Save, Upload, Menu, LogIn, X, Smartphone, ChevronRight,
+  ChevronLeft, Sparkles, ThumbsUp, Building2, ShoppingBag, Star, Images, CalendarCheck, HelpCircle, Megaphone, MapPin, Share2,
   QrCode, ExternalLink, EyeOff, AlertTriangle,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, callFunction } from '../lib/supabaseClient';
 import {
   MiniContent, MiniRecord, blankContent, demoContent, normalizeContent, slugify, safeUrl, validEmail, siteLink, themeOptions,
-  LIMITS, PAYMENT_OPTIONS, BENEFIT_ICONS, uid, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
+  LIMITS, BENEFIT_ICONS, LIST_TITLE_DEFAULT, LIST_TITLE_SUGGESTIONS, uid, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
 } from '../lib/miniPage';
 import { PALETTES } from '../lib/miniPalettes';
 import { compressImage, ImageKind } from '../lib/miniImage';
 import { loadFonts } from '../lib/miniFonts';
 import MiniLanding, { ICONS } from '../components/MiniLanding';
 import { MiniPreviewModal, ThemePhone } from '../components/MiniThemes';
-import { Field, Area, PhotoBox, Section, ListEditor, Chips, useOpen } from '../components/StudioFields';
+import { Field, Area, PhotoBox, Section, ListEditor, useOpen } from '../components/StudioFields';
+import StudioAutofill from '../components/StudioAutofill';
 import Analise from './Analise';
 import type { PlateMiniAccess } from '../components/PlateMiniOffer';
 import TrocarLink from './TrocarLink';
@@ -54,8 +55,6 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   const [dirty, setDirty] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [preview, setPreview] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<any[]>([]);
   const [plateTab, setPlateTab] = useState('inicio');
   const [isAdmin, setIsAdmin] = useState(false);
   const [accountChecked, setAccountChecked] = useState(false);
@@ -166,24 +165,6 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     finally { setBusy(false); }
   }
 
-  async function search() {
-    if (demo) { notify('A busca no Google funciona na sua conta. Aqui você pode testar o cadastro manual.'); return; }
-    if (!query.trim()) { setError('Digite o nome e a cidade da empresa, ou o link do Google.'); return; }
-    setBusy(true); setError('');
-    try { const data = await callFunction<{ places: any[] }>('search-company', { action: 'search', query: query.trim() }); setResults(data.places ?? []); if (!data.places?.length) notify('Nenhum resultado. Tente nome e cidade ou preencha manualmente.'); }
-    catch (e: any) { setError(e.message || 'Busca indisponível. Você pode preencher manualmente.'); }
-    finally { setBusy(false); }
-  }
-  async function importPlace(place: any) {
-    setBusy(true); setError('');
-    try {
-      const p = await callFunction<any>('search-company', { action: 'select', placeId: place.id });
-      if (!p.nome) throw new Error('Dados não disponíveis. Preencha manualmente.');
-      setC(old => ({ ...old, name: p.nome, address: p.endereco ?? old.address, maps: p.google_maps_uri ?? old.maps, review: p.write_a_review_uri ?? old.review }));
-      if (!id) setSlug(slugify(p.nome)); setDirty(true); setResults([]); notify('Dados importados. Confira e complete telefone, fotos e redes sociais.');
-    } catch (e: any) { setError(e.message); } finally { setBusy(false); }
-  }
-
   const link = slug ? siteLink(slug) : '';
   async function copyLink() {
     if (demo) { notify('Este é um exemplo. Na página real, este botão copia o seu link.'); return; }
@@ -205,7 +186,7 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   const filled = useMemo(() => ({
     inicio: !!(c.name && c.phone && c.headline), porque: c.benefits.length > 0, sobre: !!(c.description || c.mission || c.vision || c.values), servicos: c.products.length > 0,
     prova: c.stats.length + c.testimonials.length + c.brands.length > 0, fotos: c.gallery.length > 0 || !!c.video, acoes: !!(c.booking || c.delivery || c.menu),
-    pagamento: c.payments.length > 0 || !!c.pixKey, faq: c.faq.length > 0, final: !!c.finalTitle, contato: !!(c.address || c.email || c.hours), redes: !!(c.instagram || c.facebook || c.tiktok || c.youtube || c.website),
+    faq: c.faq.length > 0, final: !!c.finalTitle, contato: !!(c.address || c.email || c.hours), redes: !!(c.instagram || c.facebook || c.tiktok || c.youtube || c.website),
   }), [c]);
 
   if (!demo && !plateAccess && !authLoading && !user) return <div className="studio-empty"><span className="studio-brand">DDS <em>Avaliações</em></span><h1>Sua empresa, com uma presença que impressiona.</h1><p>Entre com sua conta para criar e publicar mini páginas.</p><Link className="studio-primary" to="/login?next=minisite"><LogIn size={18} /> Entrar na minha conta</Link><Link to="/demo">Explorar demonstração</Link></div>;
@@ -221,7 +202,6 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
 
   const sections = <>
     <Section id="inicio" icon={<Sparkles size={19} />} title="Primeira impressão" hint="Nome, promessa, botão do WhatsApp e foto de capa" filled={filled.inicio} open={open === 'inicio'} onToggle={toggle}>
-      {!plateAccess && <div className="sf-import"><div className="studio-import"><Search size={20} /><div><strong>Encontre a empresa no Google</strong><p>Nome e cidade funcionam melhor.</p></div></div><div className="studio-search"><input aria-label="Nome, cidade ou link do Google" placeholder="Ex.: Aurora Café, Campo Largo" value={query} onChange={e => setQuery(e.target.value)} /><button className="studio-primary" disabled={busy} onClick={search}><Search size={16} /> Buscar</button></div>{results.map(p => <button className="studio-search-result" key={p.id} onClick={() => importPlace(p)} disabled={busy}><strong>{p.displayName?.text}</strong><span>{p.formattedAddress}</span><ArrowUpRight size={17} /></button>)}</div>}
       <div className="sf-grid">
         <Field label="Nome da empresa *" value={c.name} onChange={v => { field('name', v); if (!id && !published) setSlug(slugify(v)); }} placeholder="Nome do seu negócio" max={100} />
         <Field label="WhatsApp com DDD *" value={c.phone} onChange={v => field('phone', v)} placeholder="41 99999-9999" type="tel" max={30} />
@@ -250,7 +230,11 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     </Section>
 
     <Section id="servicos" icon={<ShoppingBag size={19} />} title="Serviços e produtos" hint="Com preço e foto, se quiser" filled={filled.servicos} open={open === 'servicos'} onToggle={toggle}>
-      <ListEditor<Product> items={c.products} max={LIMITS.products} addLabel="Adicionar serviço ou produto" empty="Nenhum item ainda. Sem fotos, a lista aparece como cardápio com preços." onChange={v => field('products', v)} make={() => ({ id: uid(), name: '', description: '', price: '', image: '' })}
+      <div className="sf-list-title">
+        <Field label="Título da lista na página" value={c.listTitle} onChange={v => field('listTitle', v)} max={40} placeholder={LIST_TITLE_DEFAULT[c.theme]} hint={c.listTitle ? undefined : `Sem escolher, aparece "${LIST_TITLE_DEFAULT[c.theme]}".`} />
+        <div className="sf-chips" role="group" aria-label="Sugestões de título">{LIST_TITLE_SUGGESTIONS.map(t => <button key={t} type="button" aria-pressed={(c.listTitle || LIST_TITLE_DEFAULT[c.theme]) === t} onClick={() => field('listTitle', t)}>{t}</button>)}</div>
+      </div>
+      <ListEditor<Product> items={c.products} max={LIMITS.products} addLabel="Adicionar serviço ou produto" empty="Nenhum item ainda. Sem fotos, os itens aparecem em lista com preço." onChange={v => field('products', v)} make={() => ({ id: uid(), name: '', description: '', price: '', image: '' })}
         render={(p, set) => <div className="sf-product">
           <PhotoBox title="Foto (opcional)" url={p.image} disabled={busy} onFile={f => upload(f, 'photo', url => setC(old => ({ ...old, products: old.products.map(x => x.id === p.id ? { ...x, image: url } : x) })))} onRemove={() => set({ image: '' })} />
           <div><Field label="Nome" value={p.name} onChange={v => set({ name: v })} max={100} /><Field label="Descrição" value={p.description} onChange={v => set({ description: v })} max={300} /><Field label="Preço em R$ (opcional)" value={p.price} onChange={v => set({ price: v })} max={30} placeholder="59,90" /></div>
@@ -280,12 +264,6 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
       <Field label="Link de agendamento" value={c.booking} onChange={v => field('booking', v)} max={500} placeholder="https://…" hint="Sistema de agenda, Google Agenda, Booksy, Trinks…" />
       <Field label="Link do delivery" value={c.delivery} onChange={v => field('delivery', v)} max={500} placeholder="https://www.ifood.com.br/…" />
       <Field label="Link do cardápio completo" value={c.menu} onChange={v => field('menu', v)} max={500} placeholder="https://… (PDF ou página)" />
-    </Section>
-
-    <Section id="pagamento" icon={<Wallet size={19} />} title="Pagamento e Pix" hint="Formas aceitas e chave Pix para copiar" filled={filled.pagamento} open={open === 'pagamento'} onToggle={toggle}>
-      <Chips options={PAYMENT_OPTIONS} value={c.payments} onChange={v => field('payments', v)} />
-      <div className="sf-grid"><Field label="Chave Pix (opcional)" value={c.pixKey} onChange={v => field('pixKey', v)} max={140} placeholder="CNPJ, e-mail, telefone ou chave aleatória" /><Field label="Nome de quem recebe" value={c.pixName} onChange={v => field('pixName', v)} max={80} /></div>
-      <p className="sf-help">A chave aparece com um botão de copiar. Confira com cuidado antes de publicar.</p>
     </Section>
 
     <Section id="faq" icon={<HelpCircle size={19} />} title="Perguntas frequentes" hint="Tire dúvidas antes do primeiro contato" filled={filled.faq} open={open === 'faq'} onToggle={toggle}>
@@ -347,7 +325,10 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     </>}
 
     {step === 'conteudo' && <>
-      <Title kicker="Passo 3 de 4" title="Preencha o conteúdo" text="Comece pela primeira impressão. Seções vazias não aparecem na página." />
+      <Title kicker="Passo 3 de 4" title="Preencha o conteúdo" text="Comece pelo preenchimento automático e revise. Seções vazias não aparecem na página." />
+      <StudioAutofill content={c} plateAccess={plateAccess} demo={demo} notify={notify}
+        onChange={next => { setC(next); setDirty(true); }}
+        onName={name => { if (!id && !published) setSlug(slugify(name)); }} />
       <div className="sf-sections">{sections}</div>
       {nav('cores', 'publicar', 'Revisar e publicar')}
     </>}

@@ -573,3 +573,5 @@
   .mini-gl{opacity:1}
   .motion-on [data-reveal]:not(.is-in){opacity:1;transform:none}
 }
+/* Depoimento importado do Google */
+.mini-quote figcaption span{display:flex;flex-direction:column;line-height:1.25}.mini-via{font-size:11px;font-weight:500;opacity:.7;letter-spacing:.02em}

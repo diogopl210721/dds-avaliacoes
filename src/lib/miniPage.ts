@@ -3,7 +3,8 @@ export type PaletteId = 'p1' | 'p2' | 'p3' | 'p4' | 'brand';
 export type Product = { id: string; name: string; description: string; price: string; image: string };
 export type Benefit = { id: string; icon: string; title: string; text: string };
 export type Stat = { id: string; value: string; label: string };
-export type Testimonial = { id: string; name: string; text: string; stars: number };
+// source 'google': avaliação importada do Google (aparece com "via Google").
+export type Testimonial = { id: string; name: string; text: string; stars: number; source?: 'google' };
 export type Faq = { id: string; q: string; a: string };
 export type MiniContent = {
   theme: MiniTheme; palette: PaletteId; brandColor: string;
@@ -12,8 +13,9 @@ export type MiniContent = {
   // Sobre
   description: string; mission: string; vision: string; values: string;
   // Listas
-  benefits: Benefit[]; products: Product[]; stats: Stat[]; testimonials: Testimonial[]; brands: string[]; gallery: string[]; faq: Faq[];
+  benefits: Benefit[]; products: Product[]; listTitle: string; stats: Stat[]; testimonials: Testimonial[]; brands: string[]; gallery: string[]; faq: Faq[];
   video: string; booking: string; delivery: string; menu: string;
+  // Pagamento saiu do mini site; os campos ficam só para ler páginas antigas.
   payments: string[]; pixKey: string; pixName: string;
   finalTitle: string; finalText: string;
   // Contato e redes
@@ -32,7 +34,7 @@ export const blankContent: MiniContent = {
   theme: 'elegance', palette: 'p1', brandColor: '',
   name: '', headline: '', tagline: '', ctaText: '', ctaMessage: '', logo: '', cover: '',
   description: '', mission: '', vision: '', values: '',
-  benefits: [], products: [], stats: [], testimonials: [], brands: [], gallery: [], faq: [],
+  benefits: [], products: [], listTitle: '', stats: [], testimonials: [], brands: [], gallery: [], faq: [],
   video: '', booking: '', delivery: '', menu: '', payments: [], pixKey: '', pixName: '', finalTitle: '', finalText: '',
   phone: '', email: '', address: '', hours: '', maps: '', review: '', instagram: '', facebook: '', tiktok: '', youtube: '', website: '',
 };
@@ -41,6 +43,7 @@ export const blankContent: MiniContent = {
 export function normalizeContent(raw: Partial<MiniContent> | null | undefined): MiniContent {
   const c = { ...blankContent, ...(raw ?? {}) } as MiniContent;
   for (const key of ['benefits', 'products', 'stats', 'testimonials', 'brands', 'gallery', 'faq', 'payments'] as const) if (!Array.isArray(c[key])) (c as any)[key] = [];
+  if (typeof c.listTitle !== 'string') c.listTitle = '';
   if (!MINI_THEMES.includes(c.theme)) c.theme = 'elegance';
   if (!['p1', 'p2', 'p3', 'p4', 'brand'].includes(c.palette)) c.palette = 'p1';
   return c;
@@ -68,10 +71,13 @@ export const SITE_ORIGIN = 'https://www.ddsinovacao.com.br';
 export function siteLink(slug: string) { return `${SITE_ORIGIN}/${slug}`; }
 export function publicLink(slug: string) { return `${location.origin}${location.pathname}#/loja/${slug}`; }
 
-export const PAYMENT_OPTIONS: { id: string; label: string }[] = [
-  { id: 'pix', label: 'Pix' }, { id: 'credito', label: 'Cartão de crédito' }, { id: 'debito', label: 'Cartão de débito' },
-  { id: 'dinheiro', label: 'Dinheiro' }, { id: 'boleto', label: 'Boleto' }, { id: 'vale', label: 'Vale-refeição' }, { id: 'transferencia', label: 'Transferência' },
-];
+// Título da lista de produtos/serviços: o cliente escolhe; sem escolha, vale o padrão do modelo.
+export const LIST_TITLE_DEFAULT: Record<MiniTheme, string> = {
+  brasa: 'Cardápio', aura: 'Serviços', navalha: 'Serviços', vital: 'Especialidades', impulso: 'Planos e aulas', refugio: 'Hospedagem e lazer',
+  elegance: 'Produtos e serviços', viva: 'Produtos e serviços', essencial: 'Produtos e serviços',
+};
+export const LIST_TITLE_SUGGESTIONS = ['Produtos e serviços', 'Serviços', 'Produtos', 'Cardápio', 'Especialidades', 'Planos e aulas', 'Cursos', 'Hospedagem e lazer'];
+export function listTitleFor(c: Pick<MiniContent, 'listTitle' | 'theme'>) { return c.listTitle?.trim() || LIST_TITLE_DEFAULT[c.theme] || 'Produtos e serviços'; }
 export const BENEFIT_ICONS = ['shield', 'clock', 'star', 'heart', 'truck', 'award', 'leaf', 'sparkles', 'thumbs', 'wrench', 'smile', 'zap', 'calendar', 'users', 'wallet', 'pin'] as const;
 
 let seq = 0;

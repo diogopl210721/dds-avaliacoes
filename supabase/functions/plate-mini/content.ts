@@ -2,7 +2,6 @@
 export const THEMES = ["elegance", "viva", "essencial", "brasa", "aura", "navalha", "vital", "impulso", "refugio"];
 const PALETTES = ["p1", "p2", "p3", "p4", "brand"];
 const ICONS = ["shield", "clock", "star", "heart", "truck", "award", "leaf", "sparkles", "thumbs", "wrench", "smile", "zap", "calendar", "users", "wallet", "pin"];
-const PAYMENTS = ["pix", "credito", "debito", "dinheiro", "boleto", "vale", "transferencia"];
 
 export function text(value: unknown, max = 1000) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
 export function url(value: unknown) {
@@ -32,8 +31,6 @@ export function cleanContent(raw: any) {
   for (const key of ["mission", "vision", "values"]) c[key] = text(raw[key], 500);
   c.finalTitle = text(raw.finalTitle, 120);
   c.finalText = text(raw.finalText, 300);
-  c.pixKey = text(raw.pixKey, 140);
-  c.pixName = text(raw.pixName, 80);
   c.email = text(raw.email, 120);
   if (c.email && !/^[^\s@<>()]+@[^\s@<>()]+\.[a-z]{2,}$/i.test(c.email)) throw new Error("Confira o e-mail da empresa.");
   for (const key of ["facebook", "website", "maps", "review", "logo", "cover", "youtube", "video", "booking", "delivery", "menu"]) c[key] = url(raw[key]);
@@ -48,11 +45,15 @@ export function cleanContent(raw: any) {
   c.products = raw.products.map((p: any) => ({ id: text(p?.id, 100), name: text(p?.name), description: text(p?.description), price: text(p?.price, 100), image: url(p?.image) }));
   c.benefits = list(raw, "benefits", 6, "benefícios").map((b: any) => ({ id: text(b.id, 100), icon: ICONS.includes(b.icon) ? b.icon : "star", title: text(b.title, 60), text: text(b.text, 160) }));
   c.stats = list(raw, "stats", 4, "números").map((s: any) => ({ id: text(s.id, 100), value: text(s.value, 20), label: text(s.label, 60) }));
-  c.testimonials = list(raw, "testimonials", 6, "depoimentos").map((t: any) => ({ id: text(t.id, 100), name: text(t.name, 60), text: text(t.text, 400), stars: Math.max(1, Math.min(5, Math.round(Number(t.stars) || 5))) }));
+  c.testimonials = list(raw, "testimonials", 6, "depoimentos").map((t: any) => ({ id: text(t.id, 100), name: text(t.name, 60), text: text(t.text, 400), stars: Math.max(1, Math.min(5, Math.round(Number(t.stars) || 5))), ...(t.source === "google" ? { source: "google" } : {}) }));
   c.faq = list(raw, "faq", 8, "perguntas").map((f: any) => ({ id: text(f.id, 100), q: text(f.q, 160), a: text(f.a, 600) }));
   if (raw.brands != null && (!Array.isArray(raw.brands) || raw.brands.length > 12)) throw new Error("Use até 12 marcas.");
   c.brands = Array.isArray(raw.brands) ? raw.brands.map(url) : [];
-  c.payments = Array.isArray(raw.payments) ? [...new Set(raw.payments.filter((p: unknown) => typeof p === "string" && PAYMENTS.includes(p)))] : [];
+  // Pagamento e Pix saíram do mini site: nada disso é guardado.
+  c.payments = [];
+  c.pixKey = "";
+  c.pixName = "";
+  c.listTitle = text(raw.listTitle, 40);
   return c;
 }
 
