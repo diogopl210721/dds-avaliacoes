@@ -80,7 +80,8 @@ export default function Home() {
             <p className="mt-6 text-[17px] sm:text-lg leading-relaxed text-[#a7b7d1] max-w-xl dds-rise" style={{ ["--d" as string]: ".16s" }}>
               Seu cliente aproxima o celular ou escaneia o QR Code e cai direto na tela de avaliação da sua empresa. <strong className="text-white font-semibold">Sem aplicativo, sem procurar, em segundos.</strong>
             </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3 dds-rise" style={{ ["--d" as string]: ".24s" }}>
+            {/* Sem animação de entrada: é a ação principal da página e o Safari do iPhone às vezes demorava a desenhá-la. */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link to="/cadastrar" {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-lg">Ativar minha placa <ArrowRight size={18} /></Link>
               <Link to="/sistema" {...intent(prefetch.sistema)} className="dds-btn dds-btn-ghost-dark dds-btn-lg"><LayoutDashboard size={18} /> Acessar meu sistema</Link>
             </div>
