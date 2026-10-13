@@ -90,6 +90,7 @@ export default function Home() {
               Ainda não tem a sua? <span className="font-semibold text-[#66e0ff] underline decoration-[#66e0ff55] underline-offset-4 group-hover:decoration-[#66e0ff]">Quero uma plaquinha</span>
               <ArrowDown size={16} className="text-[#66e0ff] transition-transform group-hover:translate-y-0.5" />
             </button>
+            <ExamplesTeaser />
             <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-sm text-[#a7b7d1] dds-rise" style={{ ["--d" as string]: ".32s" }}>
               <li className="flex items-center gap-2"><Zap size={16} className="text-[#66e0ff]" /> Sem baixar nada</li>
               <li className="flex items-center gap-2"><Smartphone size={16} className="text-[#66e0ff]" /> iPhone e Android</li>
@@ -368,6 +369,33 @@ function QuickTile({ to, icon, title, text, load }: { to: string; icon: ReactNod
         <span className="flex items-center justify-between gap-2 font-display font-bold text-white text-[15px] sm:text-base">{title}<ArrowUpRight size={16} className="text-[#66e0ff] transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" /></span>
         <span className="block mt-1 text-[13px] text-[#a7b7d1]">{text}</span>
       </span>
+    </Link>
+  );
+}
+
+// Cartão "Veja exemplos" na primeira dobra: três celulares em miniatura (fotos reais dos
+// exemplos) levando para a vitrine. Sem animação de entrada, para não atrasar o desenho no iPhone.
+const TEASER = [
+  { img: "1585747860715-2ba37e788b70", name: "Barbearia", bg: "#141519", ink: "#efebe4", accent: "#e0283a" },
+  { img: "1627308594190-a057cd4bfac8", name: "Açaí", bg: "#fff6fa", ink: "#2b1340", accent: "#6b4bff" },
+  { img: "1611173622933-91942d394b04", name: "Pet shop", bg: "#f2fffc", ink: "#13293d", accent: "#f0552a" },
+];
+function ExamplesTeaser() {
+  return (
+    <Link to="/exemplos" {...intent(prefetch.vitrine)} className="dds-teaser group mt-6" aria-label="Ver exemplos de mini sites para 20 ramos de negócio">
+      <span className="dds-teaser-phones" aria-hidden="true">
+        {TEASER.map((t, i) => (
+          <span key={t.name} className="dds-teaser-phone" style={{ ["--i" as string]: i, ["--bg" as string]: t.bg, ["--ink" as string]: t.ink, ["--ac" as string]: t.accent }}>
+            <img src={`https://images.unsplash.com/photo-${t.img}?auto=format&fit=crop&w=120&h=110&q=55`} alt="" decoding="async" />
+            <b>{t.name}</b><i />
+          </span>
+        ))}
+      </span>
+      <span className="dds-teaser-text">
+        <strong>Veja exemplos de mini sites</strong>
+        <small>20 ramos, com fotos e efeitos animados</small>
+      </span>
+      <span className="dds-teaser-go" aria-hidden="true"><ArrowRight size={18} /></span>
     </Link>
   );
 }
