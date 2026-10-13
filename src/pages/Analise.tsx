@@ -1,12 +1,12 @@
-import { lazy, ReactNode, Suspense, useState } from "react";
+import { lazy, ReactNode, Suspense, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowLeft, BarChart3, Cake, ChevronDown, FileSpreadsheet, FileText, LayoutDashboard, Link2, LogOut,
+  ArrowLeft, BarChart3, Cake, ChevronDown, FileSpreadsheet, FileText, KeyRound, LayoutDashboard, Link2, LogOut,
   MessageCircle, Nfc, Phone, QrCode, TrendingUp, Users,
 } from "lucide-react";
 import PlateMiniOffer, { PlateMiniAccess } from "../components/PlateMiniOffer";
 import { callFunction } from "../lib/supabaseClient";
-import { AuthShell, MenuPlaca, Campo, BotaoEnviar, Erro, TituloForm, EscolhaPedirDados } from "../components/PlacaUi";
+import { AuthShell, MenuPlaca, Campo, BotaoEnviar, Erro, TituloForm, EscolhaPedirDados, somente4Digitos } from "../components/PlacaUi";
 import { Aurora, BrandMark, CountUp, Spinner, spotMove } from "../components/ui/Fx";
 import { ScreenLoading } from "../components/ui/Screen";
 // ExcelJS e jsPDF são pesados — importados só na hora do clique (ver
@@ -90,6 +90,8 @@ export default function Analise() {
   const [pedirDados, setPedirDados] = useState(true);
   const [salvandoDados, setSalvandoDados] = useState(false);
   const [msgDados, setMsgDados] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [trocandoSenha, setTrocandoSenha] = useState(false);
+  const [avisoSenha, setAvisoSenha] = useState(false);
 
   const mesAtual = new Date().getMonth() + 1;
 
@@ -308,9 +310,14 @@ export default function Analise() {
                 <span className="dds-chip bg-white/10 text-[#d6e3f8] font-mono">Código {resultado.codigo}</span>
                 <span className={`dds-chip ${ativa ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-200"}`}><span className={`w-1.5 h-1.5 rounded-full ${ativa ? "bg-emerald-300" : "bg-amber-300"}`} />Status: {status}</span>
               </div>
+              {avisoSenha && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-400/15 px-3.5 py-2 text-sm font-semibold text-emerald-200 dds-fade" role="status">✓ Senha trocada. Use a nova senha a partir de agora.</p>}
             </div>
-            <Link to={`/editar?codigo=${encodeURIComponent(resultado.codigo)}`} className="dds-btn dds-btn-ghost-dark self-start sm:self-auto dds-rise" style={{ ["--d" as string]: ".1s" }}><Link2 size={16} /> Trocar o link da minha placa</Link>
+            <div className="flex flex-wrap gap-2 self-start sm:self-auto dds-rise" style={{ ["--d" as string]: ".1s" }}>
+              <Link to={`/editar?codigo=${encodeURIComponent(resultado.codigo)}`} className="dds-btn dds-btn-ghost-dark"><Link2 size={16} /> Trocar o link da minha placa</Link>
+              <button type="button" onClick={() => { setAvisoSenha(false); setTrocandoSenha(true); }} className="dds-btn dds-btn-ghost-dark"><KeyRound size={16} /> Trocar senha</button>
+            </div>
           </div>
+
         </header>
 
         <main className="max-w-6xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
@@ -432,6 +439,15 @@ export default function Analise() {
             {anos.length === 0 ? <SemDados /> : <BarrasLista linhas={anos} />}
           </Card>
         </main>
+
+        {trocandoSenha && (
+          <TrocarSenha
+            codigo={resultado.codigo}
+            senhaAtual={pin.trim()}
+            onFechar={() => setTrocandoSenha(false)}
+            onTrocada={(nova) => { setPin(nova); setTrocandoSenha(false); setAvisoSenha(true); }}
+          />
+        )}
       </div>
     );
   }
@@ -544,4 +560,74 @@ function BarrasLista({ linhas }: { linhas: [string, number][] }) {
 
 function SemDados({ texto = "Ainda não há acessos registrados." }: { texto?: string }) {
   return <p className="rounded-2xl border border-dashed border-[#d6deec] bg-[#f9fbfe] px-4 py-5 text-sm text-ink-muted text-center">{texto}</p>;
+}
+
+// Troca da senha de 4 números da placa, dentro do Meu sistema. O dono já entrou com a senha atual,
+// então só digita a nova duas vezes. Ela passa a valer para entrar, trocar o link e editar o mini site.
+function TrocarSenha({ codigo, senhaAtual, onFechar, onTrocada }: {
+  codigo: string; senhaAtual: string; onFechar: () => void; onTrocada: (nova: string) => void;
+}) {
+  const [nova, setNova] = useState("");
+  const [nova2, setNova2] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape" && !salvando) onFechar(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [salvando, onFechar]);
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    if (!/^\d{4}$/.test(nova)) return setErro("A nova senha precisa ter exatamente 4 números.");
+    if (nova !== nova2) return setErro("As duas senhas não são iguais. Digite de novo.");
+    if (nova === senhaAtual) return setErro("A nova senha é igual à atual.");
+    setSalvando(true);
+    try {
+      const data = await callFunction<{ ok?: boolean; error?: string }>("gerenciar-placa", {
+        acao: "senha", codigo, senha: senhaAtual, novaSenha: nova,
+      });
+      if (data.error) throw new Error(data.error);
+      onTrocada(nova);
+    } catch (e: any) {
+      setErro(e.message ?? "Não foi possível trocar a senha. Tente de novo.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[#070d1a]/60 backdrop-blur-sm px-4 dds-fade" onClick={() => !salvando && onFechar()}>
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="trocar-senha-titulo"
+        onSubmit={salvar}
+        onClick={(e) => e.stopPropagation()}
+        className="dds-card dds-card-pad w-full max-w-sm space-y-4 dds-rise"
+      >
+        <div className="flex items-start gap-3">
+          <span className="dds-icon-tile shrink-0"><KeyRound size={18} /></span>
+          <div>
+            <h2 id="trocar-senha-titulo" className="font-display text-lg font-extrabold tracking-tight text-ink">Trocar senha</h2>
+            <p className="text-sm text-ink-muted leading-relaxed">Placa {codigo}. A nova senha vale para entrar no sistema, trocar o link e editar o mini site.</p>
+          </div>
+        </div>
+        <Campo label="Nova senha (4 números)" value={nova} onChange={(v) => { setNova(somente4Digitos(v)); setErro(null); }} placeholder="0000" inputMode="numeric" maxLength={4} autoComplete="new-password" />
+        <Campo label="Digite a nova senha de novo" value={nova2} onChange={(v) => { setNova2(somente4Digitos(v)); setErro(null); }} placeholder="0000" inputMode="numeric" maxLength={4} autoComplete="new-password" />
+        {nova2.length === 4 && (
+          <p className={`text-sm font-semibold ${nova === nova2 ? "text-emerald-600" : "text-rose-600"}`}>
+            {nova === nova2 ? "✓ As senhas conferem" : "As senhas não são iguais"}
+          </p>
+        )}
+        {erro && <Erro>{erro}</Erro>}
+        <div className="flex gap-2 pt-1">
+          <button type="button" onClick={onFechar} disabled={salvando} className="dds-btn dds-btn-outline flex-1">Cancelar</button>
+          <button type="submit" disabled={salvando} className="dds-btn dds-btn-primary flex-1">{salvando ? <><Spinner /> Salvando…</> : "Salvar senha"}</button>
+        </div>
+      </form>
+    </div>
+  );
 }

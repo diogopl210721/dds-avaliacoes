@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     if (acao === "trocar") return await trocar(body, ip);
     if (acao === "recuperar") return await recuperar(body, ip);
     if (acao === "dados") return await pedirDados(body, ip);
+    if (acao === "senha") return await trocarSenha(body, ip);
     return json({ error: "Ação inválida." }, 400);
   } catch (e) {
     console.error(e);
@@ -145,6 +146,40 @@ async function pedirDados(body: any, ip: string) {
   if (error) throw error;
 
   return json({ ok: true, pedirDados: body.pedirDados }, 200);
+}
+
+// Troca a senha de 4 números da placa. Exige o código e a senha atual (o dono já entrou com ela no painel).
+async function trocarSenha(body: any, ip: string) {
+  const codigo = String(body.codigo ?? "").trim().toUpperCase();
+  const senha = String(body.senha ?? "").trim();
+  const novaSenha = String(body.novaSenha ?? "").trim();
+  if (!codigo || !senha) return json({ error: "Informe o código e a senha atual." }, 400);
+  if (!/^\d{4}$/.test(novaSenha)) return json({ error: "A nova senha deve ter exatamente 4 números." }, 400);
+  if (novaSenha === senha) return json({ error: "A nova senha é igual à atual." }, 400);
+  if (tooManyAttempts(`s:${codigo}`) || tooManyAttempts(`si:${ip}`)) {
+    return json({ error: "Muitas tentativas. Aguarde alguns minutos." }, 429);
+  }
+
+  const { data: plate } = await supabaseAdmin
+    .from("plates")
+    .select("id, pin_hash, status")
+    .eq("codigo", codigo)
+    .maybeSingle();
+  if (!plate || !bcrypt.compareSync(senha, plate.pin_hash)) {
+    return json({ error: "Código ou senha atual inválidos." }, 400);
+  }
+  if (plate.status === "BLOQUEADA" || plate.status === "DESATIVADA") {
+    return json({ error: "Esta placa não está disponível." }, 400);
+  }
+
+  // Mesmo formato da ativação: hash para validar e o número na coluna `pin` para o suporte/admin ver.
+  const { error } = await supabaseAdmin
+    .from("plates")
+    .update({ pin_hash: bcrypt.hashSync(novaSenha), pin: novaSenha })
+    .eq("id", plate.id);
+  if (error) throw error;
+
+  return json({ ok: true }, 200);
 }
 
 // Descobre o código da placa a partir do link atual + senha.
