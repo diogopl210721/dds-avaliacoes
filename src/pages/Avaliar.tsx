@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Cake, Gift, Phone, Star } from "lucide-react";
+import { ArrowRight, Cake, Gift, Phone, Star } from "lucide-react";
+import { linkDaPropriaPlaca } from "../lib/linkGuard";
 import { Stars } from "../components/ui/Fx";
 
 // Tela intermediária entre o escaneamento (QR/NFC) e o link real do Google.
@@ -85,13 +86,16 @@ export default function Avaliar() {
     }
   }
 
-  if (!dest) {
+  // Destino apontando para a própria plaquinha: em vez de voltar para esta tela sem fim,
+  // avisa que o link precisa ser corrigido.
+  const destErrado = linkDaPropriaPlaca(dest);
+  if (!dest || destErrado) {
     return (
       <div className="min-h-[100dvh] grid place-items-center px-4 bg-gradient-to-b from-[#eef5ff] to-white">
         <div className="dds-card dds-card-pad max-w-sm w-full text-center">
           <span className="dds-icon-tile mx-auto"><Star size={20} /></span>
-          <p className="mt-3 font-display font-bold text-lg">Link inválido ou expirado.</p>
-          <p className="mt-1 text-sm text-ink-muted">Tente escanear a placa de novo.</p>
+          <p className="mt-3 font-display font-bold text-lg">{destErrado ? "Esta plaquinha está sendo configurada." : "Link inválido ou expirado."}</p>
+          <p className="mt-1 text-sm text-ink-muted">{destErrado ? "O link de avaliação dela precisa ser corrigido. Avise a empresa, por favor." : "Tente escanear a placa de novo."}</p>
         </div>
       </div>
     );
@@ -166,8 +170,9 @@ export default function Avaliar() {
               <Star size={19} fill="currentColor" strokeWidth={0} className="text-amber-300" /> Avaliar a empresa
             </a>
 
-            <a href={dest} className="block text-center text-sm text-ink-muted hover:text-ink underline underline-offset-4 decoration-[#c9d4e6] pt-1">
-              Pular e avaliar sem deixar meus dados
+            {/* Botão discreto (cinza, menor que o principal), mas fácil de tocar: ninguém fica preso nesta tela. */}
+            <a href={dest} className="!mt-3 mx-auto flex w-fit items-center gap-1.5 rounded-full border border-[#e3e9f2] bg-[#f3f6fb] whitespace-nowrap px-4 py-2.5 text-[13.5px] font-medium text-[#6b7891] transition hover:bg-[#e9eef6] hover:text-ink active:scale-[.98]">
+              Pular e avaliar direto <ArrowRight size={15} aria-hidden="true" />
             </a>
           </div>
         </div>

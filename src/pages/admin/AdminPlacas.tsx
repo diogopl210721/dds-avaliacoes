@@ -5,6 +5,7 @@ import {
   Pause, Phone, Play, Plus, RotateCcw, Search, Sparkles, Store, Trash2, Unlock, X, Zap, CheckCircle2, Clock3,
 } from "lucide-react";
 import { supabase, callFunction } from "../../lib/supabaseClient";
+import { linkDaPropriaPlaca, MSG_LINK_DA_PLACA } from "../../lib/linkGuard";
 import { publicStorageUrl } from "../../lib/storage";
 import { scanLink } from "../../lib/scanLink";
 import type { PlateMiniAccess } from "../../components/PlateMiniOffer";
@@ -292,6 +293,7 @@ export default function AdminPlacas() {
 
   async function salvarNovoDestino() {
     if (!selecionada?.dds_links || !novoDestino) return;
+    if (linkDaPropriaPlaca(novoDestino)) return alert(MSG_LINK_DA_PLACA);
     setSalvando(true);
     const { error } = await supabase.rpc("alter_link_destino", {
       p_link_id: selecionada.dds_links.id,

@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Link2 } from "lucide-react";
 import { callFunction } from "../lib/supabaseClient";
 import { AuthShell, MenuPlaca, Campo, BotaoEnviar, Erro, TituloForm, somente4Digitos } from "../components/PlacaUi";
+import { linkDaPropriaPlaca, MSG_LINK_DA_PLACA } from "../lib/linkGuard";
 
 export default function TrocarLink() {
   const [params] = useSearchParams();
@@ -27,6 +28,10 @@ export default function TrocarLink() {
     }
     if (!novoLink.trim().startsWith("http")) {
       setErro("Cole o link completo (começando com https://).");
+      return;
+    }
+    if (linkDaPropriaPlaca(novoLink)) {
+      setErro(MSG_LINK_DA_PLACA);
       return;
     }
     setCarregando(true);

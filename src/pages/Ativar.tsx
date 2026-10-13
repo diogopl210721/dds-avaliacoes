@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowRight, ExternalLink, PartyPopper, Search, Zap } from "lucide-react";
 import { callFunction } from "../lib/supabaseClient";
 import { AuthShell, MenuPlaca, Campo, BotaoEnviar, CodigoPlaca, Erro, TituloForm, somente4Digitos } from "../components/PlacaUi";
+import { linkDaPropriaPlaca, MSG_LINK_DA_PLACA } from "../lib/linkGuard";
 
 // Ativação da placa. Quando a pessoa chega pelo QR/NFC da própria placa, o
 // link já traz o código e a chave secreta (`k`): ela só informa nome, link e
@@ -42,6 +43,10 @@ export default function Ativar() {
     }
     if (!link.startsWith("http")) {
       setErro("Cole o link completo (começando com https://).");
+      return;
+    }
+    if (linkDaPropriaPlaca(link)) {
+      setErro(MSG_LINK_DA_PLACA);
       return;
     }
     if (!/^\d{4}$/.test(senha)) {
