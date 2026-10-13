@@ -371,21 +371,21 @@
   .nv-stage>.mini-landing{border-radius:0;box-shadow:none}
 }
 
-/* No estúdio (fundo claro) */
-.studio .nc-card{background:#ffffff;border-color:#dfe6f1;color:#0e1a33;box-shadow:0 10px 30px -22px #0b14264d}
-.studio .nc-card:hover{border-color:#8fc1ff;box-shadow:0 22px 44px -26px #1a6fe0a6}
-.studio .nc-body{background:#ffffff;border-top-color:#eef2f8}
-.studio .nc-body strong{color:#0e1a33}
-.studio .nc-body small{color:#5b6a85}
-.studio .nc-body em{color:#1a6fe0}
-.studio .nc-card.is-selected{border-color:#1a6fe0;box-shadow:0 0 0 2px #1a6fe055}
-.studio .nc-body strong i{background:#1a6fe0;color:#fff}
-.studio .nc-chips{margin:4px 0 16px}
-.studio .nc-chips button{border-color:#d8e1ee;background:#ffffff;color:#30405e}
-.studio .nc-chips button b{background:#eef3fa}
-.studio .nc-chips button:hover{border-color:#9cc4f5;color:#0e1a33}
-.studio .nc-chips button[aria-pressed=true]{background:linear-gradient(135deg,#2f86f2,#1a6fe0 55%,#1458c4);color:#fff}
-.studio .nc-chips button[aria-pressed=true] b{background:#ffffff33}
+/* No estúdio e no painel do cliente (fundo claro) */
+.studio .nc-card,.nc-light .nc-card{background:#ffffff;border-color:#dfe6f1;color:#0e1a33;box-shadow:0 10px 30px -22px #0b14264d}
+.studio .nc-card:hover,.nc-light .nc-card:hover{border-color:#8fc1ff;box-shadow:0 22px 44px -26px #1a6fe0a6}
+.studio .nc-body,.nc-light .nc-body{background:#ffffff;border-top-color:#eef2f8}
+.studio .nc-body strong,.nc-light .nc-body strong{color:#0e1a33}
+.studio .nc-body small,.nc-light .nc-body small{color:#5b6a85}
+.studio .nc-body em,.nc-light .nc-body em{color:#1a6fe0}
+.studio .nc-card.is-selected,.nc-light .nc-card.is-selected{border-color:#1a6fe0;box-shadow:0 0 0 2px #1a6fe055}
+.studio .nc-body strong i,.nc-light .nc-body strong i{background:#1a6fe0;color:#fff}
+.studio .nc-chips,.nc-light .nc-chips{margin:4px 0 16px}
+.studio .nc-chips button,.nc-light .nc-chips button{border-color:#d8e1ee;background:#ffffff;color:#30405e}
+.studio .nc-chips button b,.nc-light .nc-chips button b{background:#eef3fa}
+.studio .nc-chips button:hover,.nc-light .nc-chips button:hover{border-color:#9cc4f5;color:#0e1a33}
+.studio .nc-chips button[aria-pressed=true],.nc-light .nc-chips button[aria-pressed=true]{background:linear-gradient(135deg,#2f86f2,#1a6fe0 55%,#1458c4);color:#fff}
+.studio .nc-chips button[aria-pressed=true] b,.nc-light .nc-chips button[aria-pressed=true] b{background:#ffffff33}
 .sw-more{margin-top:22px;border-radius:20px;background:#ffffff;border:1px solid #dfe6f1}
 .sw-more>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;cursor:pointer;list-style:none;font:700 15px/1.3 Manrope,system-ui,sans-serif;color:#0e1a33}
 .sw-more>summary::-webkit-details-marker{display:none}

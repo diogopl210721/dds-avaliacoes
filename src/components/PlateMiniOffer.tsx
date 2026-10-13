@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { ArrowRight, BadgeCheck, RefreshCcw, Sparkles } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowRight, BadgeCheck, MessageCircle, RefreshCcw, Sparkles } from "lucide-react";
 import { callFunction } from "../lib/supabaseClient";
-import { MiniContent, MiniRecord, demoFor, themeOptions } from "../lib/miniPage";
-import { MiniPreviewModal, ThemePhone } from "./MiniThemes";
+import { MiniRecord, themeOptions } from "../lib/miniPage";
+import { NicheId, nicheById } from "../lib/miniNicheCore";
+import { loadFonts } from "../lib/miniFonts";
+import { GroupFilter, NicheCard, NicheChips, NicheViewer, nichesOf } from "./NicheShowcase";
 import { Aurora, Spinner } from "./ui/Fx";
 import "../mini.css";
 
@@ -10,15 +13,45 @@ export type PlateMiniAccess = {
   codigo: string; senha: string; page: MiniRecord | null;
   company: { nome?: string; write_a_review_uri?: string } | null;
 };
-export default function PlateMiniOffer({ codigo, senha, onOpen }: {
-  codigo: string; senha: string; onOpen: (access: PlateMiniAccess) => void;
+
+const WHATS = "5541991542931";
+
+// Oferta do mini site no painel do cliente. Enquanto não foi liberado, mostra os mesmos
+// 20 exemplos por ramo da vitrine (/exemplos), já com o nome da empresa da placa.
+// Só os celulares que estão na tela ficam animando (ver NicheShowcase), senão o iPhone trava ao rolar.
+export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
+  codigo: string; senha: string; empresa?: string | null; onOpen: (access: PlateMiniAccess) => void;
 }) {
   const [show, setShow] = useState(false);
-  const [preview, setPreview] = useState<MiniContent | null>(null);
   const [access, setAccess] = useState<PlateMiniAccess | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [group, setGroup] = useState<GroupFilter>("todos");
+  const name = (empresa || access?.company?.nome || "").trim().slice(0, 60);
+
+  // O exemplo aberto fica no endereço (?exemplo=pizzaria): o botão "voltar" do celular fecha o
+  // exemplo em vez de sair do painel.
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const opened = useRef(false);
+  const fromUrl = nicheById(params.get("exemplo"))?.id ?? null;
+  const open = opened.current ? fromUrl : null;
+  useEffect(() => {
+    if (!opened.current && params.has("exemplo")) {
+      const next = new URLSearchParams(params); next.delete("exemplo"); setParams(next, { replace: true });
+    }
+  }, []);
+  const list = useMemo(() => nichesOf(group).map(n => n.id), [group]);
+  const viewerIds = open && !list.includes(open) ? nichesOf("todos").map(n => n.id) : list;
+  function showNiche(id: NicheId) {
+    const replace = !!open;
+    opened.current = true;
+    const next = new URLSearchParams(params); next.set("exemplo", id);
+    setParams(next, { replace });
+  }
+  const close = () => navigate(-1);
+
   async function check() {
     setBusy(true); setError("");
     try {
@@ -29,6 +62,14 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
     finally { setBusy(false); }
   }
   useEffect(() => { check(); }, [codigo, senha]);
+  useEffect(() => { if (show) loadFonts(themeOptions.map(t => t.id)); }, [show]);
+
+  const wa = (id: NicheId) => {
+    const n = nicheById(id)!;
+    const msg = `Olá! ${name ? `Sou da ${name} (placa ${codigo})` : `Minha placa é a ${codigo}`}. Vi no meu painel o exemplo de mini site de ${n.label} e quero um assim.`;
+    return `https://wa.me/${WHATS}?text=${encodeURIComponent(msg)}`;
+  };
+
   return <section className="dds-card overflow-hidden">
     <div className="dds-dark p-6 sm:p-8">
       <Aurora calm />
@@ -42,20 +83,24 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
         <div className="flex flex-col gap-2 md:items-end">
           <button onClick={() => { if (enabled && access) onOpen(access); else setShow(!show); }}
             className="dds-btn dds-btn-glow dds-btn-lg w-full md:w-auto" disabled={busy}>
-            {busy ? <><Spinner /> Consultando liberação…</> : enabled ? access?.page ? <>Editar meu mini site <ArrowRight size={18} /></> : <>Criar meu mini site <ArrowRight size={18} /></> : <>Criar meu mini site · ver 9 modelos</>}
+            {busy ? <><Spinner /> Consultando liberação…</> : enabled ? access?.page ? <>Editar meu mini site <ArrowRight size={18} /></> : <>Criar meu mini site <ArrowRight size={18} /></> : <>Criar meu mini site · ver exemplos</>}
           </button>
           {!enabled && <button onClick={check} disabled={busy} className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-[#8fd8ff] hover:text-white disabled:opacity-50"><RefreshCcw size={14} /> Já paguei · verificar liberação</button>}
         </div>
       </div>
       {error && <p className="mt-4 dds-error" role="alert">{error}</p>}
     </div>
-    {show && <div className="p-5 sm:p-6 space-y-4 dds-fade">
-      <p className="text-sm text-ink-soft leading-relaxed">Seis modelos feitos para segmentos e três para qualquer negócio, cada um com 4 combinações de cores ou a cor da sua marca. Toque em um para ver a página completa. A sua terá as informações e fotos da sua empresa.</p>
-      <div className="theme-showcase">
-        {themeOptions.map((t, i) => <button key={t.id} className="theme-card" onClick={() => setPreview(demoFor(t.id))}>
-          <ThemePhone content={demoFor(t.id)} theme={t.id} index={i} />
-          <span className="theme-card-text"><small>{t.niche}</small><strong>{t.name}</strong><span>{t.description}</span><em>Ver modelo completo</em></span>
-        </button>)}
+    {show && <div className="nc-light p-5 sm:p-6 space-y-4 dds-fade">
+      <div>
+        <p className="font-display text-lg font-extrabold tracking-[-.02em] text-ink">Exemplos para 20 ramos{name ? <>, com o nome da <span className="text-brand-600">{name}</span></> : null}</p>
+        <p className="mt-1 text-sm text-ink-soft leading-relaxed">Cada ramo tem cores, fotos e um efeito animado próprio. Toque em um para ver a página inteira e use as setas para passar para o próximo. O seu terá as fotos e as informações da sua empresa.</p>
+      </div>
+      <div>
+        <NicheChips value={group} onChange={setGroup} />
+        <div className="nc-grid">
+          {list.map((id, i) => <NicheCard key={id} id={id} name={name} index={i} paused={!!open} onOpen={showNiche} />)}
+        </div>
+        <p className="mt-3 text-xs text-ink-muted">Empresas, depoimentos e números dos exemplos são fictícios. Fotos ilustrativas.</p>
       </div>
       <div className="rounded-2xl bg-gradient-to-br from-[#eef6ff] to-[#f3f0ff] border border-[#d9e6fb] p-4 text-sm text-ink-soft space-y-2">
         <strong className="block font-display text-ink">Gostou? Sua empresa pode ter uma página assim.</strong>
@@ -63,6 +108,7 @@ export default function PlateMiniOffer({ codigo, senha, onOpen }: {
         <p>As funções da sua placa continuam disponíveis enquanto você decide.</p>
       </div>
     </div>}
-    {preview && <MiniPreviewModal content={preview} demo label="Exemplo de mini site" onClose={() => setPreview(null)} onTheme={theme => setPreview({ ...demoFor(theme), palette: preview.palette === "brand" ? "p1" : preview.palette })} onPalette={palette => setPreview({ ...preview, palette })} />}
+    {open && <NicheViewer id={open} ids={viewerIds} name={name} onClose={close} onNav={showNiche}
+      actions={<a className="nv-cta is-whats" href={wa(open)} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} /> Quero este <ArrowRight size={15} className="nv-cta-arrow" /></a>} />}
   </section>;
 }

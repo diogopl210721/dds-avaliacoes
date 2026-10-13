@@ -309,7 +309,7 @@ export default function Analise() {
             </Card>
           </div>
 
-          <PlateMiniOffer codigo={resultado.codigo} senha={pin.trim()} onOpen={setMiniEditor} />
+          <PlateMiniOffer codigo={resultado.codigo} senha={pin.trim()} empresa={resultado.empresa} onOpen={setMiniEditor} />
 
           <div className={`grid gap-5 ${aniversariantes.length > 0 ? "lg:grid-cols-2" : ""}`}>
             {aniversariantes.length > 0 && (
