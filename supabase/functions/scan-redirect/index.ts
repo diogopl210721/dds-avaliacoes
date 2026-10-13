@@ -34,12 +34,13 @@ Deno.serve(async (req) => {
     : (link as any).plates?.id ?? null;
 
   if (link.status === "AGUARDANDO_DESTINO" || !link.destino_atual) {
-    // Placa ainda nao ativada -> manda para a ativacao ja com o codigo e com
-    // a chave secreta da placa (o proprio slug), que prova que a pessoa esta
-    // com a placa na mao. Assim ela nao digita codigo nem PIN: so escolhe a
-    // senha dela.
+    // Placa ainda nao ativada -> abre a pagina inicial da DDS Avaliacoes (tambem
+    // serve de propaganda para quem escaneou por curiosidade) com o aviso
+    // "Plaquinha encontrada · Ativar agora". O botao leva a ativacao ja com o
+    // codigo e a chave secreta da placa (o proprio slug), que prova que a pessoa
+    // esta com a placa na mao: nao digita codigo nem PIN, so escolhe a senha.
     const destino =
-      `${BASE_URL}/#/ativar?codigo=${encodeURIComponent(link.codigo)}` +
+      `${BASE_URL}/#/?placa=${encodeURIComponent(link.codigo)}` +
       `&k=${encodeURIComponent(slug)}`;
     return Response.redirect(destino, 302);
   }

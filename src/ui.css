@@ -186,6 +186,16 @@ body { font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Roboto, san
 .dds-teaser-go { display: grid; place-items: center; flex-shrink: 0; width: 38px; height: 38px; margin-left: auto; border-radius: 12px; color: #06132b; background: linear-gradient(135deg, #8fd8ff, #399cff 60%, #5b8cff); box-shadow: 0 8px 20px -10px #399cff; transition: transform .25s var(--ease); }
 .dds-teaser:hover .dds-teaser-go { transform: translateX(2px); }
 
+/* Aviso "Plaquinha encontrada" (placa nova escaneada, na página inicial) */
+.dds-found { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 12px; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #0f2a55f2, #0b1730f2); border: 1px solid #66e0ff66; box-shadow: 0 18px 44px -20px #000, 0 0 0 4px #66e0ff14; -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.dds-found-icon { position: relative; display: grid; place-items: center; flex-shrink: 0; width: 38px; height: 38px; border-radius: 12px; color: #06132b; background: linear-gradient(135deg, #8fd8ff, #66e0ff); }
+.dds-found-icon::after { content: ''; position: absolute; inset: -4px; border-radius: 15px; border: 2px solid #66e0ff; animation: dds-ping 1.8s ease-out infinite; }
+.dds-found-text { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.dds-found-text strong { font: 800 15px/1.2 Manrope, system-ui, sans-serif; letter-spacing: -.01em; }
+.dds-found-text strong b { color: #66e0ff; letter-spacing: .03em; }
+.dds-found-text small { font-size: 12.5px; line-height: 1.35; color: #a7b7d1; }
+@media (max-width: 420px) { .dds-found-text small { display: none; } .dds-found { gap: 10px; } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
   [data-reveal] { opacity: 1; transform: none; }

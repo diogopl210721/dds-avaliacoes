@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowDown, ArrowRight, ArrowUpRight, BarChart3, Cake, Camera, CheckCircle2, Clapperboard, FileSpreadsheet, Handshake, KeyRound, LayoutDashboard, Link2,
   MessageCircle, MonitorSmartphone, Nfc, Palette, QrCode, RefreshCcw, ScanLine, Smartphone, Sparkles, Star, Workflow, Zap,
@@ -34,6 +34,13 @@ export default function Home() {
   const [pastHero, setPastHero] = useState(false);
   const [ctaInView, setCtaInView] = useState(false);
   const year = new Date().getFullYear();
+  // Plaquinha nova escaneada: o scan-redirect manda para cá com ?placa=CÓDIGO&k=CHAVE.
+  // O aviso no topo leva à ativação já preenchida (sem digitar código nem PIN).
+  const [params] = useSearchParams();
+  const placa = (params.get("placa") ?? "").toUpperCase();
+  const chave = params.get("k") ?? "";
+  const placaNova = /^[A-Z0-9-]{3,20}$/.test(placa) && /^[A-Za-z0-9_-]{4,80}$/.test(chave);
+  const ativarLink = placaNova ? `/ativar?codigo=${encodeURIComponent(placa)}&k=${encodeURIComponent(chave)}` : "/cadastrar";
   // O WhatsApp flutuante só aparece depois da primeira dobra: quem veio ativar não é incomodado.
   useEffect(() => {
     const el = hero.current; if (!el || !("IntersectionObserver" in window)) return;
@@ -61,10 +68,23 @@ export default function Home() {
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/sistema" {...intent(prefetch.sistema)} className="dds-btn dds-btn-ghost-dark dds-btn-sm sm:px-4">Meu sistema</Link>
-            <Link to="/cadastrar" {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-sm sm:px-4 hidden sm:inline-flex">Ativar placa</Link>
+            <Link to={ativarLink} {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-sm sm:px-4 hidden sm:inline-flex">Ativar placa</Link>
           </div>
         </div>
       </header>
+
+      {placaNova && (
+        <div className="sticky top-16 z-20 px-4 sm:px-6 pt-3 pb-3 bg-gradient-to-b from-[#070d1a] via-[#070d1ae0] to-transparent">
+          <div className="dds-found max-w-6xl mx-auto" role="region" aria-label="Plaquinha encontrada">
+            <span className="dds-found-icon" aria-hidden="true"><CheckCircle2 size={20} /></span>
+            <span className="dds-found-text">
+              <strong>Plaquinha <b>{placa}</b> encontrada</strong>
+              <small>Ainda não ativada. Leva 2 minutos e você não precisa digitar o código.</small>
+            </span>
+            <Link to={ativarLink} {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-sm shrink-0">Ativar agora <ArrowRight size={16} /></Link>
+          </div>
+        </div>
+      )}
 
       <main>
         {/* Primeira dobra */}
@@ -83,7 +103,7 @@ export default function Home() {
             </p>
             {/* Sem animação de entrada: é a ação principal da página e o Safari do iPhone às vezes demorava a desenhá-la. */}
             <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <Link to="/cadastrar" {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-lg">Ativar minha placa <ArrowRight size={18} /></Link>
+              <Link to={ativarLink} {...intent(prefetch.ativar)} className="dds-btn dds-btn-glow dds-btn-lg">Ativar minha placa <ArrowRight size={18} /></Link>
               <Link to="/sistema" {...intent(prefetch.sistema)} className="dds-btn dds-btn-ghost-dark dds-btn-lg"><LayoutDashboard size={18} /> Acessar meu sistema</Link>
             </div>
             <button onClick={() => scrollToId("quero")} className="group mt-4 inline-flex items-center gap-2 text-[15px] text-[#a7b7d1] hover:text-white transition dds-rise" style={{ ["--d" as string]: ".28s" }}>
