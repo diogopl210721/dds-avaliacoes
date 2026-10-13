@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { ArrowRight, ExternalLink, PartyPopper, Search, Zap } from "lucide-react";
 import { callFunction } from "../lib/supabaseClient";
-import { AuthShell, MenuPlaca, Campo, BotaoEnviar, CodigoPlaca, Erro, TituloForm, somente4Digitos } from "../components/PlacaUi";
+import { AuthShell, MenuPlaca, Campo, BotaoEnviar, CodigoPlaca, Erro, TituloForm, somente4Digitos, EscolhaPedirDados } from "../components/PlacaUi";
 import { linkDaPropriaPlaca, MSG_LINK_DA_PLACA } from "../lib/linkGuard";
 
 // Ativação da placa. Quando a pessoa chega pelo QR/NFC da própria placa, o
@@ -23,6 +23,7 @@ export default function Ativar() {
   const [linkAvaliacao, setLinkAvaliacao] = useState("");
   const [senha, setSenha] = useState("");
   const [senha2, setSenha2] = useState("");
+  const [pedirDados, setPedirDados] = useState(true);
 
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
@@ -63,13 +64,14 @@ export default function Ativar() {
       const data = await callFunction<{ ok?: boolean; error?: string; codigo?: string }>(
         "registrar-placa",
         viaPlaca
-          ? { chave, senha, nomeEmpresa: nomeEmpresa.trim(), reviewLink: link }
+          ? { chave, senha, nomeEmpresa: nomeEmpresa.trim(), reviewLink: link, pedirDados }
           : {
               codigo: codigo.trim(),
               pin: pin.trim(),
               senha,
               nomeEmpresa: nomeEmpresa.trim(),
               reviewLink: link,
+              pedirDados,
             }
       );
       if (data.error) throw new Error(data.error);
@@ -188,6 +190,8 @@ export default function Ativar() {
             {senha === senha2 ? "✓ As senhas conferem" : "As senhas não são iguais"}
           </p>
         )}
+
+        <EscolhaPedirDados valor={pedirDados} onChange={setPedirDados} titulo="3. Antes da avaliação, pedir o telefone e o aniversário do cliente?" />
 
         {erro && <Erro>{erro}</Erro>}
         <BotaoEnviar carregando={carregando}><Zap size={18} /> Ativar minha placa</BotaoEnviar>

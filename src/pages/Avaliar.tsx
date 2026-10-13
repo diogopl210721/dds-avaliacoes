@@ -12,6 +12,16 @@ import { Stars } from "../components/ui/Fx";
 // então ninguém deixa de avaliar por causa disso.
 // Visual só em CSS (sem banco nem bibliotecas pesadas): abre rápido no celular.
 
+// Destino é uma página do Google (avaliação, Maps ou link curto do perfil)?
+function destinoGoogle(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return /(^|\.)google\.[a-z.]+$/.test(host) || host === "g.page" || host === "maps.app.goo.gl" || host === "g.co";
+  } catch {
+    return false;
+  }
+}
+
 // Formata enquanto digita: só números, no formato DD/MM/AAAA.
 // Texto simples em vez de <input type="date"> de propósito — abrir o
 // calendário nativo é um passo a mais que faz gente desistir no meio.
@@ -54,6 +64,10 @@ export default function Avaliar() {
   const slug = params.get("slug") ?? "";
   const dest = params.get("dest") ?? "";
   const empresa = params.get("empresa") ?? "";
+  // modo=toque: o dono da placa escolheu não pedir telefone e aniversário. Só no iPhone o cliente
+  // passa por aqui (nos outros aparelhos vai direto): um toque de verdade no link deixa o iPhone
+  // abrir o app do Google Maps, onde ele já está logado.
+  const modoToque = params.get("modo") === "toque";
 
   const [telefone, setTelefone] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
@@ -101,16 +115,50 @@ export default function Avaliar() {
     );
   }
 
-  return (
-    <div className="relative min-h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,#eaf3ff_0%,#f7faff_42%,#ffffff_100%)] flex items-center justify-center px-4 py-8">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full bg-[radial-gradient(closest-side,#399cff40,transparent)]" />
-        <div className="absolute -top-20 -right-28 w-[380px] h-[380px] rounded-full bg-[radial-gradient(closest-side,#8b7bff30,transparent)]" />
-        <div className="absolute bottom-[-180px] left-1/2 -translate-x-1/2 w-[520px] h-[360px] rounded-full bg-[radial-gradient(closest-side,#fbbf2426,transparent)]" />
-        <div className="dds-confetti absolute inset-0">
-          {CONFETES.map((c, i) => <i key={i} style={{ left: c.l, top: "-20px", background: c.c, animationDelay: c.d, animationDuration: c.s }} />)}
-        </div>
+  const fundo = (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+      <div className="absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full bg-[radial-gradient(closest-side,#399cff40,transparent)]" />
+      <div className="absolute -top-20 -right-28 w-[380px] h-[380px] rounded-full bg-[radial-gradient(closest-side,#8b7bff30,transparent)]" />
+      <div className="absolute bottom-[-180px] left-1/2 -translate-x-1/2 w-[520px] h-[360px] rounded-full bg-[radial-gradient(closest-side,#fbbf2426,transparent)]" />
+      <div className="dds-confetti absolute inset-0">
+        {CONFETES.map((c, i) => <i key={i} style={{ left: c.l, top: "-20px", background: c.c, animationDelay: c.d, animationDuration: c.s }} />)}
       </div>
+    </div>
+  );
+  const pagina = "relative min-h-[100dvh] overflow-hidden bg-[linear-gradient(180deg,#eaf3ff_0%,#f7faff_42%,#ffffff_100%)] flex items-center justify-center px-4 py-8";
+
+  if (modoToque) {
+    const google = destinoGoogle(dest);
+    return (
+      <div className={pagina}>
+        {fundo}
+        <main className="relative w-full max-w-[400px] dds-rise">
+          <div className="dds-card overflow-hidden shadow-[0_30px_70px_-30px_#1a6fe066]">
+            <div className="relative px-6 pt-9 pb-7 text-center bg-[radial-gradient(120%_90%_at_50%_0%,#e3efff_0%,#ffffff_70%)]">
+              <div className="relative mx-auto w-[84px] h-[84px]">
+                <div className="absolute inset-0 rounded-[28px] bg-gradient-to-br from-[#fde68a] via-[#fbbf24] to-[#f59e0b] rotate-6 opacity-35" />
+                <div className="relative grid place-items-center w-full h-full rounded-[28px] bg-gradient-to-br from-[#399cff] to-[#1a6fe0] text-white shadow-[0_18px_36px_-14px_#1a6fe0]">
+                  <Star size={38} fill="currentColor" strokeWidth={0} className="text-amber-300" />
+                </div>
+              </div>
+              <Stars size={18} twinkle className="mt-5" />
+              <h1 className="mt-3 font-display text-[24px] leading-tight font-extrabold tracking-[-.03em] text-ink">
+                {empresa ? <>Como foi na {empresa}?</> : "Como foi a sua experiência?"}
+              </h1>
+              <p className="mt-2 text-[15px] leading-relaxed text-ink-muted">Sua avaliação ajuda muito. Leva menos de um minuto.</p>
+              <a href={dest} className="dds-btn dds-btn-primary dds-btn-lg dds-btn-block !mt-6 text-[17px]">
+                <Star size={19} fill="currentColor" strokeWidth={0} className="text-amber-300" /> {google ? "Avaliar no Google" : "Continuar"} <ArrowRight size={18} aria-hidden="true" />
+              </a>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className={pagina}>
+      {fundo}
 
       <main className="relative w-full max-w-[400px] dds-rise">
         <div className="dds-card overflow-hidden shadow-[0_30px_70px_-30px_#1a6fe066]">

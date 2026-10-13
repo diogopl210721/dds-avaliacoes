@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   try {
-    const { codigo, pin, chave, senha, nomeEmpresa, reviewLink, cidade, estado } =
+    const { codigo, pin, chave, senha, nomeEmpresa, reviewLink, cidade, estado, pedirDados } =
       await req.json();
 
     const usandoChave = !!chave;
@@ -163,6 +163,9 @@ Deno.serve(async (req) => {
           destino_atual: reviewLink,
           company_id: companyId,
           status: "ATIVO",
+          // Pedir telefone e aniversário antes da avaliação: o dono escolhe na ativação.
+          // Sem a escolha (tela antiga em cache), fica como está (padrão do banco: sim).
+          ...(typeof pedirDados === "boolean" ? { pedir_dados: pedirDados } : {}),
           updated_at: new Date().toISOString(),
         })
         .eq("id", plate.dynamic_link_id);

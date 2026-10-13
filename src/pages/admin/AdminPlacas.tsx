@@ -19,6 +19,7 @@ type DdsLinkResumo = {
   slug: string;
   destino_atual: string | null;
   status: string;
+  pedir_dados: boolean;
   qr_png_path: string | null;
   qr_svg_path: string | null;
   historico_limpo_em: string | null;
@@ -77,7 +78,7 @@ export default function AdminPlacas() {
     const { data, error } = await supabase
       .from("plates")
       .select(
-        "id, codigo, pin, status, apelido, mini_site_enabled, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, qr_png_path, qr_svg_path, historico_limpo_em)"
+        "id, codigo, pin, status, apelido, mini_site_enabled, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, pedir_dados, qr_png_path, qr_svg_path, historico_limpo_em)"
       )
       .eq("oculta", false)
       .order("created_at", { ascending: false });
@@ -308,6 +309,15 @@ export default function AdminPlacas() {
     if (!selecionada?.dds_links) return;
     const novoStatus = selecionada.dds_links.status === "PAUSADO" ? "ATIVO" : "PAUSADO";
     await supabase.from("dds_links").update({ status: novoStatus }).eq("id", selecionada.dds_links.id);
+    await carregar();
+  }
+
+  // Pedir (ou não) telefone e aniversário antes da avaliação. O dono também muda isso no painel dele.
+  async function alternarPedirDados() {
+    if (!selecionada?.dds_links) return;
+    const novo = selecionada.dds_links.pedir_dados === false;
+    const { error } = await supabase.from("dds_links").update({ pedir_dados: novo }).eq("id", selecionada.dds_links.id);
+    if (error) return alert("Não foi possível salvar: " + error.message);
     await carregar();
   }
 
@@ -641,6 +651,23 @@ export default function AdminPlacas() {
                         )}
                         <button onClick={alternarPausaLink} className="dds-btn dds-btn-outline dds-btn-sm">
                           {selecionada.dds_links.status === "PAUSADO" ? <><Play size={14} /> Reativar link</> : <><Pause size={14} /> Pausar link</>}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e8edf5] px-3.5 py-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-ink">Pedir telefone e aniversário</p>
+                          <p className="text-xs text-ink-muted">{selecionada.dds_links.pedir_dados === false ? "Não: o cliente vai direto para a avaliação (no iPhone, um toque só)." : "Sim: mostra a tela antes da avaliação, com \"Pular\"."}</p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={selecionada.dds_links.pedir_dados !== false}
+                          aria-label="Pedir telefone e aniversário antes da avaliação"
+                          onClick={alternarPedirDados}
+                          className={`relative shrink-0 w-12 h-7 rounded-full transition-colors ${selecionada.dds_links.pedir_dados !== false ? "bg-brand-500" : "bg-[#cfd8e6]"}`}
+                        >
+                          <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow transition-transform ${selecionada.dds_links.pedir_dados !== false ? "translate-x-5" : ""}`} />
                         </button>
                       </div>
 

@@ -48,6 +48,7 @@ Deno.serve(async (req) => {
 
     if (acao === "trocar") return await trocar(body, ip);
     if (acao === "recuperar") return await recuperar(body, ip);
+    if (acao === "dados") return await pedirDados(body, ip);
     return json({ error: "Ação inválida." }, 400);
   } catch (e) {
     console.error(e);
@@ -109,6 +110,41 @@ async function trocar(body: any, ip: string) {
   });
 
   return json({ ok: true }, 200);
+}
+
+// Liga/desliga a tela de telefone e aniversário antes da avaliação (dds_links.pedir_dados).
+async function pedirDados(body: any, ip: string) {
+  const codigo = String(body.codigo ?? "").trim().toUpperCase();
+  const senha = String(body.senha ?? "").trim();
+  if (!codigo || !senha || typeof body.pedirDados !== "boolean") {
+    return json({ error: "Informe o código, a senha e a escolha." }, 400);
+  }
+  if (tooManyAttempts(`d:${codigo}`) || tooManyAttempts(`di:${ip}`)) {
+    return json({ error: "Muitas tentativas. Aguarde alguns minutos." }, 429);
+  }
+
+  const { data: plate } = await supabaseAdmin
+    .from("plates")
+    .select("id, pin_hash, status, company_id, dynamic_link_id")
+    .eq("codigo", codigo)
+    .maybeSingle();
+  if (!plate || !bcrypt.compareSync(senha, plate.pin_hash)) {
+    return json({ error: "Código ou senha inválidos." }, 400);
+  }
+  if (plate.status === "BLOQUEADA" || plate.status === "DESATIVADA") {
+    return json({ error: "Esta placa não está disponível." }, 400);
+  }
+  if (!plate.company_id || !plate.dynamic_link_id) {
+    return json({ error: "Esta placa ainda não foi ativada." }, 400);
+  }
+
+  const { error } = await supabaseAdmin
+    .from("dds_links")
+    .update({ pedir_dados: body.pedirDados, updated_at: new Date().toISOString() })
+    .eq("id", plate.dynamic_link_id);
+  if (error) throw error;
+
+  return json({ ok: true, pedirDados: body.pedirDados }, 200);
 }
 
 // Descobre o código da placa a partir do link atual + senha.

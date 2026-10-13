@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   // empresa (pra mostrar na telinha de "deixe seu telefone").
   const { data: link } = await supabaseAdmin
     .from("dds_links")
-    .select("id, codigo, status, destino_atual, company_id, plates(id), companies(nome)")
+    .select("id, codigo, status, destino_atual, pedir_dados, company_id, plates(id), companies(nome)")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -91,16 +91,29 @@ Deno.serve(async (req) => {
     await registroPromise;
   }
 
-  // Em vez de ir direto pro Google, manda pra telinha intermediaria do
-  // app (pede o telefone, opcional, com "Pular" bem visivel) que so entao
-  // redireciona pro link real do Google. O acesso ja foi contabilizado
-  // acima, independente do que a pessoa fizer nessa tela.
+  // O acesso ja foi contabilizado acima, independente do que a pessoa fizer
+  // daqui pra frente.
   const nomeEmpresa = (link as any).companies?.nome ?? "";
   const interstitial =
     `${BASE_URL}/#/avaliar?slug=${encodeURIComponent(slug)}` +
     `&dest=${encodeURIComponent(target)}` +
     `&empresa=${encodeURIComponent(nomeEmpresa)}`;
+  // Destino apontando pra propria placa: a tela intermediaria mostra o aviso
+  // em vez de ficar num redirecionamento sem fim.
+  const linkDaPlaca = target.includes("/functions/v1/scan-redirect");
 
+  // Dono escolheu NAO pedir telefone e aniversario (dds_links.pedir_dados).
+  if ((link as any).pedir_dados === false && !linkDaPlaca) {
+    // No iPhone, o link do Google so abre no app do Google Maps (onde o
+    // cliente ja esta logado) quando a pessoa toca num link de verdade; um
+    // redirecionamento abre no navegador e pede login. Entao: tela de um
+    // toque so, sem formulario. Nos outros aparelhos vai direto.
+    if (isApple(ua)) return Response.redirect(`${interstitial}&modo=toque`, 302);
+    return Response.redirect(target, 302);
+  }
+
+  // Padrao: telinha intermediaria do app (pede telefone e aniversario,
+  // opcional, com "Pular") que so entao leva pro link real.
   return Response.redirect(interstitial, 302);
 });
 
@@ -122,6 +135,9 @@ async function geolocate(req: Request): Promise<{ country: string | null; region
   }
 }
 
+function isApple(ua: string) {
+  return /iphone|ipad|ipod/i.test(ua);
+}
 function detectDevice(ua: string) {
   if (/mobile/i.test(ua)) return "mobile";
   if (/tablet/i.test(ua)) return "tablet";

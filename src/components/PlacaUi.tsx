@@ -157,3 +157,39 @@ export function CodigoPlaca({ codigo, rotulo = "Código da placa", grande = fals
     </div>
   );
 }
+
+// Sim/Não: pedir telefone e aniversário antes da avaliação. Usada na ativação e no painel do cliente.
+export function EscolhaPedirDados({ valor, onChange, titulo, desabilitado = false }: {
+  valor: boolean; onChange: (v: boolean) => void; titulo: string; desabilitado?: boolean;
+}) {
+  const opcoes = [
+    { v: true, rotulo: "Sim, pedir", texto: "Você recebe os telefones e a lista de aniversariantes do mês no seu sistema. O cliente pode pular." },
+    { v: false, rotulo: "Não, ir direto", texto: "O cliente vai direto para a avaliação, sem formulário." },
+  ];
+  return (
+    <fieldset disabled={desabilitado} className="space-y-2">
+      <legend className="dds-label">{titulo}</legend>
+      <div className="grid sm:grid-cols-2 gap-2.5" role="radiogroup">
+        {opcoes.map((o) => {
+          const marcado = valor === o.v;
+          return (
+            <button
+              key={String(o.v)}
+              type="button"
+              role="radio"
+              aria-checked={marcado}
+              onClick={() => onChange(o.v)}
+              className={`relative text-left rounded-2xl border p-3.5 pr-10 transition-colors disabled:opacity-60 ${marcado ? "border-brand-500 bg-[#eef6ff] shadow-[0_0_0_3px_#399cff26]" : "border-[#dbe5f4] bg-white hover:border-[#b5d8ff]"}`}
+            >
+              <span className={`absolute right-3 top-3.5 grid place-items-center w-5 h-5 rounded-full border-2 ${marcado ? "border-brand-500 bg-brand-500 text-white" : "border-[#c9d6ea]"}`}>
+                {marcado && <Check size={12} strokeWidth={3} />}
+              </span>
+              <span className="block font-display font-bold text-ink">{o.rotulo}</span>
+              <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{o.texto}</span>
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}

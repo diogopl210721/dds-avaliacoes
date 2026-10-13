@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import PlateMiniOffer, { PlateMiniAccess } from "../components/PlateMiniOffer";
 import { callFunction } from "../lib/supabaseClient";
-import { AuthShell, MenuPlaca, Campo, BotaoEnviar, Erro, TituloForm } from "../components/PlacaUi";
+import { AuthShell, MenuPlaca, Campo, BotaoEnviar, Erro, TituloForm, EscolhaPedirDados } from "../components/PlacaUi";
 import { Aurora, BrandMark, CountUp, Spinner, spotMove } from "../components/ui/Fx";
 import { ScreenLoading } from "../components/ui/Screen";
 // ExcelJS e jsPDF são pesados — importados só na hora do clique (ver
@@ -24,6 +24,7 @@ type Resultado = {
   codigo: string;
   empresa: string | null;
   status: string;
+  pedirDados?: boolean;
   totalAcessos: number;
   porDia: Record<string, number>;
   porMes: Record<string, number>;
@@ -85,7 +86,32 @@ export default function Analise() {
 
   const [miniEditor, setMiniEditor] = useState<PlateMiniAccess | null>(null);
 
+  // Escolha do dono: pedir ou não telefone e aniversário antes da avaliação.
+  const [pedirDados, setPedirDados] = useState(true);
+  const [salvandoDados, setSalvandoDados] = useState(false);
+  const [msgDados, setMsgDados] = useState<{ ok: boolean; texto: string } | null>(null);
+
   const mesAtual = new Date().getMonth() + 1;
+
+  async function mudarPedirDados(v: boolean) {
+    if (!resultado || v === pedirDados || salvandoDados) return;
+    const antes = pedirDados;
+    setPedirDados(v);
+    setSalvandoDados(true);
+    setMsgDados(null);
+    try {
+      const data = await callFunction<{ ok?: boolean; error?: string }>("gerenciar-placa", {
+        acao: "dados", codigo: resultado.codigo, senha: pin.trim(), pedirDados: v,
+      });
+      if (data.error) throw new Error(data.error);
+      setMsgDados({ ok: true, texto: v ? "Salvo. Antes de avaliar, o cliente vê a tela de telefone e aniversário." : "Salvo. O cliente vai direto para a avaliação." });
+    } catch (e: any) {
+      setPedirDados(antes);
+      setMsgDados({ ok: false, texto: e.message ?? "Não foi possível salvar. Tente de novo." });
+    } finally {
+      setSalvandoDados(false);
+    }
+  }
 
   async function consultar(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +124,8 @@ export default function Analise() {
       );
       if ((data as any).error) throw new Error((data as any).error);
       setResultado(data);
+      setPedirDados(data.pedirDados !== false);
+      setMsgDados(null);
       setTelefonesAbertos(false);
     } catch (e: any) {
       setErro(e.message ?? "Código ou senha inválidos.");
@@ -366,7 +394,7 @@ export default function Analise() {
               </div>
 
               {resultado.telefones.length === 0 ? (
-                <div className="mt-4"><SemDados texto="Nenhum telefone deixado ainda. Eles aparecem aqui quando um cliente preenche antes de avaliar." /></div>
+                <div className="mt-4"><SemDados texto={pedirDados ? "Nenhum telefone deixado ainda. Eles aparecem aqui quando um cliente preenche antes de avaliar." : "A tela de telefone e aniversário está desligada: os clientes vão direto para a avaliação."} /></div>
               ) : (
                 telefonesAbertos && (
                   <ul className="mt-4 space-y-2 max-h-[420px] overflow-y-auto dds-scroll pr-1 dds-fade">
@@ -386,6 +414,16 @@ export default function Analise() {
                     ))}
                   </ul>
                 )
+              )}
+
+              {ativa && (
+                <div className="mt-5 pt-5 border-t border-[#eef2f8]">
+                  <EscolhaPedirDados valor={pedirDados} onChange={mudarPedirDados} desabilitado={salvandoDados} titulo="Antes da avaliação, pedir o telefone e o aniversário do cliente?" />
+                  {salvandoDados && <p className="mt-2 flex items-center gap-2 text-sm text-ink-muted"><Spinner /> Salvando…</p>}
+                  {msgDados && !salvandoDados && (msgDados.ok
+                    ? <p className="mt-2 text-sm font-semibold text-emerald-600" role="status">✓ {msgDados.texto}</p>
+                    : <div className="mt-2"><Erro>{msgDados.texto}</Erro></div>)}
+                </div>
               )}
             </section>
           </div>
