@@ -1,9 +1,9 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { CSSProperties, ReactNode, RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
 import { NICHES, NICHE_GROUPS, NicheGroup, NicheId, nicheById } from '../lib/miniNicheCore';
 import { nicheDemo } from '../lib/miniNicheDemos';
-import { MiniContent, PaletteId, themeOptions } from '../lib/miniPage';
-import { PALETTES } from '../lib/miniPalettes';
+import { MiniContent, MiniTheme, PaletteId, imageUrl, themeOptions } from '../lib/miniPage';
+import { PALETTES, paletteVars } from '../lib/miniPalettes';
 import { PaletteDots, ThemePhone } from './MiniThemes';
 import MiniLanding from './MiniLanding';
 
@@ -27,11 +27,61 @@ export function modelLabel(id: NicheId) {
   return `Modelo ${themeOptions.find(t => t.id === n.theme)?.name ?? ''} · cores ${PALETTES[n.theme].find(p => p.id === n.palette)?.name ?? ''}`;
 }
 
-export function NicheCard({ id, name = '', index = 0, selected = false, onOpen }: { id: NicheId; name?: string; index?: number; selected?: boolean; onOpen: (id: NicheId) => void }) {
+// Cada celular "ao vivo" é a página inteira em miniatura, com animações e efeito em canvas.
+// Vinte de uma vez estouram a memória do Safari no iPhone ("A problem repeatedly occurred"),
+// então só os que estão na tela ficam ao vivo, com limite de quantos ao mesmo tempo;
+// os outros mostram um retrato leve (foto de capa + nome).
+const LIVE_MAX = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches ? 4 : 8;
+let liveCount = 0;
+const waiting = new Set<() => void>();
+const releaseLive = () => { liveCount = Math.max(0, liveCount - 1); waiting.forEach(fn => fn()); };
+
+function useLive(ref: RefObject<HTMLElement>, enabled: boolean) {
+  const [live, setLive] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!enabled || !el) { setLive(false); return; }
+    if (!('IntersectionObserver' in window)) { setLive(true); return; }
+    let visible = false, holding = false, timer: ReturnType<typeof setTimeout> | undefined;
+    const tryAcquire = () => {
+      if (!visible || holding || liveCount >= LIVE_MAX) return;
+      liveCount++; holding = true; waiting.delete(tryAcquire); setLive(true);
+    };
+    const drop = () => { waiting.delete(tryAcquire); if (holding) { holding = false; setLive(false); releaseLive(); } };
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.isIntersecting;
+      clearTimeout(timer);
+      if (visible) { waiting.add(tryAcquire); timer = setTimeout(tryAcquire, 180); }
+      else drop();
+    }, { threshold: 0.45 });
+    io.observe(el);
+    return () => { clearTimeout(timer); io.disconnect(); visible = false; drop(); };
+  }, [enabled]);
+  return live;
+}
+
+// Retrato leve do exemplo, enquanto o celular não está ao vivo.
+function PhonePoster({ content, theme }: { content: MiniContent; theme: MiniTheme }) {
+  const vars = paletteVars(theme, content.palette, content.brandColor) as CSSProperties;
+  const cover = imageUrl(content.cover);
+  return <div className={`tp-stage tp-${theme} tp-is-poster`} style={vars} aria-hidden="true">
+    <div className="tp-tilt"><div className="tp-device">
+      <div className="tp-screen tp-poster">
+        {cover && <img src={cover} alt="" loading="lazy" decoding="async" />}
+        <b>{content.name}</b><i /><i className="short" />
+      </div>
+      <i className="tp-island" />
+    </div></div>
+  </div>;
+}
+
+export function NicheCard({ id, name = '', index = 0, selected = false, paused = false, onOpen }: { id: NicheId; name?: string; index?: number; selected?: boolean; paused?: boolean; onOpen: (id: NicheId) => void }) {
   const n = nicheById(id)!;
   const content = useMemo(() => withName(nicheDemo(id, 'thumb'), name), [id, name]);
-  return <div className={`nc-card${selected ? ' is-selected' : ''}`}>
-    <ThemePhone content={content} theme={n.theme} index={index} />
+  const box = useRef<HTMLDivElement>(null);
+  const live = useLive(box, !paused);
+  return <div className={`nc-card${selected ? ' is-selected' : ''}`} ref={box}>
+    {live ? <ThemePhone content={content} theme={n.theme} index={index} /> : <PhonePoster content={content} theme={n.theme} />}
     <span className="nc-body">
       <strong>{n.short}{selected && <i>Escolhido</i>}</strong>
       <small>{n.label}</small>

@@ -399,3 +399,14 @@
 .sw-fx select{margin-top:10px;width:100%;padding:11px 12px;border-radius:12px;border:1px solid #d8e1ee;background:#f8fafd;font:600 14px 'DM Sans',sans-serif;color:#0e1a33}
 .studio .nc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (min-width:1360px){.studio .nc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Retrato leve dos exemplos fora da tela (ver NicheShowcase: limite de celulares ao vivo) */
+.tp-is-poster .tp-tilt{transform:none}
+.tp-is-poster .tp-device{transform:none}
+.tp-poster{display:flex;flex-direction:column;background:var(--bg);-webkit-mask-image:none;mask-image:none;transform:none}
+.tp-poster img{display:block;width:100%;height:46%;object-fit:cover;background:color-mix(in srgb,var(--ink) 12%,var(--bg))}
+.tp-poster b{display:block;padding:12% 10% 0;font:800 13px/1.15 Manrope,system-ui,sans-serif;letter-spacing:-.02em;color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
+.tp-poster i{display:block;height:5px;margin:9% 10% 0;border-radius:99px;background:color-mix(in srgb,var(--ink) 18%,transparent)}
+.tp-poster i.short{width:55%;margin-top:5%}
+/* Miniatura ao vivo: altura limitada para a camada animada não ficar enorme na memória do celular */
+.nc-card .tp-scroll{max-height:1500px;overflow:hidden}

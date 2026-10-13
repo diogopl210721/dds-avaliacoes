@@ -67,6 +67,7 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   // Passo 1: ramos de negócio (exemplo completo em tela cheia).
   const [nicheGroup, setNicheGroup] = useState<GroupFilter>('todos');
   const [nichePreview, setNichePreview] = useState<NicheId | null>(null);
+  const [modelsOpen, setModelsOpen] = useState(false);
   const [plateTab, setPlateTab] = useState('inicio');
   const [isAdmin, setIsAdmin] = useState(false);
   const [accountChecked, setAccountChecked] = useState(false);
@@ -323,11 +324,11 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     {step === 'modelo' && <>
       <Title kicker="Passo 1 de 4" title="Escolha o ramo do negócio" text="Toque no ramo para ver um exemplo completo, com cores, fotos e um efeito animado próprio. Você pode trocar tudo depois sem perder o conteúdo." />
       <NicheChips value={nicheGroup} onChange={setNicheGroup} />
-      <div className="nc-grid">{nichesOf(nicheGroup).map((n, i) => <NicheCard key={n.id} id={n.id} index={i} selected={c.niche === n.id} onOpen={setNichePreview} />)}</div>
-      <details className="sw-more"><summary><span>Prefere escolher só o modelo visual?<small>Os 9 modelos, com dados de exemplo genéricos.</small></span><ChevronDown size={18} /></summary><div>
-      <div className="studio-themes sw-themes">{themeOptions.map((t, i) => <button className={`studio-theme ${c.theme === t.id ? 'selected' : ''}`} key={t.id} aria-pressed={c.theme === t.id} aria-label={`Ver o modelo ${t.name}`} onClick={() => setModelPreview({ theme: t.id, palette: c.theme === t.id && c.palette !== 'brand' ? c.palette : demoFor(t.id).palette })}>
+      <div className="nc-grid">{nichesOf(nicheGroup).map((n, i) => <NicheCard key={n.id} id={n.id} index={i} selected={c.niche === n.id} paused={!!nichePreview || !!modelPreview || preview} onOpen={setNichePreview} />)}</div>
+      <details className="sw-more" onToggle={e => setModelsOpen(e.currentTarget.open)}><summary><span>Prefere escolher só o modelo visual?<small>Os 9 modelos, com dados de exemplo genéricos.</small></span><ChevronDown size={18} /></summary><div>
+      {modelsOpen && <div className="studio-themes sw-themes">{themeOptions.map((t, i) => <button className={`studio-theme ${c.theme === t.id ? 'selected' : ''}`} key={t.id} aria-pressed={c.theme === t.id} aria-label={`Ver o modelo ${t.name}`} onClick={() => setModelPreview({ theme: t.id, palette: c.theme === t.id && c.palette !== 'brand' ? c.palette : demoFor(t.id).palette })}>
         <ThemePhone content={demoFor(t.id)} theme={t.id} index={i} /><span className="studio-theme-tag">{t.niche}</span><span className="studio-theme-choice">{t.name}{c.theme === t.id ? <em className="studio-theme-on"><Check size={14} /> Escolhido</em> : <em className="studio-theme-see"><Eye size={14} /> Ver modelo</em>}</span><p>{t.description}</p>
-      </button>)}</div>
+      </button>)}</div>}
       </div></details>
       {nav(undefined, 'cores', 'Escolher as cores')}
     </>}

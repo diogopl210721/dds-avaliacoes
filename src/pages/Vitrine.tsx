@@ -82,7 +82,7 @@ export default function Vitrine() {
       <div className="vt-filter sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3"><NicheChips value={group} onChange={setGroup} /></div>
 
       <section className="nc-grid pt-4 pb-16" aria-label="Exemplos por ramo">
-        {list.map((id, i) => <NicheCard key={id} id={id} name={name} index={i} onOpen={show} />)}
+        {list.map((id, i) => <NicheCard key={id} id={id} name={name} index={i} paused={!!open} onOpen={show} />)}
       </section>
 
       <section className="pb-20">
