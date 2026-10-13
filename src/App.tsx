@@ -9,6 +9,7 @@ import { ScreenLoading } from "./components/ui/Screen";
 // telas são baixadas só quando alguém entra nelas.
 const MiniStudio = lazy(() => import("./pages/MiniStudio"));
 const MiniPublic = lazy(() => import("./pages/MiniPublic"));
+const Vitrine = lazy(() => import("./pages/Vitrine"));
 const Ativar = lazy(() => import("./pages/Ativar"));
 const TrocarLink = lazy(() => import("./pages/TrocarLink"));
 const Recuperar = lazy(() => import("./pages/Recuperar"));
@@ -47,6 +48,8 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/minisite" element={<MiniStudio />} />
           <Route path="/demo" element={<MiniStudio demo />} />
+          <Route path="/exemplos" element={<Vitrine />} />
+          <Route path="/exemplos/:niche" element={<Vitrine />} />
           <Route path="/loja/:slug" element={<MiniPublic />} />
           <Route path="/ativar" element={<Ativar />} />
           <Route path="/cadastrar" element={<Ativar />} />

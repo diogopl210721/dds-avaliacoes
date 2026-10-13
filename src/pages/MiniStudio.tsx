@@ -4,14 +4,17 @@ import QRCode from 'qrcode';
 import {
   LayoutTemplate, Palette, PanelsTopLeft, Rocket, Tags, Eye, Copy, ArrowUpRight, Check, Save, Upload, Menu, LogIn, X, Smartphone, ChevronRight,
   ChevronLeft, Sparkles, ThumbsUp, Building2, ShoppingBag, Star, Images, CalendarCheck, HelpCircle, Megaphone, MapPin, Share2,
-  QrCode, ExternalLink, EyeOff, AlertTriangle,
+  QrCode, ExternalLink, EyeOff, AlertTriangle, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase, callFunction } from '../lib/supabaseClient';
 import {
   MiniContent, MiniRecord, blankContent, demoContent, normalizeContent, slugify, safeUrl, validEmail, siteLink, themeOptions,
-  LIMITS, BENEFIT_ICONS, LIST_TITLE_DEFAULT, LIST_TITLE_SUGGESTIONS, uid, demoFor, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
+  LIMITS, BENEFIT_ICONS, LIST_TITLE_SUGGESTIONS, defaultListTitle, uid, demoFor, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
 } from '../lib/miniPage';
+import { NICHES, NICHE_GROUPS, NicheId, nicheById } from '../lib/miniNicheCore';
+import { NicheCard, NicheChips, NicheViewer, GroupFilter, nichesOf } from '../components/NicheShowcase';
+import { nicheDemo } from '../lib/miniNicheDemos';
 import { PALETTES } from '../lib/miniPalettes';
 import { compressImage, ImageKind } from '../lib/miniImage';
 import { loadFonts } from '../lib/miniFonts';
@@ -32,7 +35,7 @@ import '../mini.css';
 type Step = 'modelo' | 'cores' | 'conteudo' | 'publicar' | 'placa';
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
 const STEPS: { id: Step; label: string; short: string; icon: typeof Eye }[] = [
-  { id: 'modelo', label: 'Modelo', short: '1', icon: LayoutTemplate },
+  { id: 'modelo', label: 'Ramo', short: '1', icon: LayoutTemplate },
   { id: 'cores', label: 'Cores', short: '2', icon: Palette },
   { id: 'conteudo', label: 'Conteúdo', short: '3', icon: PanelsTopLeft },
   { id: 'publicar', label: 'Publicar', short: '4', icon: Rocket },
@@ -61,6 +64,9 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   const [preview, setPreview] = useState(false);
   // Prévia em tela cheia de um modelo com dados fictícios do segmento (passo 1).
   const [modelPreview, setModelPreview] = useState<{ theme: MiniTheme; palette: PaletteId } | null>(null);
+  // Passo 1: ramos de negócio (exemplo completo em tela cheia).
+  const [nicheGroup, setNicheGroup] = useState<GroupFilter>('todos');
+  const [nichePreview, setNichePreview] = useState<NicheId | null>(null);
   const [plateTab, setPlateTab] = useState('inicio');
   const [isAdmin, setIsAdmin] = useState(false);
   const [accountChecked, setAccountChecked] = useState(false);
@@ -92,6 +98,14 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   }, [user?.id, demo, plateAccess]);
   useEffect(() => { if (!dirty) return; const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; }; window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn); }, [dirty]);
 
+  function chooseNiche(id: NicheId, palette: PaletteId) {
+    const n = nicheById(id)!;
+    // Na demonstração, a empresa fictícia do ramo entra inteira; com conteúdo real, só modelo, cores e efeito mudam.
+    if (demo) { setC({ ...nicheDemo(id, 'full'), palette }); setSlug(slugify(nicheDemo(id).name)); }
+    else setC(old => ({ ...old, niche: id, theme: n.theme, palette, listTitle: old.listTitle && old.listTitle !== defaultListTitle(old) ? old.listTitle : '' }));
+    setDirty(true); setNichePreview(null); go('cores');
+    notify(`Ramo ${n.short} escolhido: modelo, cores e efeito animado aplicados. Confira as cores.`);
+  }
   function go(next: Step) { setStep(next); setMobileMenu(false); setError(''); top.current?.scrollIntoView({ block: 'start' }); window.scrollTo({ top: 0 }); }
   function newPage() { if (dirty && !confirm('Descartar as alterações não salvas e criar uma nova página?')) return; setId(null); setC(structuredClone(blankContent)); setSlug(''); setPublished(false); setDirty(false); go('modelo'); }
 
@@ -237,8 +251,8 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
 
     <Section id="servicos" icon={<ShoppingBag size={19} />} title="Serviços e produtos" hint="Com preço e foto, se quiser" filled={filled.servicos} open={open === 'servicos'} onToggle={toggle}>
       <div className="sf-list-title">
-        <Field label="Título da lista na página" value={c.listTitle} onChange={v => field('listTitle', v)} max={40} placeholder={LIST_TITLE_DEFAULT[c.theme]} hint={c.listTitle ? undefined : `Sem escolher, aparece "${LIST_TITLE_DEFAULT[c.theme]}".`} />
-        <div className="sf-chips" role="group" aria-label="Sugestões de título">{LIST_TITLE_SUGGESTIONS.map(t => <button key={t} type="button" aria-pressed={(c.listTitle || LIST_TITLE_DEFAULT[c.theme]) === t} onClick={() => field('listTitle', t)}>{t}</button>)}</div>
+        <Field label="Título da lista na página" value={c.listTitle} onChange={v => field('listTitle', v)} max={40} placeholder={defaultListTitle(c)} hint={c.listTitle ? undefined : `Sem escolher, aparece "${defaultListTitle(c)}".`} />
+        <div className="sf-chips" role="group" aria-label="Sugestões de título">{LIST_TITLE_SUGGESTIONS.map(t => <button key={t} type="button" aria-pressed={(c.listTitle || defaultListTitle(c)) === t} onClick={() => field('listTitle', t)}>{t}</button>)}</div>
       </div>
       <ListEditor<Product> items={c.products} max={LIMITS.products} addLabel="Adicionar serviço ou produto" empty="Nenhum item ainda. Sem fotos, os itens aparecem em lista com preço." onChange={v => field('products', v)} make={() => ({ id: uid(), name: '', description: '', price: '', image: '' })}
         render={(p, set) => <div className="sf-product">
@@ -307,10 +321,14 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     {step !== 'placa' && <ol className="sw-steps" aria-label="Etapas">{STEPS.map((s, i) => <li key={s.id} className={s.id === step ? 'is-current' : i < stepIndex ? 'is-done' : ''}><button onClick={() => go(s.id)} aria-current={s.id === step ? 'step' : undefined}><b>{i < stepIndex ? <Check size={14} /> : s.short}</b><span>{s.label}</span></button></li>)}</ol>}
 
     {step === 'modelo' && <>
-      <Title kicker="Passo 1 de 4" title="Escolha o modelo" text="Toque em um modelo para ver a página inteira com dados de exemplo. Você pode trocar depois sem perder o conteúdo." />
+      <Title kicker="Passo 1 de 4" title="Escolha o ramo do negócio" text="Toque no ramo para ver um exemplo completo, com cores, fotos e um efeito animado próprio. Você pode trocar tudo depois sem perder o conteúdo." />
+      <NicheChips value={nicheGroup} onChange={setNicheGroup} />
+      <div className="nc-grid">{nichesOf(nicheGroup).map((n, i) => <NicheCard key={n.id} id={n.id} index={i} selected={c.niche === n.id} onOpen={setNichePreview} />)}</div>
+      <details className="sw-more"><summary><span>Prefere escolher só o modelo visual?<small>Os 9 modelos, com dados de exemplo genéricos.</small></span><ChevronDown size={18} /></summary><div>
       <div className="studio-themes sw-themes">{themeOptions.map((t, i) => <button className={`studio-theme ${c.theme === t.id ? 'selected' : ''}`} key={t.id} aria-pressed={c.theme === t.id} aria-label={`Ver o modelo ${t.name}`} onClick={() => setModelPreview({ theme: t.id, palette: c.theme === t.id && c.palette !== 'brand' ? c.palette : demoFor(t.id).palette })}>
         <ThemePhone content={demoFor(t.id)} theme={t.id} index={i} /><span className="studio-theme-tag">{t.niche}</span><span className="studio-theme-choice">{t.name}{c.theme === t.id ? <em className="studio-theme-on"><Check size={14} /> Escolhido</em> : <em className="studio-theme-see"><Eye size={14} /> Ver modelo</em>}</span><p>{t.description}</p>
       </button>)}</div>
+      </div></details>
       {nav(undefined, 'cores', 'Escolher as cores')}
     </>}
 
@@ -326,6 +344,14 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
           <label className="sw-brand-pick"><input type="color" value={/^#[0-9a-f]{6}$/i.test(c.brandColor) ? c.brandColor : '#1f6fd1'} onChange={e => { setC(old => ({ ...old, brandColor: e.target.value, palette: 'brand' })); setDirty(true); }} aria-label="Escolher a cor da marca" /></label>
           <div><strong>Cor da minha marca</strong><Field label="Código da cor" value={c.brandColor} onChange={v => { const hex = v.startsWith('#') ? v : '#' + v; setC(old => ({ ...old, brandColor: hex.slice(0, 7), palette: /^#[0-9a-f]{6}$/i.test(hex) ? 'brand' : old.palette })); setDirty(true); }} placeholder="#1F6FD1" max={7} hint="Use a cor principal do logo. Ajustamos o tom para o texto ficar legível." /></div>
         </div>
+      </div>
+      <div className="sw-fx">
+        <h3><Sparkles size={17} /> Efeito animado da capa</h3>
+        <p>Cada ramo tem um efeito próprio que reage ao toque do cliente. Escolha um ou deixe sem efeito.</p>
+        <select value={c.niche} onChange={e => field('niche', e.target.value)} aria-label="Efeito animado da capa">
+          <option value="">Sem efeito</option>
+          {NICHE_GROUPS.map(g => <optgroup key={g.id} label={g.label}>{NICHES.filter(n => n.group === g.id).map(n => <option key={n.id} value={n.id}>{n.fxLabel} ({n.short})</option>)}</optgroup>)}
+        </select>
       </div>
       {nav('modelo', 'conteudo', 'Preencher o conteúdo')}
     </>}
@@ -400,6 +426,8 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
       </div></div>
     {notice && <div className="studio-toast" role="status"><Check size={18} />{notice}</div>}
     {preview && <MiniPreviewModal content={c} demo={demo} label="Prévia da página" onClose={() => setPreview(false)} />}
+    {nichePreview && <NicheViewer id={nichePreview} ids={nichesOf(nicheGroup).map(n => n.id)} onClose={() => setNichePreview(null)} onNav={setNichePreview} label="Exemplo do ramo · empresa fictícia e fotos ilustrativas"
+      actions={palette => <button type="button" className="nv-cta" onClick={() => chooseNiche(nichePreview, palette)}><Check size={17} /> Usar este ramo</button>} />}
     {modelPreview && <MiniPreviewModal content={{ ...demoFor(modelPreview.theme), palette: modelPreview.palette }} demo label="Modelo com dados de exemplo"
       onClose={() => setModelPreview(null)}
       onTheme={theme => setModelPreview({ theme, palette: demoFor(theme).palette })}

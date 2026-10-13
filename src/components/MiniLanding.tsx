@@ -9,6 +9,8 @@ import { paletteVars, shaderColors } from '../lib/miniPalettes';
 import { useMiniMotion } from '../lib/miniMotion';
 import { useThemeFonts } from '../lib/miniFonts';
 import MiniShader, { ShaderKind } from './MiniShader';
+import NicheFx, { fxColors } from './NicheFx';
+import { nicheById } from '../lib/miniNicheCore';
 import '../mini-site.css';
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
@@ -19,7 +21,8 @@ export const ICONS: Record<string, typeof Star> = { shield: ShieldCheck, clock: 
 
 // thumb: miniatura dos cartões (sem interação, sem WebGL).
 // floating: página inteira (pública ou prévia em tela cheia), com o botão flutuante do WhatsApp.
-export default function MiniLanding({ content, demo = false, thumb = false, floating = false }: { content: MiniContent; demo?: boolean; thumb?: boolean; floating?: boolean }) {
+// demoLabel: troca o aviso do topo nas prévias de demonstração.
+export default function MiniLanding({ content, demo = false, thumb = false, floating = false, demoLabel }: { content: MiniContent; demo?: boolean; thumb?: boolean; floating?: boolean; demoLabel?: string }) {
   const c = useMemo(() => normalizeContent(content), [content]);
   const [photo, setPhoto] = useState('');
   const [privacy, setPrivacy] = useState(false);
@@ -59,6 +62,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
   const withPhotos = c.products.some(p => imageUrl(p.image));
   const classic = CLASSIC.includes(c.theme);
   const shader = SHADERS[c.theme];
+  const fx = nicheById(c.niche)?.fx;
   const ytId = youtubeId(c.video);
   const videoUrl = safeUrl(c.video);
   const actions = [
@@ -103,10 +107,10 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
     </div>
   </div>;
   const logoEl = <div className="mini-logo">{c.theme === 'vital' && <><i className="mini-pulse" aria-hidden="true" /><i className="mini-pulse p2" aria-hidden="true" /></>}{logo ? <img src={logo} alt={`Logo ${name}`} /> : <span aria-hidden="true">{initial}</span>}</div>;
-  const classes = ['mini-landing', `theme-${c.theme}`, classic ? '' : 'is-niche', thumb ? 'is-thumb' : '', cover ? 'has-cover' : 'no-cover', c.headline ? 'has-headline' : '', c.theme === 'refugio' && c.palette === 'p4' ? 'is-night' : '', floating && wa ? 'has-float' : ''].filter(Boolean).join(' ');
+  const classes = ['mini-landing', `theme-${c.theme}`, classic ? '' : 'is-niche', thumb ? 'is-thumb' : '', cover ? 'has-cover' : 'no-cover', c.headline ? 'has-headline' : '', c.theme === 'refugio' && c.palette === 'p4' ? 'is-night' : '', floating && wa ? 'has-float' : '', fx && !thumb ? 'has-nichefx' : ''].filter(Boolean).join(' ');
 
   return <><article ref={root} className={classes} style={vars}>
-    {demo && !thumb && <div className="mini-demo-label">Empresa fictícia · Prévia de demonstração</div>}
+    {demo && !thumb && <div className="mini-demo-label">{demoLabel || 'Empresa fictícia · Prévia de demonstração'}</div>}
     <header className="mini-hero" data-hero>
       <div className="mini-scene" aria-hidden="true">
         {shader && !thumb && <MiniShader key={shader} kind={shader} colors={shaderColors(vars as any)} />}
@@ -114,6 +118,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
         <SceneDecor theme={c.theme} />
       </div>
       {c.theme === 'refugio' ? <Landscape>{card}</Landscape> : card}
+      {fx && <NicheFx key={fx} kind={fx} colors={fxColors(vars as Record<string, string>)} thumb={thumb} />}
       {c.theme === 'navalha' && <BarberPole />}
       <div className="mini-hero-copy">
         {c.headline ? <div className="mini-brand">{logoEl}<span className="mini-brand-name">{name}</span></div> : logoEl}

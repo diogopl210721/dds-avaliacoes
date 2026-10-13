@@ -1,3 +1,5 @@
+import { nicheById } from './miniNicheCore';
+
 export type MiniTheme = 'elegance' | 'viva' | 'essencial' | 'brasa' | 'aura' | 'navalha' | 'vital' | 'impulso' | 'refugio';
 export type PaletteId = 'p1' | 'p2' | 'p3' | 'p4' | 'brand';
 export type Product = { id: string; name: string; description: string; price: string; image: string };
@@ -8,6 +10,8 @@ export type Testimonial = { id: string; name: string; text: string; stars: numbe
 export type Faq = { id: string; q: string; a: string };
 export type MiniContent = {
   theme: MiniTheme; palette: PaletteId; brandColor: string;
+  // Ramo do negócio (miniNicheCore): liga o efeito animado da capa. Vazio = sem efeito.
+  niche: string;
   // Primeira dobra
   name: string; headline: string; tagline: string; ctaText: string; ctaMessage: string; logo: string; cover: string;
   // Sobre
@@ -31,7 +35,7 @@ export const MINI_THEMES: MiniTheme[] = ['brasa', 'aura', 'navalha', 'vital', 'i
 export const LIMITS = { benefits: 6, products: 60, stats: 4, testimonials: 6, brands: 12, gallery: 12, faq: 8 };
 
 export const blankContent: MiniContent = {
-  theme: 'elegance', palette: 'p1', brandColor: '',
+  theme: 'elegance', palette: 'p1', brandColor: '', niche: '',
   name: '', headline: '', tagline: '', ctaText: '', ctaMessage: '', logo: '', cover: '',
   description: '', mission: '', vision: '', values: '',
   benefits: [], products: [], listTitle: '', stats: [], testimonials: [], brands: [], gallery: [], faq: [],
@@ -44,6 +48,7 @@ export function normalizeContent(raw: Partial<MiniContent> | null | undefined): 
   const c = { ...blankContent, ...(raw ?? {}) } as MiniContent;
   for (const key of ['benefits', 'products', 'stats', 'testimonials', 'brands', 'gallery', 'faq', 'payments'] as const) if (!Array.isArray(c[key])) (c as any)[key] = [];
   if (typeof c.listTitle !== 'string') c.listTitle = '';
+  if (!nicheById(c.niche)) c.niche = '';
   if (!MINI_THEMES.includes(c.theme)) c.theme = 'elegance';
   if (!['p1', 'p2', 'p3', 'p4', 'brand'].includes(c.palette)) c.palette = 'p1';
   return c;
@@ -76,8 +81,9 @@ export const LIST_TITLE_DEFAULT: Record<MiniTheme, string> = {
   brasa: 'Cardápio', aura: 'Serviços', navalha: 'Serviços', vital: 'Especialidades', impulso: 'Planos e aulas', refugio: 'Hospedagem e lazer',
   elegance: 'Produtos e serviços', viva: 'Produtos e serviços', essencial: 'Produtos e serviços',
 };
-export const LIST_TITLE_SUGGESTIONS = ['Produtos e serviços', 'Serviços', 'Produtos', 'Cardápio', 'Especialidades', 'Planos e aulas', 'Cursos', 'Hospedagem e lazer'];
-export function listTitleFor(c: Pick<MiniContent, 'listTitle' | 'theme'>) { return c.listTitle?.trim() || LIST_TITLE_DEFAULT[c.theme] || 'Produtos e serviços'; }
+export const LIST_TITLE_SUGGESTIONS = ['Produtos e serviços', 'Serviços', 'Produtos', 'Cardápio', 'Cardápio do dia', 'Tratamentos', 'Especialidades', 'Planos e aulas', 'Aulas', 'Rótulos', 'Novidades', 'Cursos', 'Hospedagem e lazer'];
+export function defaultListTitle(c: Pick<MiniContent, 'theme' | 'niche'>) { return nicheById(c.niche)?.listTitle || LIST_TITLE_DEFAULT[c.theme] || 'Produtos e serviços'; }
+export function listTitleFor(c: Pick<MiniContent, 'listTitle' | 'theme' | 'niche'>) { return c.listTitle?.trim() || defaultListTitle(c); }
 export const BENEFIT_ICONS = ['shield', 'clock', 'star', 'heart', 'truck', 'award', 'leaf', 'sparkles', 'thumbs', 'wrench', 'smile', 'zap', 'calendar', 'users', 'wallet', 'pin'] as const;
 
 let seq = 0;

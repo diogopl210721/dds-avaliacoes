@@ -12,6 +12,7 @@ const prefetch = {
   ativar: () => import("./Ativar"),
   sistema: () => import("./Analise"),
   demo: () => import("./MiniStudio"),
+  vitrine: () => import("./Vitrine"),
 };
 const intent = (load: () => Promise<unknown>) => ({ onPointerEnter: () => { load(); }, onTouchStart: () => { load(); }, onFocus: () => { load(); } });
 
@@ -174,9 +175,9 @@ export default function Home() {
             <div>
               <span className="dds-eyebrow"><Smartphone size={14} className="text-[#66e0ff]" />Mini site para empresas</span>
               <h3 className="mt-5 font-display text-[clamp(26px,3.6vw,40px)] font-extrabold leading-[1.05] tracking-[-.04em] text-white">Sua empresa. <span className="font-serif italic font-normal dds-spectrum-text">Seu mini site.</span></h3>
-              <p className="mt-4 text-[#a7b7d1] text-[16px] leading-relaxed max-w-md">Página pronta com fotos, serviços, WhatsApp e redes sociais, publicada em <strong className="text-white font-semibold">ddsinovacao.com.br/suaempresa</strong>. São 9 modelos com efeitos 3D.</p>
+              <p className="mt-4 text-[#a7b7d1] text-[16px] leading-relaxed max-w-md">Página pronta com fotos, serviços, WhatsApp e redes sociais, publicada em <strong className="text-white font-semibold">ddsinovacao.com.br/suaempresa</strong>. Exemplos prontos para 20 ramos, cada um com fotos, cores e um efeito animado próprio.</p>
               <div className="mt-7 flex flex-wrap gap-3">
-                <Link to="/demo" {...intent(prefetch.demo)} className="dds-btn dds-btn-glow">Ver os 9 modelos <ArrowUpRight size={18} /></Link>
+                <Link to="/exemplos" {...intent(prefetch.vitrine)} className="dds-btn dds-btn-glow">Ver exemplos do meu ramo <ArrowUpRight size={18} /></Link>
                 <a href={wa(msgServico("um mini site para a minha empresa"))} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-ghost-dark"><MessageCircle size={17} /> Pedir orçamento</a>
               </div>
             </div>

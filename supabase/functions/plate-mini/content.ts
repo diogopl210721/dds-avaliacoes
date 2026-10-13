@@ -1,6 +1,8 @@
 // Validação do conteúdo do mini site (sem dependências: testável fora do Deno).
 export const THEMES = ["elegance", "viva", "essencial", "brasa", "aura", "navalha", "vital", "impulso", "refugio"];
 const PALETTES = ["p1", "p2", "p3", "p4", "brand"];
+// Ramos (src/lib/miniNicheCore.ts): ligam o efeito animado da capa.
+export const NICHES = ["pizzaria", "restaurante", "cafeteria", "acai", "adega", "salao", "unhas", "estetica", "barbearia", "dentista", "terapias", "veterinaria", "petshop", "academia", "pilates", "oficina", "lavacar", "jardinagem", "loja", "assistencia"];
 const ICONS = ["shield", "clock", "star", "heart", "truck", "award", "leaf", "sparkles", "thumbs", "wrench", "smile", "zap", "calendar", "users", "wallet", "pin"];
 
 export function text(value: unknown, max = 1000) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
@@ -39,6 +41,7 @@ export function cleanContent(raw: any) {
   c.theme = THEMES.includes(raw.theme) ? raw.theme : "elegance";
   c.brandColor = typeof raw.brandColor === "string" && /^#[0-9a-f]{6}$/i.test(raw.brandColor) ? raw.brandColor.toLowerCase() : "";
   c.palette = PALETTES.includes(raw.palette) ? raw.palette : "p1";
+  c.niche = NICHES.includes(raw.niche) ? raw.niche : "";
   if (c.palette === "brand" && !c.brandColor) c.palette = "p1";
   if (!Array.isArray(raw.gallery) || raw.gallery.length > 12 || !Array.isArray(raw.products) || raw.products.length > 60) throw new Error("Use até 12 fotos e 60 produtos.");
   c.gallery = raw.gallery.map(url);
@@ -60,7 +63,7 @@ export function cleanContent(raw: any) {
 // Endereços que não podem virar mini site: pastas do site e outros sistemas publicados no domínio.
 export const RESERVED = new Set([
   "404", "adm", "admin", "api", "app", "assets", "cname", "crl", "dds", "dds-avaliacoes", "ddsinovacao", "favicon", "index", "link-avaliacao", "loja", "login",
-  "mini", "minisite", "plaquinhas", "privacidade-zap", "robots", "sistema", "sitemap", "static", "vendor", "www",
+  "mini", "minisite", "plaquinhas", "exemplos", "vitrine", "demo", "privacidade-zap", "robots", "sistema", "sitemap", "static", "vendor", "www",
   "sitemelhoropcao", "app-igreja-vila-real", "controle-clientes", "diarioclientes", "telemetria-glp", "leitura-de-medidor", "controleposvendas",
   "controle-pos-vendas", "ieq3pinheiros", "conta-sim-digital", "bora-estudar", "sistema-financeiro-fam-lia", "chacara-ormelez", "crm-clientes",
   "planilhafinanceira", "logisitica", "ieq-3-pinheiros", "chacaraormelez", "diogopl210721-github-io",

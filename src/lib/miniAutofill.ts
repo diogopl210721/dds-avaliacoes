@@ -3,6 +3,8 @@
 // do Google (nome, cidade, nota, horários) e frases que valem para qualquer negócio do segmento.
 import type { Benefit, Faq, MiniContent, Stat, Testimonial } from './miniPage';
 import { slugify, uid } from './miniPage';
+import { NicheId, nicheById } from './miniNicheCore';
+import { NICHE_TEXTS } from './miniNicheTexts';
 
 export type GooglePlace = {
   placeId: string; name: string; address: string; phone: string; website: string; hours: string[];
@@ -174,6 +176,35 @@ const BY_TYPE: [SegmentId, RegExp][] = [
   ['servicos', /plumber|electrician|locksmith|roofing|painter|contractor|moving|laundry|cleaning|repair|storage|courier|travel|photograph|printing|tailor|funeral|church|association|service/],
 ];
 
+// Ramo pelo tipo do Google (mais específico que o segmento). Ordem importa: barbearia antes de cabelo etc.
+const NICHE_BY_TYPE: [NicheId, RegExp][] = [
+  ['barbearia', /barber/],
+  ['unhas', /nail|eyelash|eyebrow|lash/],
+  ['salao', /hair/],
+  ['estetica', /spa$|^spa|skin_care|beautician|massage|wax|sauna|wellness_center|tanning|beauty_salon/],
+  ['petshop', /pet_store|pet_groom|pet_care|pet_shop/],
+  ['veterinaria', /veterinar|animal_hospital/],
+  ['dentista', /dentist|dental/],
+  ['terapias', /physiother|psycholog|nutrition|chiropract|psychiatr|speech_therap|occupational_therap|acupunct/],
+  ['pilates', /yoga|pilates/],
+  ['academia', /gym|fitness|crossfit|martial|boxing/],
+  ['lavacar', /car_wash|car_detail/],
+  ['oficina', /car_repair|auto_parts|tire|auto_repair|mechanic|car_service|oil_change|motorcycle_repair/],
+  ['jardinagem', /florist|garden|landscap|plant_nursery|lawn/],
+  ['assistencia', /cell_phone|electronics|computer|phone_repair|electronics_repair/],
+  ['acai', /ice_cream|acai|dessert|candy|confection|chocolate|juice|frozen_yogurt|donut/],
+  ['cafeteria', /cafe|coffee|bakery|pastry|tea_house|cake/],
+  ['pizzaria', /pizza|hamburger|burger/],
+  ['adega', /liquor|wine|beer_store|brewery|winery/],
+  ['restaurante', /restaurant|meal_|food_court|diner|buffet|sandwich|steak|barbecue|lunch/],
+  ['loja', /clothing|shoe|fashion|boutique|gift|jewel|accessor|department_store|bag|textile/],
+];
+export function detectNiche(types: string[]): NicheId | null {
+  const list = types.filter(Boolean).map(t => t.toLowerCase());
+  for (const [niche, re] of NICHE_BY_TYPE) if (list.some(t => re.test(t))) return niche;
+  return null;
+}
+
 export function detectSegment(types: string[]): SegmentId {
   const list = types.map(t => t.toLowerCase());
   for (const [seg, re] of BY_TYPE) if (list.some(t => re.test(t))) return seg;
@@ -216,9 +247,11 @@ export function instagramHandle(value: string): string {
 
 const fmtRating = (r: number) => r.toFixed(1).replace('.', ',');
 
-// Textos gerados para o segmento. `variant` troca as frases ("Gerar outra versão").
-export function generateTexts(segId: SegmentId, info: Info, variant = 0): Partial<MiniContent> {
-  const s = segmentOf(segId);
+// Textos gerados para o segmento (ou para o ramo, quando informado). `variant` troca as frases ("Gerar outra versão").
+export function generateTexts(segId: SegmentId, info: Info, variant = 0, niche?: NicheId | null): Partial<MiniContent> {
+  const base = segmentOf(segId);
+  const nt = niche ? NICHE_TEXTS[niche] : null;
+  const s = nt ? { ...base, ...nt, benefits: nt.benefits as B[], listTitle: nicheById(niche)?.listTitle ?? base.listTitle } : base;
   const pick = <T,>(arr: T[], k = 0) => arr[(variant + k) % arr.length];
   const goodRating = info.rating != null && info.rating >= 4.5 && (info.ratingCount ?? 0) >= 10;
   const taglines = goodRating ? [`Nota ${fmtRating(info.rating!)} no Google, com ${info.ratingCount} avaliações de clientes.`, ...s.taglines] : s.taglines;

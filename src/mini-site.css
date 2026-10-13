@@ -566,6 +566,8 @@
 @media(max-width:650px){.mini-public{padding:0}.mini-public>.mini-landing{max-width:100%;border-radius:0;box-shadow:none}}
 
 /* Sem movimento quando o aparelho pede (acessibilidade e economia de bateria). */
+.mini-nichefx{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;pointer-events:none}
+.has-nichefx .mini-hero{touch-action:pan-y pinch-zoom;-webkit-user-select:none;user-select:none}
 @media (prefers-reduced-motion: reduce){
   .mini-landing *,.mini-landing *::before,.mini-landing *::after,.tp-stage *,.mini-float::after{animation:none!important;transition:none!important}
   .mini-card3d,.mini-product,.tp-tilt{transform:none!important}

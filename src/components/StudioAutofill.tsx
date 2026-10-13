@@ -2,7 +2,8 @@ import { useRef, useState } from 'react';
 import { ArrowUpRight, Check, RefreshCcw, Sparkles, Wand2 } from 'lucide-react';
 import { callFunction } from '../lib/supabaseClient';
 import type { MiniContent, MiniTheme } from '../lib/miniPage';
-import { GooglePlace, SEGMENTS, SegmentId, detectSegment, generateTexts, googleData, infoFrom, instagramHandle } from '../lib/miniAutofill';
+import { GooglePlace, SegmentId, detectNiche, detectSegment, generateTexts, googleData, infoFrom, instagramHandle } from '../lib/miniAutofill';
+import { NICHES, NICHE_GROUPS, nicheById } from '../lib/miniNicheCore';
 import type { PlateMiniAccess } from './PlateMiniOffer';
 import { Field } from './StudioFields';
 
@@ -11,6 +12,13 @@ import { Field } from './StudioFields';
 // campos que ele mesmo preencheu antes (e que ninguém editou depois).
 
 const THEME_SEGMENT: Partial<Record<MiniTheme, SegmentId>> = { brasa: 'gastronomia', aura: 'beleza', navalha: 'barbearia', vital: 'saude', impulso: 'fitness', refugio: 'hospedagem' };
+// Ramo dos textos: um dos 20 ramos (id) ou um segmento genérico ("seg:servicos").
+const OTHER: { id: SegmentId; label: string }[] = [{ id: 'saude', label: 'Clínica e saúde em geral' }, { id: 'hospedagem', label: 'Hospedagem e lazer' }, { id: 'educacao', label: 'Educação e cursos' }, { id: 'escritorio', label: 'Escritório e consultoria' }, { id: 'servicos', label: 'Serviços em geral' }];
+const textsFor = (kind: string, info: ReturnType<typeof infoFrom>, v: number) => {
+  const niche = nicheById(kind);
+  return niche ? generateTexts(niche.segment, info, v, niche.id) : generateTexts((kind.replace(/^seg:/, '') || 'servicos') as SegmentId, info, v);
+};
+const initialKind = (c: MiniContent) => (nicheById(c.niche) ? c.niche : `seg:${THEME_SEGMENT[c.theme] ?? 'servicos'}`);
 type Candidate = { id: string; name: string; address: string };
 type Lookup = { place?: GooglePlace; candidates?: Candidate[]; error?: string };
 const sig = (v: unknown) => JSON.stringify(Array.isArray(v) ? v.map(x => (x && typeof x === 'object' ? { ...x, id: undefined } : x)) : v);
@@ -22,7 +30,7 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
 }) {
   const [query, setQuery] = useState('');
   const [insta, setInsta] = useState('');
-  const [segment, setSegment] = useState<SegmentId>(THEME_SEGMENT[content.theme] ?? 'servicos');
+  const [segment, setSegment] = useState<string>(() => initialKind(content));
   const [place, setPlace] = useState<GooglePlace | null>(null);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [busy, setBusy] = useState(false);
@@ -42,12 +50,12 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
     return next as MiniContent;
   }
 
-  function fill(p: GooglePlace | null, seg: SegmentId, v: number, base = content) {
+  function fill(p: GooglePlace | null, seg: string, v: number, base = content) {
     let next = base;
     if (p) next = merge(next, googleData(p), ['name', 'address', 'maps', 'review']);
     const handle = instagramHandle(insta);
     if (handle) next = { ...next, instagram: handle };
-    next = merge(next, generateTexts(seg, infoFrom(next, p), v));
+    next = merge(next, textsFor(seg, infoFrom(next, p), v));
     onChange(next);
     if (p?.name) onName(p.name);
   }
@@ -69,7 +77,8 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
     if (r.error) { fallback(r.error); return; }
     if (r.candidates?.length) { setCandidates(r.candidates); return; }
     if (!r.place) return;
-    const seg = r.place.types.length ? detectSegment([r.place.primaryType, ...r.place.types]) : segment;
+    const types = [r.place.primaryType, ...r.place.types];
+    const seg = r.place.types.length ? (detectNiche(types) ?? `seg:${detectSegment(types)}`) : segment;
     setPlace(r.place); setCandidates([]); setSegment(seg); setVariant(0);
     fill(r.place, seg, 0);
     const extra = r.place.phone ? ' Confira se o telefone do Google é o WhatsApp.' : ' Informe o WhatsApp.';
@@ -94,7 +103,7 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
   }
 
   function another() { const v = variant + 1; setVariant(v); fill(place, segment, v); notify('Nova versão dos textos aplicada.'); }
-  function changeSegment(seg: SegmentId) { setSegment(seg); if (Object.keys(lastGen.current).length) fill(place, seg, variant); }
+  function changeSegment(seg: string) { setSegment(seg); if (Object.keys(lastGen.current).length) fill(place, seg, variant); }
 
   const generated = Object.keys(lastGen.current).length > 0;
   return <div className="sf-autofill">
@@ -106,7 +115,10 @@ export default function StudioAutofill({ content, onChange, onName, notify, plat
       <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); run(); } }} placeholder="https://maps.app.goo.gl/…  ou  Padaria Aurora, Campo Largo" autoComplete="off" />
     </label>
     <div className="sf-grid">
-      <label className="sf-field">Segmento<select value={segment} onChange={e => changeSegment(e.target.value as SegmentId)}>{SEGMENTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select></label>
+      <label className="sf-field">Ramo do negócio<select value={segment} onChange={e => changeSegment(e.target.value)}>
+        {NICHE_GROUPS.map(g => <optgroup key={g.id} label={g.label}>{NICHES.filter(x => x.group === g.id).map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</optgroup>)}
+        <optgroup label="Outros">{OTHER.map(s => <option key={s.id} value={`seg:${s.id}`}>{s.label}</option>)}</optgroup>
+      </select></label>
       <Field label="Instagram (opcional)" value={insta} onChange={setInsta} placeholder="@empresa ou link do perfil" max={200} />
     </div>
     {candidates.length > 0 && <div className="sf-autofill-pick"><p>Qual destas é a empresa?</p>{candidates.map(p => <button className="studio-search-result" key={p.id} onClick={() => run(p.id)} disabled={busy}><strong>{p.name}</strong><span>{p.address}</span><ArrowUpRight size={17} /></button>)}</div>}
