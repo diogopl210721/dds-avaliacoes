@@ -135,6 +135,26 @@
 .mini-quotes::-webkit-scrollbar{display:none}
 .mini-quote{flex:0 0 min(84%,380px);scroll-snap-align:center;display:flex;flex-direction:column;gap:12px;padding:20px 18px;border-radius:var(--radius);background:var(--surface);border:var(--card-bd);box-shadow:var(--card-sh)}
 .mini-quotes.is-single .mini-quote{flex-basis:100%}
+
+/* Carrosséis no computador: setas e arrastar com o mouse (ver lib/miniSwipe.ts). No celular, só o dedo. */
+.mini-swipe{position:relative}
+.mini-swipe-btn{display:none}
+@media (hover:hover) and (pointer:fine){
+  .mini-swipe [data-swipe-track]{cursor:grab}
+  .mini-swipe.is-dragging [data-swipe-track]{cursor:grabbing;scroll-snap-type:none;-webkit-user-select:none;user-select:none}
+  .mini-swipe.is-dragging .mini-product{transition:none}
+  .mini-swipe img{-webkit-user-drag:none}
+  .mini-swipe-btn{position:absolute;z-index:20;top:50%;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;cursor:pointer;
+    background:color-mix(in srgb,var(--bg) 72%,transparent);color:var(--ink);border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);
+    box-shadow:0 12px 26px -12px #000b;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transform:translateY(-50%);transition:opacity .2s,background .2s,color .2s,transform .2s}
+  .mini-swipe-btn:hover{background:var(--accent);color:var(--on-accent,#fff);border-color:transparent;transform:translateY(-50%) scale(1.06)}
+  .mini-swipe-btn:active{transform:translateY(-50%) scale(.94)}
+  .mini-swipe-btn.is-prev{left:calc(var(--pad) * -1 + 10px)}
+  .mini-swipe-btn.is-next{right:calc(var(--pad) * -1 + 10px)}
+  .mini-swipe.is-cover .mini-swipe-btn{top:calc(24px + 27.2cqi)}
+  .mini-swipe.is-quotes .mini-swipe-btn{top:calc(50% + 6px)}
+  .mini-swipe[data-at-start] .is-prev,.mini-swipe[data-at-end] .is-next{opacity:0;pointer-events:none}
+}
 .mini-stars{display:flex;gap:2px;color:#f5b301}
 .mini-quote blockquote{font-size:15px;line-height:1.6;color:var(--ink)}
 .mini-quote figcaption{margin-top:auto;display:flex;align-items:center;gap:10px;font-size:14px;font-weight:600}

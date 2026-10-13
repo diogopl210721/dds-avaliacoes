@@ -2,11 +2,12 @@ import { CSSProperties, Fragment, ReactNode, useEffect, useMemo, useRef, useStat
 import {
   MapPin, MessageCircle, Clock, Instagram, Star, ArrowUpRight, X, Globe, Facebook, Youtube, Mail, Phone, ShieldCheck, Heart, Truck, Award, Leaf,
   Sparkles, ThumbsUp, Wrench, Smile, Zap, CalendarCheck, Users, Wallet, Plus, UtensilsCrossed,
-  Bike, FileText, Play, UserPlus, Target, Eye, Gem, ChevronRight,
+  Bike, FileText, Play, UserPlus, Target, Eye, Gem, ChevronRight, ChevronLeft,
 } from 'lucide-react';
 import { MiniContent, MiniTheme, normalizeContent, safeUrl, imageUrl, whatsapp, youtubeId, listTitleFor } from '../lib/miniPage';
 import { paletteVars, shaderColors } from '../lib/miniPalettes';
 import { useMiniMotion } from '../lib/miniMotion';
+import { useMiniSwipe } from '../lib/miniSwipe';
 import { useThemeFonts } from '../lib/miniFonts';
 import MiniShader, { ShaderKind } from './MiniShader';
 import NicheFx, { fxColors } from './NicheFx';
@@ -35,6 +36,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
   useThemeFonts(thumb ? [] : [c.theme]);
   const counts = [c.products.length, c.gallery.length, c.benefits.length, c.stats.length, c.testimonials.length, c.brands.length, c.faq.length, +!!c.description, +!!c.video, +!!c.cover, +!!c.headline, +!!(c.address || c.hours)].join('.');
   useMiniMotion(root, !thumb, `${c.theme}|${counts}`);
+  useMiniSwipe(root, !thumb, counts);
 
   const name = c.name || 'Sua empresa';
   const initial = name.slice(0, 1);
@@ -94,6 +96,12 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
   }, [floating, thumb, wa]);
   useEffect(() => { if (!toast) return; const id = setTimeout(() => setToast(''), 2600); return () => clearTimeout(id); }, [toast]);
 
+  // Setas dos carrosséis: só aparecem com mouse (CSS); a ação fica em useMiniSwipe.
+  const swipeArrows = (what: string) => thumb ? null : <>
+    <button type="button" className="mini-swipe-btn is-prev" data-swipe-prev aria-label={`${what === 'produto' ? 'Produto' : 'Depoimento'} anterior`}><ChevronLeft size={22} /></button>
+    <button type="button" className="mini-swipe-btn is-next" data-swipe-next aria-label={`Próximo ${what}`}><ChevronRight size={22} /></button>
+  </>;
+
   const ctaButton = (extra = '') => wa
     ? <a className={`mini-wa ${extra}`} href={wa} target="_blank" rel="noreferrer" tabIndex={tab}><MessageCircle size={20} /><span>{ctaLabel}</span><ArrowUpRight size={18} /></a>
     : demo ? <div className={`mini-wa ${extra}`} title="Na página real, este botão abre o WhatsApp"><MessageCircle size={20} /><span>{ctaLabel}</span><ArrowUpRight size={18} /></div> : null;
@@ -146,7 +154,8 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
 
       {c.products.length > 0 && (withPhotos ? <section className="mini-sec">
         <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2>{c.products.length > 1 && <span>Deslize para ver todos</span>}</div>
-        <div className={`mini-coverflow${c.products.length === 1 ? ' is-single' : ''}`} data-coverflow>
+        <div className="mini-swipe is-cover">
+        <div className={`mini-coverflow${c.products.length === 1 ? ' is-single' : ''}`} data-coverflow data-swipe-track>
           {c.products.map((p, i) => <div className="mini-product" key={p.id} style={{ '--off': i, '--abs': Math.min(i, 2), zIndex: 10 - Math.min(i, 2) * 3 } as Vars}>
             {imageUrl(p.image) && <button className="mini-photo-button" onClick={() => open(p.image)} aria-label={`Ampliar ${p.name}`} tabIndex={tab}><img src={imageUrl(p.image)} alt={p.name} loading="lazy" /></button>}
             <div className="mini-product-text">
@@ -156,6 +165,8 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
               {wa && <a href={whatsapp(c.phone, `Olá! Gostaria de saber mais sobre ${p.name}.`)} target="_blank" rel="noreferrer" tabIndex={tab}>Tenho interesse <ArrowUpRight size={14} /></a>}
             </div>
           </div>)}
+        </div>
+        {c.products.length > 1 && swipeArrows('produto')}
         </div>
       </section> : <section className="mini-sec">
         <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2></div>
@@ -175,12 +186,15 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
       {quotes.length > 0 && <section className="mini-sec">
         <h2 data-reveal>O que dizem nossos clientes</h2>
         {demo && <p className="mini-note">Depoimentos de exemplo</p>}
-        <div className={`mini-quotes${quotes.length === 1 ? ' is-single' : ''}`}>
+        <div className="mini-swipe is-quotes">
+        <div className={`mini-quotes${quotes.length === 1 ? ' is-single' : ''}`} data-swipe-track>
           {quotes.map((x, i) => <figure className="mini-quote" key={x.id} data-reveal style={{ '--i': i } as Vars}>
             <div className="mini-stars" aria-label={`${x.stars || 5} de 5 estrelas`}>{Array.from({ length: Math.max(1, Math.min(5, x.stars || 5)) }, (_, k) => <Star key={k} size={16} fill="currentColor" />)}</div>
             <blockquote>{x.text}</blockquote>
             {x.name && <figcaption><b aria-hidden="true">{x.name.slice(0, 1)}</b><span>{x.name}{x.source === 'google' && <small className="mini-via">via Google</small>}</span></figcaption>}
           </figure>)}
+        </div>
+        {quotes.length > 1 && swipeArrows('depoimento')}
         </div>
       </section>}
 

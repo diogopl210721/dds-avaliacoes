@@ -103,11 +103,15 @@ export function NicheViewer({ id, ids, name = '', onClose, onNav, actions, label
   const pos = Math.max(0, ids.indexOf(id));
   const go = (d: number) => onNav(ids[(pos + d + ids.length) % ids.length]);
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1); };
-    window.addEventListener('keydown', key);
+    const key = (e: KeyboardEvent) => {
+      // Com a foto ampliada ou a janela de privacidade aberta, o teclado é delas (Esc fecha só a foto).
+      if (document.querySelector('.mini-lightbox, .mini-sheet')) return;
+      if (e.key === 'Escape') onClose(); if (e.key === 'ArrowRight') go(1); if (e.key === 'ArrowLeft') go(-1);
+    };
+    window.addEventListener('keydown', key, true); // antes da foto ampliada tratar o Esc
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', key); document.body.style.overflow = overflow; };
+    return () => { window.removeEventListener('keydown', key, true); document.body.style.overflow = overflow; };
   });
   const content = useMemo(() => ({ ...withName(nicheDemo(id, 'full'), name), palette }), [id, name, palette]);
   return <div className="nv" role="dialog" aria-modal="true" aria-label={`Exemplo de ${n.label}`}>
