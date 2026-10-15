@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, BadgeCheck, MessageCircle, RefreshCcw, Sparkles } from "lucide-react";
 import { callFunction } from "../lib/supabaseClient";
-import { MiniRecord, themeOptions } from "../lib/miniPage";
-import { NicheId, nicheById } from "../lib/miniNicheCore";
+import { MINI_THEMES, MiniRecord } from "../lib/miniPage";
+import { NICHES, NicheId, nicheById } from "../lib/miniNicheCore";
 import { loadFonts } from "../lib/miniFonts";
 import { GroupFilter, NicheCard, NicheChips, NicheViewer, nichesOf } from "./NicheShowcase";
 import { Aurora, Spinner } from "./ui/Fx";
@@ -17,7 +17,7 @@ export type PlateMiniAccess = {
 const WHATS = "5541991542931";
 
 // Oferta do mini site no painel do cliente. Enquanto não foi liberado, mostra os mesmos
-// 20 exemplos por ramo da vitrine (/exemplos), já com o nome da empresa da placa.
+// exemplos por ramo da vitrine (/exemplos), já com o nome da empresa da placa.
 // Só os celulares que estão na tela ficam animando (ver NicheShowcase), senão o iPhone trava ao rolar.
 export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
   codigo: string; senha: string; empresa?: string | null; onOpen: (access: PlateMiniAccess) => void;
@@ -62,7 +62,7 @@ export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
     finally { setBusy(false); }
   }
   useEffect(() => { check(); }, [codigo, senha]);
-  useEffect(() => { if (show) loadFonts(themeOptions.map(t => t.id)); }, [show]);
+  useEffect(() => { if (show) loadFonts(MINI_THEMES); }, [show]);
 
   const wa = (id: NicheId) => {
     const n = nicheById(id)!;
@@ -92,7 +92,7 @@ export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
     </div>
     {show && <div className="nc-light p-5 sm:p-6 space-y-4 dds-fade">
       <div>
-        <p className="font-display text-lg font-extrabold tracking-[-.02em] text-ink">Exemplos para 20 ramos{name ? <>, com o nome da <span className="text-brand-600">{name}</span></> : null}</p>
+        <p className="font-display text-lg font-extrabold tracking-[-.02em] text-ink">Exemplos para {NICHES.length} ramos{name ? <>, com o nome da <span className="text-brand-600">{name}</span></> : null}</p>
         <p className="mt-1 text-sm text-ink-soft leading-relaxed">Cada ramo tem cores, fotos e um efeito animado próprio. Toque em um para ver a página inteira e use as setas para passar para o próximo. O seu terá as fotos e as informações da sua empresa.</p>
       </div>
       <div>

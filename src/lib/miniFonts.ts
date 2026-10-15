@@ -12,6 +12,12 @@ export const THEME_FONTS: Record<MiniTheme, string[]> = {
   vital: ['Manrope:wght@400..800'],
   impulso: ['Barlow+Condensed:ital,wght@0,700;0,800;1,700;1,800', 'Barlow:wght@400;500;600;700'],
   refugio: ['DM+Serif+Display', 'DM+Sans:wght@400;500;600;700'],
+  pace: ['Saira+Condensed:wght@600;800;900', 'Saira:wght@400;500;600;700'],
+  atelier: ['Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900', 'Hanken+Grotesk:wght@300..700'],
+  forno: ['Young+Serif', 'Figtree:wght@400;500;600;700;800', 'Caveat:wght@500;700'],
+  planta: ['Urbanist:wght@300..800'],
+  garagem: ['Exo+2:ital,wght@0,400..800;1,600..900'],
+  raiz: ['Gloock', 'Nunito:wght@400;600;700;800', 'Caveat:wght@500;700'],
 };
 
 export function fontsUrl(themes: MiniTheme[]) {

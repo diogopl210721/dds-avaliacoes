@@ -9,7 +9,7 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { supabase, callFunction } from '../lib/supabaseClient';
 import {
-  MiniContent, MiniRecord, blankContent, demoContent, normalizeContent, slugify, safeUrl, validEmail, siteLink, themeOptions,
+  MiniContent, MiniRecord, blankContent, demoContent, normalizeContent, slugify, safeUrl, validEmail, siteLink, themeOptions, themeName, MINI_THEMES,
   LIMITS, BENEFIT_ICONS, LIST_TITLE_SUGGESTIONS, defaultListTitle, uid, demoFor, youtubeId, Product, Benefit, Stat, Testimonial, Faq,
 } from '../lib/miniPage';
 import { NICHES, NICHE_GROUPS, NicheId, nicheById } from '../lib/miniNicheCore';
@@ -78,7 +78,7 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
   function notify(message: string) { setNotice(message); clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 7000); }
   function field<K extends keyof MiniContent>(key: K, value: MiniContent[K]) { setC(old => ({ ...old, [key]: value })); setDirty(true); }
   function select(record: MiniRecord) { setId(record.id); setSlug(record.slug); setC(normalizeContent(record.content)); setPublished(record.published); setDirty(false); }
-  useEffect(() => { loadFonts(themeOptions.map(t => t.id)); }, []);
+  useEffect(() => { loadFonts(MINI_THEMES); }, []);
   useEffect(() => {
     if (!plateAccess) return;
     if (plateAccess.page) { select(plateAccess.page); setStep('conteudo'); }
@@ -334,7 +334,7 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
     </>}
 
     {step === 'cores' && <>
-      <Title kicker="Passo 2 de 4" title="Escolha as cores" text={`Quatro combinações pensadas para o modelo ${themeOptions.find(t => t.id === c.theme)?.name}, ou a cor exata da sua marca.`} />
+      <Title kicker="Passo 2 de 4" title="Escolha as cores" text={`Quatro combinações pensadas para o modelo ${themeName(c.theme)}, ou a cor exata da sua marca.`} />
       <div className="sw-mobile-preview"><ThemePhone content={c} theme={c.theme} /></div>
       <div className="sw-palettes" role="radiogroup" aria-label="Combinações de cores">
         {PALETTES[c.theme].map(p => <button key={p.id} role="radio" aria-checked={c.palette === p.id} className="sw-palette" onClick={() => field('palette', p.id)}>
@@ -433,7 +433,7 @@ export default function MiniStudio({ demo = false, plateAccess }: { demo?: boole
       onClose={() => setModelPreview(null)}
       onTheme={theme => setModelPreview({ theme, palette: demoFor(theme).palette })}
       onPalette={palette => setModelPreview({ ...modelPreview, palette })}
-      action={{ label: 'Usar este modelo', onClick: () => { setC(old => ({ ...old, theme: modelPreview.theme, palette: modelPreview.palette })); setDirty(true); setModelPreview(null); go('cores'); notify(`Modelo ${themeOptions.find(t => t.id === modelPreview.theme)?.name} escolhido. Confira as cores.`); } }} />}
+      action={{ label: 'Usar este modelo', onClick: () => { setC(old => ({ ...old, theme: modelPreview.theme, palette: modelPreview.palette })); setDirty(true); setModelPreview(null); go('cores'); notify(`Modelo ${themeName(modelPreview.theme)} escolhido. Confira as cores.`); } }} />}
   </div>;
 }
 

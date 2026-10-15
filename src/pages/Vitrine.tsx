@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Check, MessageCircle, PenLine, Share2, Sparkles, X } from 'lucide-react';
 import { Aurora, BrandMark } from '../components/ui/Fx';
 import { NicheCard, NicheChips, NicheViewer, GroupFilter, nichesOf } from '../components/NicheShowcase';
-import { NicheId, nicheById } from '../lib/miniNicheCore';
+import { NICHES, NicheId, nicheById } from '../lib/miniNicheCore';
+import { MINI_THEMES } from '../lib/miniPage';
 import { loadFonts } from '../lib/miniFonts';
 import '../mini.css';
 
@@ -27,7 +28,7 @@ export default function Vitrine() {
   const viewerIds = open && !list.includes(open) ? nichesOf('todos').map(n => n.id) : list;
   const typing = useRef<ReturnType<typeof setTimeout>>();
 
-  useEffect(() => { document.title = 'Vitrine de mini sites · DDS Inovação'; loadFonts(['brasa', 'aura', 'navalha', 'vital', 'impulso', 'refugio', 'elegance', 'viva', 'essencial']); }, []);
+  useEffect(() => { document.title = 'Vitrine de mini sites · DDS Inovação'; loadFonts(MINI_THEMES); }, []);
   useEffect(() => { setDraft(name); }, [name]);
 
   const query = name ? `?nome=${encodeURIComponent(name)}` : '';
@@ -65,7 +66,7 @@ export default function Vitrine() {
 
     <main className="max-w-6xl mx-auto px-4 sm:px-6">
       <section className="pt-10 sm:pt-14 pb-6 sm:pb-8">
-        <span className="dds-eyebrow"><Sparkles size={14} className="text-[#66e0ff]" />Vitrine de mini sites · 20 ramos</span>
+        <span className="dds-eyebrow"><Sparkles size={14} className="text-[#66e0ff]" />Vitrine de mini sites · {NICHES.length} ramos</span>
         <h1 className="mt-5 font-display font-extrabold text-[clamp(34px,6.4vw,64px)] leading-[1.02] tracking-[-.045em] text-white max-w-3xl">
           Veja o site do <span className="font-serif italic font-normal dds-spectrum-text">seu negócio</span> antes de fechar.
         </h1>

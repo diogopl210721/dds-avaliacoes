@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Aurora, BrandMark, Stars, Tilt, spotMove, useReveal } from "../components/ui/Fx";
 import Plaque from "../components/ui/Plaque";
+import { NICHES } from "../lib/miniNicheCore";
 
 // Baixa a próxima tela assim que a pessoa mostra intenção (passa o dedo/cursor no botão).
 const prefetch = {
@@ -196,7 +197,7 @@ export default function Home() {
             <div>
               <span className="dds-eyebrow"><Smartphone size={14} className="text-[#66e0ff]" />Mini site para empresas</span>
               <h3 className="mt-5 font-display text-[clamp(26px,3.6vw,40px)] font-extrabold leading-[1.05] tracking-[-.04em] text-white">Sua empresa. <span className="font-serif italic font-normal dds-spectrum-text">Seu mini site.</span></h3>
-              <p className="mt-4 text-[#a7b7d1] text-[16px] leading-relaxed max-w-md">Página pronta com fotos, serviços, WhatsApp e redes sociais, publicada em <strong className="text-white font-semibold">ddsinovacao.com.br/suaempresa</strong>. Exemplos prontos para 20 ramos, cada um com fotos, cores e um efeito animado próprio.</p>
+              <p className="mt-4 text-[#a7b7d1] text-[16px] leading-relaxed max-w-md">Página pronta com fotos, serviços, WhatsApp e redes sociais, publicada em <strong className="text-white font-semibold">ddsinovacao.com.br/suaempresa</strong>. Exemplos prontos para {NICHES.length} ramos, cada um com visual, fotos e efeito animado próprios.</p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link to="/exemplos" {...intent(prefetch.vitrine)} className="dds-btn dds-btn-glow">Ver exemplos do meu ramo <ArrowUpRight size={18} /></Link>
                 <a href={wa(msgServico("um mini site para a minha empresa"))} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-ghost-dark"><MessageCircle size={17} /> Pedir orçamento</a>
@@ -402,7 +403,7 @@ const TEASER = [
 ];
 function ExamplesTeaser() {
   return (
-    <Link to="/exemplos" {...intent(prefetch.vitrine)} className="dds-teaser group mt-6" aria-label="Ver exemplos de mini sites para 20 ramos de negócio">
+    <Link to="/exemplos" {...intent(prefetch.vitrine)} className="dds-teaser group mt-6" aria-label={`Ver exemplos de mini sites para ${NICHES.length} ramos de negócio`}>
       <span className="dds-teaser-phones" aria-hidden="true">
         {TEASER.map((t, i) => (
           <span key={t.name} className="dds-teaser-phone" style={{ ["--i" as string]: i, ["--bg" as string]: t.bg, ["--ink" as string]: t.ink, ["--ac" as string]: t.accent }}>
@@ -413,7 +414,7 @@ function ExamplesTeaser() {
       </span>
       <span className="dds-teaser-text">
         <strong>Veja exemplos de mini sites</strong>
-        <small>20 ramos, com fotos e efeitos animados</small>
+        <small>{NICHES.length} ramos, cada um com visual próprio</small>
       </span>
       <span className="dds-teaser-go" aria-hidden="true"><ArrowRight size={18} /></span>
     </Link>

@@ -260,6 +260,9 @@
 .mini-ticker{position:relative;z-index:2}
 
 /* Entradas na rolagem */
+/* O site da DDS esconde todo [data-reveal] até aparecer (ui.css); dentro do mini site quem manda
+   é o motion-on abaixo. Sem isso, as miniaturas (sem animação) ficavam com os blocos invisíveis. */
+.mini-landing [data-reveal]{opacity:1;transform:none}
 .motion-on [data-reveal]{transition:opacity .8s ease,transform .9s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i,0) * 70ms)}
 .motion-on [data-reveal]:not(.is-in){opacity:0;transform:translateY(24px)}
 

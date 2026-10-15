@@ -189,15 +189,21 @@ const NICHE_BY_TYPE: [NicheId, RegExp][] = [
   ['pilates', /yoga|pilates/],
   ['academia', /gym|fitness|crossfit|martial|boxing/],
   ['lavacar', /car_wash|car_detail/],
+  ['carros', /car_dealer|used_car|auto_dealer|car_rental|motorcycle_dealer/],
   ['oficina', /car_repair|auto_parts|tire|auto_repair|mechanic|car_service|oil_change|motorcycle_repair/],
+  ['imobiliaria', /real_estate|realtor|property|housing/],
+  ['corrida', /running|sports_coach|athletic_club/],
   ['jardinagem', /florist|garden|landscap|plant_nursery|lawn/],
   ['assistencia', /cell_phone|electronics|computer|phone_repair|electronics_repair/],
   ['acai', /ice_cream|acai|dessert|candy|confection|chocolate|juice|frozen_yogurt|donut/],
-  ['cafeteria', /cafe|coffee|bakery|pastry|tea_house|cake/],
+  ['panificadora', /bakery|bread/],
+  ['naturais', /health_food|organic|natural_food|vitamin|supplement|bulk_food/],
+  ['cafeteria', /cafe|coffee|pastry|tea_house|cake/],
   ['pizzaria', /pizza|hamburger|burger/],
   ['adega', /liquor|wine|beer_store|brewery|winery/],
   ['restaurante', /restaurant|meal_|food_court|diner|buffet|sandwich|steak|barbecue|lunch/],
-  ['loja', /clothing|shoe|fashion|boutique|gift|jewel|accessor|department_store|bag|textile/],
+  ['moda', /clothing|fashion|boutique|bridal|lingerie|womens_clothing|mens_clothing/],
+  ['loja', /shoe|gift|jewel|accessor|department_store|bag|textile/],
 ];
 export function detectNiche(types: string[]): NicheId | null {
   const list = types.filter(Boolean).map(t => t.toLowerCase());

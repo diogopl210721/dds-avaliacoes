@@ -12,7 +12,7 @@ import { Field } from './StudioFields';
 // campos que ele mesmo preencheu antes (e que ninguém editou depois).
 
 const THEME_SEGMENT: Partial<Record<MiniTheme, SegmentId>> = { brasa: 'gastronomia', aura: 'beleza', navalha: 'barbearia', vital: 'saude', impulso: 'fitness', refugio: 'hospedagem' };
-// Ramo dos textos: um dos 20 ramos (id) ou um segmento genérico ("seg:servicos").
+// Ramo dos textos: um dos ramos (id) ou um segmento genérico ("seg:servicos").
 const OTHER: { id: SegmentId; label: string }[] = [{ id: 'saude', label: 'Clínica e saúde em geral' }, { id: 'hospedagem', label: 'Hospedagem e lazer' }, { id: 'educacao', label: 'Educação e cursos' }, { id: 'escritorio', label: 'Escritório e consultoria' }, { id: 'servicos', label: 'Serviços em geral' }];
 const textsFor = (kind: string, info: ReturnType<typeof infoFrom>, v: number) => {
   const niche = nicheById(kind);

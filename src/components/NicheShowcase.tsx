@@ -2,7 +2,7 @@ import { CSSProperties, ReactNode, RefObject, useEffect, useMemo, useRef, useSta
 import { ChevronLeft, ChevronRight, Sparkles, X } from 'lucide-react';
 import { NICHES, NICHE_GROUPS, NicheGroup, NicheId, nicheById } from '../lib/miniNicheCore';
 import { nicheDemo } from '../lib/miniNicheDemos';
-import { MiniContent, MiniTheme, PaletteId, imageUrl, themeOptions } from '../lib/miniPage';
+import { MiniContent, MiniTheme, PaletteId, imageUrl, themeName } from '../lib/miniPage';
 import { PALETTES, paletteVars } from '../lib/miniPalettes';
 import { PaletteDots, ThemePhone } from './MiniThemes';
 import MiniLanding from './MiniLanding';
@@ -24,7 +24,7 @@ const withName = (c: MiniContent, name: string) => (name.trim() ? { ...c, name: 
 
 export function modelLabel(id: NicheId) {
   const n = nicheById(id)!;
-  return `Modelo ${themeOptions.find(t => t.id === n.theme)?.name ?? ''} · cores ${PALETTES[n.theme].find(p => p.id === n.palette)?.name ?? ''}`;
+  return `Modelo ${themeName(n.theme)} · cores ${PALETTES[n.theme].find(p => p.id === n.palette)?.name ?? ''}`;
 }
 
 // Cada celular "ao vivo" é a página inteira em miniatura, com animações e efeito em canvas.

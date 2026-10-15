@@ -1,4 +1,4 @@
-import { CSSProperties, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, Fragment, ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   MapPin, MessageCircle, Clock, Instagram, Star, ArrowUpRight, X, Globe, Facebook, Youtube, Mail, Phone, ShieldCheck, Heart, Truck, Award, Leaf,
   Sparkles, ThumbsUp, Wrench, Smile, Zap, CalendarCheck, Users, Wallet, Plus, UtensilsCrossed,
@@ -12,7 +12,10 @@ import { useThemeFonts } from '../lib/miniFonts';
 import MiniShader, { ShaderKind } from './MiniShader';
 import NicheFx, { fxColors } from './NicheFx';
 import { nicheById } from '../lib/miniNicheCore';
+import { LOOKS, specParts } from '../lib/miniLooks';
 import '../mini-site.css';
+// Depois do mini-site.css: os modelos de cada ramo sobrescrevem a base.
+import '../mini-looks.css';
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>;
 
@@ -64,7 +67,11 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
   const withPhotos = c.products.some(p => imageUrl(p.image));
   const classic = CLASSIC.includes(c.theme);
   const shader = SHADERS[c.theme];
-  const fx = nicheById(c.niche)?.fx;
+  const nicheInfo = nicheById(c.niche);
+  const fx = nicheInfo?.fx;
+  const look = LOOKS[c.theme];
+  const sealId = useId();
+  const listRef = useRef<HTMLElement>(null);
   const ytId = youtubeId(c.video);
   const videoUrl = safeUrl(c.video);
   const actions = [
@@ -115,11 +122,156 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
     </div>
   </div>;
   const logoEl = <div className="mini-logo">{c.theme === 'vital' && <><i className="mini-pulse" aria-hidden="true" /><i className="mini-pulse p2" aria-hidden="true" /></>}{logo ? <img src={logo} alt={`Logo ${name}`} /> : <span aria-hidden="true">{initial}</span>}</div>;
-  const classes = ['mini-landing', `theme-${c.theme}`, classic ? '' : 'is-niche', thumb ? 'is-thumb' : '', cover ? 'has-cover' : 'no-cover', c.headline ? 'has-headline' : '', c.theme === 'refugio' && c.palette === 'p4' ? 'is-night' : '', floating && wa ? 'has-float' : '', fx && !thumb ? 'has-nichefx' : ''].filter(Boolean).join(' ');
+  // ---- Modelos próprios de cada ramo (miniLooks.ts): capa e lista montadas de outro jeito ----
+  const coverStyle = cover ? { backgroundImage: `url("${cover}")` } : undefined;
+  const fxEl = fx ? <NicheFx key={fx} kind={fx} colors={fxColors(vars as Record<string, string>)} thumb={thumb} /> : null;
+  const heroTitle = <SplitTitle text={c.headline || name} />;
+  const heroTagline = (c.tagline || !c.headline) ? <p>{c.tagline || 'Seu negócio merece ser visto.'}</p> : null;
+  const heroCtaEl = <div className="mini-cta-wrap" ref={heroCta}>{ctaButton()}</div>;
+  const brandEl = c.headline ? <div className="mini-brand">{logoEl}<span className="mini-brand-name">{name}</span></div> : logoEl;
+  // Nome em destaque (placa, logotipo da revista): vira o título principal quando não há chamada.
+  const nameEl = (cls: string) => c.headline ? <p className={cls} style={{ '--tl': Math.max(8, Array.from(name).length) } as Vars}>{name}</p> : <SplitTitle text={name} className={cls} />;
+  const year = new Date().getFullYear();
+  const lookHero = () => {
+    if (!look) return null;
+    switch (look.hero) {
+      case 'poster': {
+        const num = 100 + Array.from(name).reduce((a, ch) => a + ch.charCodeAt(0), 0) % 900;
+        return <>
+          <div className="lk-photo" style={coverStyle} aria-hidden="true" />
+          <div className="lk-shade" aria-hidden="true" />
+          {fxEl}
+          <div className="lk-top">{brandEl}<span className="lk-bib" aria-hidden="true"><small>{name.split(/\s+/)[0].slice(0, 12)}</small><b>{num}</b></span></div>
+          <div className="mini-hero-copy">{heroTitle}{heroTagline}{heroCtaEl}</div>
+          {look.heroStats && stats.length > 0 && <dl className="lk-hud">{stats.slice(0, 3).map(x => <div key={x.id}><dd>{x.value}</dd>{x.label && <dt>{x.label}</dt>}</div>)}</dl>}
+        </>;
+      }
+      case 'magazine': {
+        const month = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+        return <>
+          <div className="lk-mast"><span className="lk-issue" aria-hidden="true"><span>{month} {year}</span><span>{nicheInfo?.short ?? 'Edição'}</span></span>{nameEl('lk-masthead')}</div>
+          <figure className="lk-cover" style={coverStyle}>
+            {fxEl}
+            <figcaption><span className="lk-kicker">{listTitleFor(c) === 'Coleção' ? 'Nova coleção' : listTitleFor(c)}</span>{c.headline ? heroTitle : c.tagline ? <p className="lk-cap">{c.tagline}</p> : null}</figcaption>
+            <span className="lk-vert" aria-hidden="true">{name} · {year}</span>
+          </figure>
+          <div className="mini-hero-copy">{c.headline && c.tagline ? <p>{c.tagline}</p> : null}{heroCtaEl}</div>
+        </>;
+      }
+      case 'arch':
+        return <>
+          <div className="lk-awning" aria-hidden="true" />
+          {fxEl}
+          <div className="lk-sign">{logoEl}{nameEl('lk-sign-name')}</div>
+          <div className="lk-window"><div className="lk-window-photo" style={coverStyle} aria-hidden="true" /><span className="lk-stamp" aria-hidden="true">Feito<br />aqui</span></div>
+          <div className="mini-hero-copy">{c.headline ? heroTitle : null}{c.tagline ? <p>{c.tagline}</p> : null}{heroCtaEl}</div>
+          {c.hours && <div className="lk-chalk"><small>Horários</small><p>{c.hours}</p></div>}
+        </>;
+      case 'split': {
+        const region = c.address.split('·').pop()?.trim() || 'Casas, apartamentos e terrenos';
+        return <>
+          <div className="lk-photo" style={coverStyle} aria-hidden="true" />
+          {fxEl}
+          <div className="lk-panel">
+            {brandEl}{heroTitle}{heroTagline}
+            {c.products.length > 0 && <button type="button" className="lk-search" tabIndex={tab} onClick={() => !thumb && listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+              <span><small>Encontre seu imóvel</small><b>{region}</b></span><i>Ver imóveis <ChevronRight size={16} /></i>
+            </button>}
+            {heroCtaEl}
+          </div>
+        </>;
+      }
+      case 'showroom':
+        return <>
+          <div className="lk-stage" aria-hidden="true"><i className="lk-spot" /><div className="lk-car" style={coverStyle} /><div className="lk-floor" style={coverStyle} /></div>
+          {fxEl}
+          <div className="mini-hero-copy">
+            <div className="lk-plate"><span className="lk-plate-top">Brasil</span>{nameEl('lk-plate-name')}</div>
+            {c.headline ? heroTitle : null}{heroTagline}{heroCtaEl}
+          </div>
+        </>;
+      case 'seal': {
+        const unit = `${name} · ${nicheInfo?.short ?? ''} · `.toUpperCase();
+        const ring = unit.repeat(Math.max(1, Math.ceil(64 / unit.length)));
+        return <>
+          {fxEl}
+          <div className="lk-medal">
+            <svg className="lk-medal-ring" viewBox="0 0 200 200" aria-hidden="true">
+              <defs><path id={sealId} d="M100,100 m-84,0 a84,84 0 1,1 168,0 a84,84 0 1,1 -168,0" /></defs>
+              <text><textPath href={`#${sealId}`} textLength="524" lengthAdjust="spacing">{ring}</textPath></text>
+            </svg>
+            <div className="lk-medal-photo" style={coverStyle} aria-hidden="true">{!cover && <span>{initial}</span>}</div>
+          </div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      }
+    }
+  };
+
+  const itemCta = (p: { name: string }) => !look ? null : wa
+    ? <a className="lk-item-cta" href={whatsapp(c.phone, look.itemMessage.replace('{item}', p.name))} target="_blank" rel="noreferrer" tabIndex={tab}>{look.itemCta} <ArrowUpRight size={15} /></a>
+    : demo ? <span className="lk-item-cta" title="Na página real, abre o WhatsApp">{look.itemCta} <ArrowUpRight size={15} /></span> : null;
+  const itemImg = (p: { name: string; image: string }, cls: string) => imageUrl(p.image)
+    ? <button className={cls} onClick={() => open(p.image)} aria-label={`Ampliar ${p.name}`} tabIndex={tab}><img src={imageUrl(p.image)} alt={p.name} loading="lazy" /></button>
+    : <span className={`${cls} is-empty`} aria-hidden="true">{p.name.slice(0, 1)}</span>;
+  const itemDesc = (text: string) => { const parts = specParts(text); return parts ? <ul className="lk-specs">{parts.map((x, i) => <li key={i}>{x}</li>)}</ul> : text ? <p>{text}</p> : null; };
+  const itemPrice = (price: string) => price ? <strong className="lk-price">R$ {price}</strong> : null;
+  const lookList = () => {
+    if (!look) return null;
+    const list = c.products;
+    switch (look.list) {
+      case 'lanes':
+        return <ol className="lk-lanes">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+          <span className="lk-lane-n" aria-hidden="true">{i + 1}</span>
+          <div className="lk-lane-body"><div className="lk-lane-head"><h3>{p.name}</h3>{itemPrice(p.price)}</div>{itemDesc(p.description)}{itemCta(p)}</div>
+        </li>)}</ol>;
+      case 'lookbook':
+        return <div className="lk-look">{list.map((p, i) => <figure key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          {itemImg(p, 'lk-look-img')}
+          <figcaption><small>Nº {String(i + 1).padStart(2, '0')}</small><h3>{p.name}</h3>{p.description && <p>{p.description}</p>}{itemPrice(p.price)}{itemCta(p)}</figcaption>
+        </figure>)}</div>;
+      case 'shelf':
+        return <ul className="lk-shelf">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          {itemImg(p, 'lk-shelf-img')}
+          <div className="lk-tag"><h3>{p.name}</h3>{itemPrice(p.price)}</div>
+          {p.description && <p>{p.description}</p>}
+          {itemCta(p)}
+        </li>)}</ul>;
+      case 'fichas':
+        return <div className="lk-fichas">{list.map((p, i) => <article key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          <div className="lk-ficha-img">{itemImg(p, 'lk-ficha-photo')}{itemPrice(p.price)}</div>
+          <div className="lk-ficha-body"><h3>{p.name}</h3>{itemDesc(p.description)}{itemCta(p)}</div>
+        </article>)}</div>;
+      case 'garage':
+        return <div className="mini-swipe is-garage">
+          <div className="lk-garage" data-swipe-track>{list.map(p => {
+            const parts = specParts(p.description) ?? [];
+            const yearTag = parts.find(x => /^(19|20)\d{2}(\/\d{2,4})?$/.test(x));
+            return <article key={p.id}>
+              <div className="lk-car-img">{itemImg(p, 'lk-car-photo')}{yearTag && <span className="lk-year">{yearTag}</span>}</div>
+              <div className="lk-car-body"><h3>{p.name}</h3>{parts.length ? <ul className="lk-specs">{parts.filter(x => x !== yearTag).map((x, i) => <li key={i}>{x}</li>)}</ul> : p.description && <p>{p.description}</p>}{itemPrice(p.price)}{itemCta(p)}</div>
+            </article>;
+          })}</div>
+          {list.length > 1 && swipeArrows('produto')}
+        </div>;
+      case 'tags':
+        return <ul className="lk-tags">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          <i className="lk-hole" aria-hidden="true" />
+          {itemImg(p, 'lk-tag-img')}
+          <h3>{p.name}</h3>
+          {p.description && <p>{p.description}</p>}
+          {itemPrice(p.price)}
+          {itemCta(p)}
+        </li>)}</ul>;
+    }
+  };
+
+  const classes = ['mini-landing', `theme-${c.theme}`, look ? `has-look lk-${look.hero}` : '', classic ? '' : 'is-niche', thumb ? 'is-thumb' : '', cover ? 'has-cover' : 'no-cover', c.headline ? 'has-headline' : '', c.theme === 'refugio' && c.palette === 'p4' ? 'is-night' : '', floating && wa ? 'has-float' : '', fx && !thumb ? 'has-nichefx' : ''].filter(Boolean).join(' ');
 
   return <><article ref={root} className={classes} style={vars}>
     {demo && !thumb && <div className="mini-demo-label">{demoLabel || 'Empresa fictícia · Prévia de demonstração'}</div>}
     <header className="mini-hero" data-hero>
+      {look ? lookHero() : <>
       <div className="mini-scene" aria-hidden="true">
         {shader && !thumb && <MiniShader key={shader} kind={shader} colors={shaderColors(vars as any)} />}
         {classic && <><i className="mini-orb o1" /><i className="mini-orb o2" /><i className="mini-orb o3" /><i className="mini-ring" /></>}
@@ -135,6 +287,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
         <div className="mini-cta-wrap" ref={heroCta}>{ctaButton()}</div>
       </div>
       {c.theme === 'impulso' && <div className="mini-bands" aria-hidden="true"><Marquee items={tickerItems} /><Marquee items={[name, c.tagline || c.headline || '']} reverse /></div>}
+      </>}
     </header>
     {(c.theme === 'brasa' || c.theme === 'navalha') && <div className="mini-ticker" aria-hidden="true"><Marquee items={tickerItems} /></div>}
 
@@ -152,7 +305,12 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
         {mvv.length > 0 && <div className="mini-mvv">{mvv.map((x, i) => <div key={x.title} data-reveal style={{ '--i': i } as Vars}><i>{x.icon}</i><h3>{x.title}</h3><p>{x.text}</p></div>)}</div>}
       </section>}
 
-      {c.products.length > 0 && (withPhotos ? <section className="mini-sec">
+      {c.products.length > 0 && look && <section className={`mini-sec lk-list lk-list-${look.list}`} ref={listRef}>
+        <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2>{look.list === 'garage' && c.products.length > 1 && <span>Deslize para ver todos</span>}</div>
+        {lookList()}
+      </section>}
+
+      {c.products.length > 0 && !look && (withPhotos ? <section className="mini-sec">
         <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2>{c.products.length > 1 && <span>Deslize para ver todos</span>}</div>
         <div className="mini-swipe is-cover">
         <div className={`mini-coverflow${c.products.length === 1 ? ' is-single' : ''}`} data-coverflow data-swipe-track>
@@ -179,7 +337,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
         </ul>
       </section>)}
 
-      {stats.length > 0 && <section className="mini-sec" aria-label="Números">
+      {stats.length > 0 && !look?.heroStats && <section className="mini-sec" aria-label="Números">
         <div className={`mini-stats n${stats.length}`}>{stats.map((x, i) => <div className="mini-stat" key={x.id} data-reveal style={{ '--i': i } as Vars}><CountUp value={x.value} still={thumb} />{x.label && <span>{x.label}</span>}</div>)}</div>
       </section>}
 
@@ -268,12 +426,12 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
 
 // Título animado: letra a letra em nomes curtos e palavra a palavra em frases longas
 // (menos elementos animando ao mesmo tempo no celular). O leitor de tela lê o texto inteiro.
-function SplitTitle({ text }: { text: string }) {
+function SplitTitle({ text, className }: { text: string; className?: string }) {
   let index = 0;
   const words = text.trim().split(/\s+/);
   const longest = Math.max(4, ...words.map(w => Array.from(w).length));
   const long = Array.from(text).length > 24;
-  return <h1 aria-label={text} className={long ? 'is-long' : undefined} style={{ '--lw': longest, '--tl': Math.max(8, Array.from(text).length) } as Vars}>{words.map((word, w) => <Fragment key={w}>{w > 0 && ' '}<span className="mini-w" aria-hidden="true">{long
+  return <h1 aria-label={text} className={[long ? 'is-long' : '', className ?? ''].filter(Boolean).join(' ') || undefined} style={{ '--lw': longest, '--tl': Math.max(8, Array.from(text).length) } as Vars}>{words.map((word, w) => <Fragment key={w}>{w > 0 && ' '}<span className="mini-w" aria-hidden="true">{long
     ? <span className="mini-ch" style={{ '--ci': (index++) * 3 } as Vars}>{word}</span>
     : Array.from(word).map(ch => <span className="mini-ch" key={index} style={{ '--ci': index++ } as Vars}>{ch}</span>)}</span></Fragment>)}</h1>;
 }

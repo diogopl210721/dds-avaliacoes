@@ -67,6 +67,12 @@
 .tp-vital{background:radial-gradient(70% 50% at 50% 30%,var(--fx1),transparent 70%),var(--bg)}
 .tp-impulso{background:repeating-conic-gradient(from 0deg at 50% 40%,var(--soft) 0 2deg,transparent 2deg 9deg),radial-gradient(60% 50% at 50% 40%,var(--fx3),var(--bg) 75%)}
 .tp-refugio{background:linear-gradient(var(--sky1),var(--sky3) 68%,var(--bg))}
+.tp-pace{background:repeating-linear-gradient(-62deg,color-mix(in srgb,var(--accent) 12%,transparent) 0 3px,transparent 3px 22px),radial-gradient(70% 55% at 30% 20%,color-mix(in srgb,var(--accent) 26%,transparent),var(--bg) 72%)}
+.tp-atelier{background:linear-gradient(90deg,transparent 49.6%,color-mix(in srgb,var(--ink) 10%,transparent) 50%,transparent 50.4%),radial-gradient(70% 60% at 50% 25%,var(--fx1),var(--bg) 75%)}
+.tp-forno{background:repeating-linear-gradient(90deg,var(--awning,var(--accent)) 0 18px,var(--surface) 18px 36px) 0 0/100% 26px no-repeat,radial-gradient(70% 55% at 50% 55%,var(--fx1),var(--bg) 75%)}
+.tp-planta{background:linear-gradient(color-mix(in srgb,var(--accent) 9%,transparent) 1px,transparent 1px) 0 0/22px 22px,linear-gradient(90deg,color-mix(in srgb,var(--accent) 9%,transparent) 1px,transparent 1px) 0 0/22px 22px,var(--bg)}
+.tp-garagem{background:conic-gradient(from 160deg at 50% 0%,transparent 0deg,#ffffff1c 20deg,transparent 40deg),radial-gradient(80% 50% at 50% 100%,color-mix(in srgb,var(--accent) 30%,transparent),var(--bg) 70%)}
+.tp-raiz{background:radial-gradient(color-mix(in srgb,var(--ink) 8%,transparent) 1px,transparent 1.3px) 0 0/7px 7px,radial-gradient(70% 55% at 50% 40%,var(--fx1),var(--bg) 78%)}
 .tp-stage.is-paused *{animation-play-state:paused!important}
 .theme-card-text small{font-size:12px;font-weight:600;color:#1a62cf}
 .mini-modal-themes{flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}

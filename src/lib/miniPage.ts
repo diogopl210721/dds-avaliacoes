@@ -1,6 +1,8 @@
 import { nicheById } from './miniNicheCore';
 
-export type MiniTheme = 'elegance' | 'viva' | 'essencial' | 'brasa' | 'aura' | 'navalha' | 'vital' | 'impulso' | 'refugio';
+export type MiniTheme = 'elegance' | 'viva' | 'essencial' | 'brasa' | 'aura' | 'navalha' | 'vital' | 'impulso' | 'refugio'
+  // Modelos próprios de cada ramo (um visual por ramo; ver miniLooks.ts).
+  | 'pace' | 'atelier' | 'forno' | 'planta' | 'garagem' | 'raiz';
 export type PaletteId = 'p1' | 'p2' | 'p3' | 'p4' | 'brand';
 export type Product = { id: string; name: string; description: string; price: string; image: string };
 export type Benefit = { id: string; icon: string; title: string; text: string };
@@ -30,7 +32,7 @@ export type MiniRecord = { id: string; slug: string; published: boolean; content
 
 // Todos os IDs abaixo precisam estar na lista aceita pela função plate-mini
 // (supabase/functions/plate-mini/index.ts), senão o tema volta para "elegance".
-export const MINI_THEMES: MiniTheme[] = ['brasa', 'aura', 'navalha', 'vital', 'impulso', 'refugio', 'elegance', 'viva', 'essencial'];
+export const MINI_THEMES: MiniTheme[] = ['brasa', 'aura', 'navalha', 'vital', 'impulso', 'refugio', 'elegance', 'viva', 'essencial', 'pace', 'atelier', 'forno', 'planta', 'garagem', 'raiz'];
 
 export const LIMITS = { benefits: 6, products: 60, stats: 4, testimonials: 6, brands: 12, gallery: 12, faq: 8 };
 
@@ -80,8 +82,9 @@ export function publicLink(slug: string) { const root = new URL(import.meta.env.
 export const LIST_TITLE_DEFAULT: Record<MiniTheme, string> = {
   brasa: 'Cardápio', aura: 'Serviços', navalha: 'Serviços', vital: 'Especialidades', impulso: 'Planos e aulas', refugio: 'Hospedagem e lazer',
   elegance: 'Produtos e serviços', viva: 'Produtos e serviços', essencial: 'Produtos e serviços',
+  pace: 'Planos de treino', atelier: 'Coleção', forno: 'Saindo do forno', planta: 'Imóveis em destaque', garagem: 'Estoque', raiz: 'Na prateleira',
 };
-export const LIST_TITLE_SUGGESTIONS = ['Produtos e serviços', 'Serviços', 'Produtos', 'Cardápio', 'Cardápio do dia', 'Tratamentos', 'Especialidades', 'Planos e aulas', 'Aulas', 'Rótulos', 'Novidades', 'Cursos', 'Hospedagem e lazer'];
+export const LIST_TITLE_SUGGESTIONS = ['Produtos e serviços', 'Serviços', 'Produtos', 'Cardápio', 'Cardápio do dia', 'Tratamentos', 'Especialidades', 'Planos e aulas', 'Aulas', 'Rótulos', 'Novidades', 'Cursos', 'Hospedagem e lazer', 'Planos de treino', 'Coleção', 'Saindo do forno', 'Imóveis em destaque', 'Estoque', 'Na prateleira'];
 export function defaultListTitle(c: Pick<MiniContent, 'theme' | 'niche'>) { return nicheById(c.niche)?.listTitle || LIST_TITLE_DEFAULT[c.theme] || 'Produtos e serviços'; }
 export function listTitleFor(c: Pick<MiniContent, 'listTitle' | 'theme' | 'niche'>) { return c.listTitle?.trim() || defaultListTitle(c); }
 export const BENEFIT_ICONS = ['shield', 'clock', 'star', 'heart', 'truck', 'award', 'leaf', 'sparkles', 'thumbs', 'wrench', 'smile', 'zap', 'calendar', 'users', 'wallet', 'pin'] as const;
@@ -171,5 +174,11 @@ export const themeOptions: { id: MiniTheme; name: string; niche: string; descrip
   { id: 'viva', name: 'Vibe', niche: 'Lojas e negócios jovens', description: 'Cores vivas, formas em movimento e botões que saltam da tela.' },
   { id: 'essencial', name: 'Cristal', niche: 'Serviços em geral', description: 'Claro e leve, com vidro, profundidade e luz em movimento.' },
 ];
+// Nome de qualquer modelo (os 9 gerais e os próprios de cada ramo).
+const THEME_NAMES: Record<MiniTheme, string> = {
+  brasa: 'Brasa', aura: 'Aura', navalha: 'Navalha', vital: 'Vital', impulso: 'Impulso', refugio: 'Refúgio', elegance: 'Noir', viva: 'Vibe', essencial: 'Cristal',
+  pace: 'Pace', atelier: 'Ateliê', forno: 'Forno', planta: 'Planta', garagem: 'Garagem', raiz: 'Raiz',
+};
+export const themeName = (id: MiniTheme) => THEME_NAMES[id] ?? '';
 // Conteúdo de exemplo para mostrar um modelo: a empresa fictícia do segmento, ou o café.
 export function demoFor(theme: MiniTheme): MiniContent { return nicheDemos[theme] ?? { ...demoContent, theme }; }

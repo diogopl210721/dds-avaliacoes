@@ -845,6 +845,184 @@ const SCENES: Record<FxKind, (e: Env) => Scene> = {
       },
     };
   },
+
+  // Corrida: linhas de velocidade cruzando a capa; o toque dá uma arrancada.
+  pista(e) {
+    type L = { x: number; y: number; len: number; sp: number; w: number; col: string; a: number };
+    const cols = [e.c.accent, e.c.accent2, '#ffffff'];
+    const make = (fromRight = true): L => ({ x: fromRight ? e.w + rnd(0, e.w) : rnd(-e.w * 0.2, e.w), y: rnd(e.h * 0.08, e.h * 0.96), len: rnd(50, 190), sp: rnd(420, 900), w: rnd(1, 2.6), col: pick(cols), a: rnd(0.25, 0.7) });
+    const ls: L[] = []; for (let i = 0; i < Math.round(22 * e.k); i++) ls.push(make(false));
+    let boost = 0;
+    return {
+      step(dt) {
+        boost = Math.max(0, boost - dt * 1.6);
+        for (let i = 0; i < ls.length; i++) { const l = ls[i]; l.x -= l.sp * (1 + boost * 2.2) * dt; if (l.x + l.len < -20) ls[i] = make(true); }
+        if (ls.length > 60) ls.splice(0, ls.length - 60);
+      },
+      draw(g) {
+        g.lineCap = 'round';
+        for (const l of ls) {
+          const len = l.len * (1 + boost * 1.4), dy = len * 0.14;
+          const gr = g.createLinearGradient(l.x, l.y, l.x + len, l.y + dy);
+          gr.addColorStop(0, rgba(l.col, l.a)); gr.addColorStop(1, rgba(l.col, 0));
+          g.strokeStyle = gr; g.lineWidth = l.w; g.beginPath(); g.moveTo(l.x, l.y); g.lineTo(l.x + len, l.y + dy); g.stroke();
+        }
+      },
+      tap(x, y) { boost = 1; for (let i = 0; i < 10; i++) { const l = make(false); l.x = x + rnd(-30, 60); l.y = y + rnd(-60, 60); l.sp *= 1.4; ls.push(l); } },
+    };
+  },
+
+  // Moda: flashes de fotógrafo e paetês brilhando; o toque dispara um flash.
+  flash(e) {
+    type F = { x: number; y: number; t: number; max: number; s: number };
+    type S = { x: number; y: number; vy: number; ph: number; s: number };
+    const fl: F[] = [], sq: S[] = [];
+    for (let i = 0; i < Math.round(26 * e.k); i++) sq.push({ x: rnd(0, e.w), y: rnd(0, e.h), vy: rnd(6, 16), ph: rnd(0, TAU), s: rnd(1.4, 3.2) });
+    let next = 0.6;
+    const pop = (x = rnd(e.w * 0.1, e.w * 0.9), y = rnd(e.h * 0.08, e.h * 0.7), s = rnd(40, 90)) => fl.push({ x, y, t: 0, max: 0.55, s });
+    const gold = mix(e.c.accent2, '#ffffff', 0.3);
+    return {
+      step(dt) {
+        next -= dt; if (next <= 0) { pop(); next = rnd(0.8, 2.2); }
+        for (let i = fl.length - 1; i >= 0; i--) { fl[i].t += dt; if (fl[i].t > fl[i].max) fl.splice(i, 1); }
+        for (const p of sq) { p.y += p.vy * dt; p.ph += dt * 3; if (p.y > e.h + 6) { p.y = -6; p.x = rnd(0, e.w); } }
+      },
+      draw(g) {
+        for (const p of sq) {
+          const a = 0.25 + 0.75 * Math.max(0, Math.sin(p.ph));
+          g.fillStyle = rgba(gold, a * 0.9); g.beginPath(); g.moveTo(p.x, p.y - p.s); g.lineTo(p.x + p.s * 0.7, p.y); g.lineTo(p.x, p.y + p.s); g.lineTo(p.x - p.s * 0.7, p.y); g.closePath(); g.fill();
+        }
+        g.globalCompositeOperation = 'lighter';
+        for (const f of fl) {
+          const k = f.t / f.max, a = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+          const gr = g.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.s);
+          gr.addColorStop(0, rgba('#ffffff', 0.85 * a)); gr.addColorStop(0.25, rgba('#ffffff', 0.35 * a)); gr.addColorStop(1, rgba('#ffffff', 0));
+          g.fillStyle = gr; g.beginPath(); g.arc(f.x, f.y, f.s, 0, TAU); g.fill();
+          g.fillStyle = rgba('#ffffff', 0.9 * a); starPath(g, f.x, f.y, f.s * 0.55, 0.08); g.fill();
+        }
+      },
+      tap(x, y) { pop(x, y, 110); },
+    };
+  },
+
+  // Padaria: farinha flutuando no ar; o toque solta uma nuvem e arrastar faz vento.
+  farinha(e) {
+    type P = { x: number; y: number; vx: number; vy: number; r: number; a: number; ph: number; life: number; max: number };
+    const dust = e.dark ? '#fff7ea' : mix(e.c.ink, '#ffffff', 0.72), husk = mix(e.c.accent2, e.c.ink, 0.15);
+    const make = (x = rnd(0, e.w), y = rnd(0, e.h), puff = false): P => ({ x, y, vx: puff ? rnd(-90, 90) : rnd(-6, 6), vy: puff ? rnd(-80, 30) : rnd(4, 14), r: puff ? rnd(1.5, 4.5) : rnd(1, 3), a: rnd(0.25, 0.7), ph: rnd(0, TAU), life: 0, max: puff ? rnd(1.6, 3) : 1e9 });
+    const ps: P[] = []; for (let i = 0; i < Math.round(60 * e.k); i++) ps.push(make());
+    const husks = fallers(e, Math.round(7 * e.k), top => ({ x: rnd(0, e.w), y: top ? rnd(-40, -8) : rnd(0, e.h), vx: 0, vy: rnd(18, 30), rot: rnd(0, TAU), vr: rnd(-1.5, 1.5), ph: rnd(0, TAU), vph: rnd(1, 3), s: rnd(4, 6), col: husk, kind: 0 }));
+    return {
+      step(dt, t) {
+        for (let i = ps.length - 1; i >= 0; i--) {
+          const p = ps[i]; p.life += dt; p.ph += dt;
+          p.x += (p.vx + Math.sin(t * 0.6 + p.ph) * 6) * dt; p.y += p.vy * dt; p.vx *= Math.pow(0.35, dt); p.vy += (8 - p.vy) * Math.min(1, dt * 0.8);
+          if (p.life > p.max) { ps.splice(i, 1); continue; }
+          if (p.y > e.h + 6 || p.x < -10 || p.x > e.w + 10) { ps[i] = make(rnd(0, e.w), -6); }
+        }
+        husks.step(dt, t, 10);
+      },
+      draw(g) {
+        for (const p of ps) { const a = p.max < 1e9 ? p.a * (1 - p.life / p.max) : p.a; g.fillStyle = rgba(dust, a); g.beginPath(); g.arc(p.x, p.y, p.r, 0, TAU); g.fill(); }
+        for (const p of husks.list) { g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.fillStyle = rgba(p.col, 0.8); g.beginPath(); g.ellipse(0, 0, p.s, p.s * 0.42, 0, 0, TAU); g.fill(); g.restore(); }
+      },
+      move(x, y, vx, vy) { for (const p of ps) { const d = Math.hypot(p.x - x, p.y - y); if (d < 100) { const f = 1 - d / 100; p.vx += vx * 0.25 * f; p.vy += vy * 0.12 * f; } } husks.push(x, y, vx, vy); },
+      tap(x, y) { for (let i = 0; i < 26; i++) ps.push(make(x + rnd(-10, 10), y + rnd(-10, 10), true)); if (ps.length > 200) ps.splice(0, ps.length - 200); },
+    };
+  },
+
+  // Imobiliária: uma planta baixa se desenhando por cima da foto, cômodo por cômodo.
+  planta(e) {
+    const W = e.w, H = Math.min(e.h, Math.max(260, e.w * 0.84));
+    const col = '#ffffff';
+    let segs: number[][] = [], prog = 0, hold = 0, fade = 1, pins: { x: number; y: number; t: number }[] = [];
+    const build = () => {
+      const x0 = W * rnd(0.1, 0.18), y0 = H * rnd(0.14, 0.22), w = W * rnd(0.62, 0.74), h = H * rnd(0.5, 0.62);
+      const cx = x0 + w * rnd(0.42, 0.6), cy = y0 + h * rnd(0.45, 0.6), dx = x0 + w * rnd(0.22, 0.3);
+      segs = [[x0, y0, x0 + w, y0], [x0 + w, y0, x0 + w, y0 + h], [x0 + w, y0 + h, x0, y0 + h], [x0, y0 + h, x0, y0],
+        [cx, y0, cx, cy - 14], [cx, cy + 14, cx, y0 + h], [x0, cy, dx - 12, cy], [dx + 12, cy, x0 + w, cy],
+        [x0 - 10, y0 - 14, x0 + w + 10, y0 - 14], [x0 - 14, y0, x0 - 14, y0 + h]];
+      prog = 0; hold = 0; fade = 1;
+    };
+    build();
+    const total = () => segs.reduce((a, [x1, y1, x2, y2]) => a + Math.hypot(x2 - x1, y2 - y1), 0);
+    return {
+      step(dt) {
+        if (prog < 1) prog = Math.min(1, prog + dt * 0.28); else if (hold < 2.4) hold += dt; else { fade -= dt * 0.8; if (fade <= 0) build(); }
+        for (let i = pins.length - 1; i >= 0; i--) { pins[i].t += dt; if (pins[i].t > 1.4) pins.splice(i, 1); }
+      },
+      draw(g) {
+        const tot = total(); let left = prog * tot;
+        g.lineCap = 'round';
+        segs.forEach(([x1, y1, x2, y2], i) => {
+          if (left <= 0) return;
+          const len = Math.hypot(x2 - x1, y2 - y1), k = Math.min(1, left / len); left -= len;
+          const dim = i >= 8;
+          g.strokeStyle = rgba(col, (dim ? 0.38 : 0.62) * fade); g.lineWidth = dim ? 1 : 2.2; g.setLineDash(dim ? [4, 4] : []);
+          g.beginPath(); g.moveTo(x1, y1); g.lineTo(x1 + (x2 - x1) * k, y1 + (y2 - y1) * k); g.stroke();
+        });
+        g.setLineDash([]);
+        for (const p of pins) {
+          const k = p.t / 1.4;
+          g.strokeStyle = rgba(e.c.accent2, 0.8 * (1 - k)); g.lineWidth = 2; g.beginPath(); g.arc(p.x, p.y, 8 + k * 36, 0, TAU); g.stroke();
+          g.fillStyle = rgba(e.c.accent2, 0.95 * (1 - k * 0.6)); g.beginPath(); g.arc(p.x, p.y - 12, 7, Math.PI * 0.85, Math.PI * 2.15); g.lineTo(p.x, p.y); g.closePath(); g.fill();
+          g.fillStyle = rgba('#ffffff', 0.95 * (1 - k * 0.6)); g.beginPath(); g.arc(p.x, p.y - 12, 2.6, 0, TAU); g.fill();
+        }
+      },
+      tap(x, y) { pins.push({ x, y, t: 0 }); },
+    };
+  },
+
+  // Loja de carros: rastros de faróis e lanternas cruzando a noite; o toque acende o farol alto.
+  farois(e) {
+    type T = { x: number; y: number; len: number; sp: number; dir: 1 | -1; w: number };
+    const make = (anywhere = false): T => { const dir = Math.random() < 0.5 ? 1 : -1; return { dir, x: anywhere ? rnd(0, e.w) : dir > 0 ? rnd(-e.w, -40) : e.w + rnd(40, e.w), y: e.h * rnd(0.5, 0.92), len: rnd(80, 220), sp: rnd(160, 380), w: rnd(1.5, 3.5) }; };
+    const ts: T[] = []; for (let i = 0; i < Math.round(14 * e.k); i++) ts.push(make(true));
+    const bokeh = Array.from({ length: Math.round(12 * e.k) }, () => ({ x: rnd(0, e.w), y: rnd(e.h * 0.05, e.h * 0.6), r: rnd(6, 18), ph: rnd(0, TAU), c: Math.random() < 0.5 ? e.c.accent : '#ffd9a0' }));
+    let beam = 0;
+    return {
+      step(dt) {
+        beam = Math.max(0, beam - dt * 1.2);
+        for (let i = 0; i < ts.length; i++) { const t = ts[i]; t.x += t.dir * t.sp * dt; if ((t.dir > 0 && t.x - t.len > e.w + 20) || (t.dir < 0 && t.x + t.len < -20)) ts[i] = make(); }
+        for (const b of bokeh) b.ph += dt * 0.8;
+      },
+      draw(g) {
+        for (const b of bokeh) { const a = 0.08 + 0.1 * (1 + Math.sin(b.ph)) / 2; const gr = g.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r); gr.addColorStop(0, rgba(b.c, a)); gr.addColorStop(1, rgba(b.c, 0)); g.fillStyle = gr; g.beginPath(); g.arc(b.x, b.y, b.r, 0, TAU); g.fill(); }
+        g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+        for (const t of ts) {
+          const col = t.dir > 0 ? '#fff4d6' : '#ff2a1a';
+          const x2 = t.x - t.dir * t.len;
+          const gr = g.createLinearGradient(t.x, t.y, x2, t.y); gr.addColorStop(0, rgba(col, 0.85)); gr.addColorStop(1, rgba(col, 0));
+          g.strokeStyle = gr; g.lineWidth = t.w; g.beginPath(); g.moveTo(t.x, t.y); g.lineTo(x2, t.y); g.stroke();
+        }
+        if (beam > 0) { const gr = g.createRadialGradient(e.w / 2, e.h * 0.4, 0, e.w / 2, e.h * 0.4, e.w * 0.8); gr.addColorStop(0, rgba('#ffffff', 0.32 * beam)); gr.addColorStop(1, rgba('#ffffff', 0)); g.fillStyle = gr; g.fillRect(0, 0, e.w, e.h); }
+      },
+      tap(x, y) { beam = 1; for (let i = 0; i < 4; i++) { const t = make(); t.y = clamp(y + rnd(-30, 30), 0, e.h); ts.push(t); } if (ts.length > 40) ts.splice(0, ts.length - 40); },
+    };
+  },
+
+  // Produtos naturais: folhas caindo e girando; arrastar o dedo faz vento.
+  folhas(e) {
+    const greens = [e.c.fx1, mix(e.c.fx1, '#2d4a1f', 0.35), e.c.fx3, mix(e.c.fx2, e.c.fx1, 0.5)];
+    const make = (top: boolean): Fall => ({ x: rnd(0, e.w), y: top ? rnd(-60, -10) : rnd(0, e.h), vx: rnd(-8, 8), vy: rnd(22, 40), rot: rnd(0, TAU), vr: rnd(-1.6, 1.6), ph: rnd(0, TAU), vph: rnd(1.5, 3.5), s: rnd(8, 15), col: pick(greens), kind: Math.random() < 0.15 ? 1 : 0 });
+    const f = fallers(e, Math.round(20 * e.k), make);
+    return {
+      step(dt, t) { f.step(dt, t, 18); },
+      draw(g) {
+        for (const p of f.list) {
+          g.save(); g.translate(p.x, p.y); g.rotate(p.rot);
+          if (p.kind === 0) {
+            g.scale(1, 0.3 + 0.7 * Math.abs(Math.cos(p.ph)));
+            leafPath(g, p.s); g.fillStyle = rgba(p.col, 0.92); g.fill();
+            g.strokeStyle = rgba(mix(p.col, '#1d2a14', 0.55), 0.7); g.lineWidth = 1; g.beginPath(); g.moveTo(-p.s * 0.85, 0); g.lineTo(p.s * 0.85, 0); g.stroke();
+          } else { g.fillStyle = rgba(e.c.accent2, 0.85); g.beginPath(); g.ellipse(0, 0, p.s * 0.32, p.s * 0.2, 0, 0, TAU); g.fill(); }
+          g.restore();
+        }
+      },
+      move(x, y, vx, vy) { f.push(x, y, vx, vy, 120); },
+      tap(x, y) { f.push(x, y, rnd(-600, 600), -200, 140); },
+    };
+  },
 };
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

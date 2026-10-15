@@ -93,9 +93,52 @@ export const PALETTES: Record<MiniTheme, Palette[]> = {
     mk('p3', 'Outono', { bg: '#f8f1e8', ink: '#3a2516', muted: '#7a6250', accent: '#9a4b24', accent2: '#2f6b4a', line: '#3a25161a', fx: ['#f2c493', '#f9dfbb', '#ffe1a8'], extra: sky('#e9a46d', '#f2c493', '#f9dfbb', '#fcefdc', '#c99f84', '#b27a4f', '#9a6239', '#8a4f2a', '#4a2a17', '#ffe1a8') }),
     mk('p4', 'Noite', { bg: '#eff0f6', ink: '#1b2238', muted: '#565d78', accent: '#3b4fa8', accent2: '#e3b34a', line: '#1b22381a', fx: ['#1f2a55', '#3a3f74', '#f4f1d8'], extra: sky('#0f1838', '#1f2a55', '#3a3f74', '#5d5a8c', '#2c3563', '#253150', '#1e2a45', '#1a2440', '#0e152b', '#f4f1d8') }),
   ],
+  // ---- Modelos próprios de cada ramo ----
+  // Corrida: asfalto escuro com cor de tênis de corrida.
+  pace: [
+    mk('p1', 'Volt', { bg: '#0d0f12', surface: '#171a1f', ink: '#f4f6f8', muted: '#9aa3ad', accent: '#d4ff1e', accent2: '#00e0ff', onAccent: '#0d0f12', line: '#2a2f37', fx: ['#d4ff1e', '#00e0ff', '#ff3d6e'], extra: { track: '#b9472c' } }),
+    mk('p2', 'Pista laranja', { bg: '#100d0c', surface: '#1b1614', ink: '#fbf3ef', muted: '#b4a49c', accent: '#ff5a1f', accent2: '#ffb000', onAccent: '#100d0c', line: '#332925', fx: ['#ff5a1f', '#ffb000', '#ffffff'], extra: { track: '#c2452a' } }),
+    mk('p3', 'Azul elétrico', { bg: '#080c18', surface: '#111833', ink: '#eef3ff', muted: '#97a6c9', accent: '#3d86ff', accent2: '#7cf5ff', onAccent: '#ffffff', line: '#22305a', fx: ['#3d86ff', '#7cf5ff', '#d4ff1e'], extra: { track: '#2e4a8a' } }),
+    mk('p4', 'Dia claro', { bg: '#f2f3ef', surface: '#ffffff', ink: '#111316', muted: '#5d636b', accent: '#ff4d17', accent2: '#1d1f22', onAccent: '#ffffff', line: '#1113161f', fx: ['#ff4d17', '#c8f000', '#1d1f22'], extra: { track: '#d9603f' } }),
+  ],
+  // Moda: editorial de revista.
+  atelier: [
+    mk('p1', 'Areia', { bg: '#f3eee7', surface: '#fffdf9', ink: '#161412', muted: '#6f675f', accent: '#161412', accent2: '#b4553a', onAccent: '#f3eee7', line: '#16141226', fx: ['#e7dccc', '#d6c1a3', '#b4553a'] }),
+    mk('p2', 'Noite', { bg: '#0f0e0d', surface: '#191715', ink: '#f2ede6', muted: '#a59d93', accent: '#f2ede6', accent2: '#c9a27e', onAccent: '#0f0e0d', line: '#f2ede62b', fx: ['#2b2622', '#3a302a', '#c9a27e'] }),
+    mk('p3', 'Rosa seco', { bg: '#f4e7e4', surface: '#fffaf8', ink: '#2a1418', muted: '#7a5e62', accent: '#6b2d3a', accent2: '#c98a7a', onAccent: '#fff6f4', line: '#2a141826', fx: ['#ecd2cc', '#e2bdb3', '#6b2d3a'] }),
+    mk('p4', 'Oliva', { bg: '#ecebe1', surface: '#fbfbf6', ink: '#1c2015', muted: '#62664f', accent: '#3d4a2c', accent2: '#b48a3c', onAccent: '#f6f5ec', line: '#1c201526', fx: ['#dcdcc8', '#c9c8a8', '#3d4a2c'] }),
+  ],
+  // Padaria: massa, casca de pão e toldo listrado.
+  forno: [
+    mk('p1', 'Massa e casca', { bg: '#f8efe2', surface: '#fffaf2', ink: '#3a2516', muted: '#7b6250', accent: '#a9471a', accent2: '#e8a34a', line: '#3a25161f', fx: ['#f2d7b0', '#e8b77a', '#fff4e1'], extra: { awning: '#a9471a', board: '#2f3a33' } }),
+    mk('p2', 'Café com leite', { bg: '#f4ebe1', surface: '#fffaf4', ink: '#2e1e14', muted: '#76604f', accent: '#6b4226', accent2: '#c99a6b', line: '#2e1e141f', fx: ['#ead8c3', '#d9b993', '#fff3e3'], extra: { awning: '#6b4226', board: '#2c2622' } }),
+    mk('p3', 'Toldo vermelho', { bg: '#fbf3e8', surface: '#fffbf5', ink: '#3b1d17', muted: '#7d5a50', accent: '#b8322a', accent2: '#f2c14e', line: '#3b1d171f', fx: ['#f6dcc0', '#f2c14e', '#fff2dc'], extra: { awning: '#b8322a', board: '#263129' } }),
+    mk('p4', 'Verde vintage', { bg: '#f3efe3', surface: '#fffcf3', ink: '#1f2e26', muted: '#5f6b62', accent: '#2c6a4d', accent2: '#e3a857', line: '#1f2e261f', fx: ['#e3dcc4', '#e9c48a', '#fbf4e2'], extra: { awning: '#2c6a4d', board: '#2a2f2c' } }),
+  ],
+  // Imobiliária: planta baixa, marinho e dourado.
+  planta: [
+    mk('p1', 'Marinho e dourado', { bg: '#f5f6f8', surface: '#ffffff', ink: '#0e1a2b', muted: '#596475', accent: '#0f2b4a', accent2: '#c49a4c', line: '#0e1a2b1a', fx: ['#dfe6ef', '#c49a4c', '#0f2b4a'] }),
+    mk('p2', 'Verde jardim', { bg: '#f3f6f3', surface: '#ffffff', ink: '#13241c', muted: '#56665d', accent: '#1d5a43', accent2: '#c9a45a', line: '#13241c1a', fx: ['#dbe7df', '#c9a45a', '#1d5a43'] }),
+    mk('p3', 'Grafite', { bg: '#101317', surface: '#181c22', ink: '#eef1f4', muted: '#9aa3ae', accent: '#d1a85a', accent2: '#eef1f4', onAccent: '#101317', line: '#eef1f41f', fx: ['#1d242d', '#d1a85a', '#3a4552'] }),
+    mk('p4', 'Terracota', { bg: '#f8f3ee', surface: '#ffffff', ink: '#2b1a12', muted: '#73604f', accent: '#9c4126', accent2: '#2b4a5c', line: '#2b1a121a', fx: ['#efdccd', '#2b4a5c', '#9c4126'] }),
+  ],
+  // Loja de carros: showroom escuro.
+  garagem: [
+    mk('p1', 'Vermelho', { bg: '#0b0c0e', surface: '#15171b', ink: '#f3f4f6', muted: '#9ba1ab', accent: '#e8160c', accent2: '#ff7a3d', line: '#262a31', fx: ['#e8160c', '#ff9a3d', '#c8d1dc'] }),
+    mk('p2', 'Prata', { bg: '#0d0f12', surface: '#171a1f', ink: '#f2f4f7', muted: '#a0a7b2', accent: '#c9d2dd', accent2: '#6f7c8d', onAccent: '#0d0f12', line: '#2a2f37', fx: ['#c9d2dd', '#6f7c8d', '#ffffff'] }),
+    mk('p3', 'Azul', { bg: '#070b14', surface: '#101827', ink: '#eef3fb', muted: '#97a4ba', accent: '#2a72ff', accent2: '#5ad1ff', line: '#1d2a44', fx: ['#2a72ff', '#5ad1ff', '#d8e6ff'] }),
+    mk('p4', 'Amarelo', { bg: '#0c0c0b', surface: '#171715', ink: '#f6f5f0', muted: '#a8a69c', accent: '#ffc400', accent2: '#ff8a00', onAccent: '#0c0c0b', line: '#2d2c27', fx: ['#ffc400', '#ff8a00', '#fff3c4'] }),
+  ],
+  // Produtos naturais: papel kraft, sálvia e terracota.
+  raiz: [
+    mk('p1', 'Kraft e sálvia', { bg: '#efe5d2', surface: '#f8f1e3', ink: '#2b3722', muted: '#66664c', accent: '#4a7536', accent2: '#c8743f', line: '#2b37222b', fx: ['#a8c686', '#e6c48a', '#7a9a5a'] }),
+    mk('p2', 'Terra', { bg: '#f1e6d6', surface: '#faf3e8', ink: '#3a2518', muted: '#7a6150', accent: '#9a4d24', accent2: '#6f8a3c', line: '#3a25182b', fx: ['#d9a77c', '#b5c98a', '#e8c28a'] }),
+    mk('p3', 'Mel', { bg: '#f6ecd6', surface: '#fdf6e6', ink: '#33280f', muted: '#76684a', accent: '#8a5a00', accent2: '#4a7536', line: '#33280f2b', fx: ['#f2c76a', '#c9d89a', '#f7e2a8'] }),
+    mk('p4', 'Mata', { bg: '#1c251a', surface: '#253022', ink: '#f1ead8', muted: '#b4b39a', accent: '#b5d68a', accent2: '#e0a96a', onAccent: '#1c251a', line: '#f1ead826', fx: ['#3d5a32', '#b5d68a', '#e0a96a'] }),
+  ],
 };
 
-const DARK = new Set<MiniTheme>(['elegance', 'brasa', 'navalha', 'impulso']);
+const DARK = new Set<MiniTheme>(['elegance', 'brasa', 'navalha', 'impulso', 'pace', 'garagem']);
 
 export function paletteVars(theme: MiniTheme, palette: PaletteId, brandColor = ''): Vars {
   const list = PALETTES[theme];
@@ -131,6 +174,11 @@ function brandVars(theme: MiniTheme, hex: string): Vars {
     case 'vital': set(fromHsl(h, 55, 90), fromHsl(h + 35, 60, 90), fromHsl(h - 20, 55, 93)); break;
     case 'impulso': set(accent, fromHsl(h + 40, 95, 60), fromHsl(h, 60, 16)); v['--accent2'] = fromHsl(h + 40, 95, 60); break;
     case 'refugio': break;
+    case 'pace': case 'garagem': set(accent, fromHsl(h + 40, 90, 60), fromHsl(h + 180, 70, 70)); break;
+    case 'atelier': v['--accent2'] = fromHsl(h, 45, 50); set(fromHsl(h, 30, 88), fromHsl(h, 30, 78), accent); break;
+    case 'forno': v['--awning'] = accent; set(fromHsl(h, 60, 85), fromHsl(h + 20, 70, 72), fromHsl(h, 70, 94)); break;
+    case 'planta': set(fromHsl(h, 25, 90), fromHsl(h + 35, 55, 60), accent); break;
+    case 'raiz': set(fromHsl(h, 40, 66), fromHsl(h + 40, 60, 72), fromHsl(h - 20, 35, 52)); break;
   }
   return finish(v);
 }
