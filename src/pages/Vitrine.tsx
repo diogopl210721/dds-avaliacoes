@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { Aurora, BrandMark, CountUp, useReveal } from '../components/ui/Fx';
 import { NicheCard, NicheChips, NicheViewer, GroupFilter, nichesOf } from '../components/NicheShowcase';
-import BuildDemo, { DEMO_STEPS } from '../components/BuildDemo';
 import { NICHES, NicheId, nicheById } from '../lib/miniNicheCore';
 import { MINI_THEMES } from '../lib/miniPage';
 import { paletteVars } from '../lib/miniPalettes';
@@ -15,7 +14,7 @@ import '../mini.css';
 
 // Página de vendas dos mini sites (/exemplos, link curto www.ddsinovacao.com.br/minisites).
 // Gancho: o site pronto em 5 minutos, por R$ 200 uma vez só. Um celular no topo monta um site sozinho
-// (BuildDemo, com o nome que a pessoa digitar); os modelos aparecem logo abaixo (6 e "ver todos").
+// (vídeo real do estúdio, gravado do zero até o site no ar); os modelos aparecem logo abaixo (6 e "ver todos").
 // Todo botão de compra chama no WhatsApp; o acesso ao estúdio sai pelo admin (código SITE101 + link).
 // /exemplos/<ramo>?nome=... abre direto o exemplo (link para mandar depois).
 // No meio e no fim, a propaganda da plaquinha de avaliações leva para www.ddsinovacao.com.br/plaquinhas/.
@@ -40,6 +39,7 @@ const STEPS: { icon: ReactNode; title: string; text: string }[] = [
 const VIDEO_URL = `${import.meta.env.BASE_URL}video/estudio`; // .mp4 (iPhone e a maioria) e .webm (reserva)
 const VIDEO_POSTER = `${import.meta.env.BASE_URL}video/estudio.jpg`;
 const VIDEO_CH = [0.4, 6.1, 14.7, 19.4, 29.1, 39.8, 50.6, 55.2, 61.1];
+const VIDEO_TITLES = ['Crie sua senha', 'Escolha o ramo', 'Escolha as cores', 'Nome, WhatsApp e capa', 'Serviços com foto e preço', 'Diferenciais e fotos', 'Endereço e Instagram', 'Toque em Publicar', 'Pronto, está no ar!'];
 
 // Passos da janela: o primeiro acontece antes; os outros acendem junto com o vídeo (ch = passos do vídeo).
 const HOW: { title: string; text: string; ch?: number[] }[] = [
@@ -188,7 +188,7 @@ export default function Vitrine() {
             <input value={draft} onChange={e => setName(e.target.value)} maxLength={60} placeholder="Digite o nome da sua empresa" autoComplete="off" enterKeyHint="done" onKeyDown={e => { if (e.key === 'Enter') toModels(); }} />
             {draft && <button type="button" onClick={() => setName('')} aria-label="Apagar o nome"><X size={17} /></button>}
           </label>
-          <p className="mt-2 text-[13px] text-[#7f93b5]">{name ? <>Os modelos e a demonstração estão mostrando <strong className="text-white font-semibold">{name}</strong>.</> : 'Veja os modelos e a demonstração com o nome da sua empresa.'}</p>
+          <p className="mt-2 text-[13px] text-[#7f93b5]">{name ? <>Os modelos estão mostrando <strong className="text-white font-semibold">{name}</strong>.</> : 'Veja todos os modelos com o nome da sua empresa, na hora.'}</p>
           <div className="mt-6 flex flex-wrap gap-3 max-[400px]:gap-2 dds-rise" style={vars({ '--d': '1.05s' })}>
             <button type="button" onClick={toModels} className="dds-btn dds-btn-glow dds-btn-lg flex-1 sm:flex-none !px-3 sm:!px-6 max-[400px]:!text-[14.5px] max-[400px]:!gap-1.5 max-[340px]:basis-full">Ver os modelos <ArrowDown size={18} /></button>
             <button type="button" onClick={() => setHow(true)} className="dds-btn dds-btn-ghost-dark dds-btn-lg flex-1 sm:flex-none !px-3 sm:!px-6 max-[400px]:!text-[14.5px] max-[400px]:!gap-1.5 max-[340px]:basis-full"><Play size={17} /> Como funciona</button>
@@ -198,8 +198,8 @@ export default function Vitrine() {
           <span className="vt-float f1" aria-hidden="true"><Check size={14} /> Botão de WhatsApp</span>
           <span className="vt-float f2" aria-hidden="true"><Check size={14} /> Fotos e preços</span>
           <span className="vt-float f3" aria-hidden="true"><Check size={14} /> Mude quando quiser</span>
-          <BuildDemo name={name} onStep={setDemoStep} />
-          <p className="vt-demo-caption" aria-hidden="true"><b>{demoStep + 1}</b>{DEMO_STEPS[demoStep]}<span className="vt-demo-dots">{DEMO_STEPS.map((_, i) => <i key={i} className={i === demoStep ? 'on' : ''} />)}</span></p>
+          <HowVideo onChapter={setDemoStep} seek={null} hero />
+          <p className="vt-demo-caption" aria-hidden="true"><b>{demoStep + 1}</b>{VIDEO_TITLES[demoStep]}<span className="vt-demo-dots">{VIDEO_TITLES.map((_, i) => <i key={i} className={i === demoStep ? 'on' : ''} />)}</span></p>
         </div>
       </section>
 
@@ -356,19 +356,27 @@ function HowSteps({ step, onPick }: { step: number; onPick: (chapter: number) =>
   </ol>;
 }
 
-// Gravação real do estúdio, dentro de um celular. Sem som; com "reduzir movimento", não começa sozinho.
-function HowVideo({ onChapter, seek }: { onChapter: (chapter: number) => void; seek: { t: number; n: number } | null }) {
+// Gravação real do estúdio, dentro de um celular (no topo da página e na janela "Como funciona").
+// Sem som; só toca enquanto está na tela; com "reduzir movimento", não começa sozinho.
+function HowVideo({ onChapter, seek, hero = false }: { onChapter: (chapter: number) => void; seek: { t: number; n: number } | null; hero?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   const still = useMemo(() => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || still || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) v.play().catch(() => { /* toque necessário */ }); else v.pause(); }, { threshold: 0.25 });
+    io.observe(v);
+    return () => io.disconnect();
+  }, [still]);
   useEffect(() => {
     const v = ref.current;
     if (!seek || !v) return;
     v.currentTime = seek.t; v.play().catch(() => { /* o navegador pode pedir um toque */ });
   }, [seek]);
   const chapterAt = (t: number) => VIDEO_CH.reduce((acc, c, k) => (t >= c - 0.05 ? k : acc), 0);
-  return <div className="vt-demo is-big is-video">
+  return <div className={`vt-demo is-video${hero ? '' : ' is-big'}`}>
     <div className="vt-demo-phone"><div className="vt-demo-screen">
-      <video ref={ref} poster={VIDEO_POSTER} muted playsInline autoPlay={!still} loop controls={still} preload="auto"
+      <video ref={ref} poster={VIDEO_POSTER} muted playsInline loop controls={still} preload={hero ? 'metadata' : 'auto'}
         aria-label="Vídeo: o estúdio do mini site sendo preenchido do zero até o site no ar"
         onTimeUpdate={e => onChapter(chapterAt(e.currentTarget.currentTime))}>
         <source src={`${VIDEO_URL}.mp4`} type="video/mp4" />
