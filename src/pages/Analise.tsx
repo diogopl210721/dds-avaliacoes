@@ -481,7 +481,7 @@ export default function Analise() {
           <input
             value={codigo}
             onChange={(e) => setCodigo(e.target.value)}
-            placeholder="Ex: DDS215 ou SITE-0001"
+            placeholder="Ex: DDS215 ou SITE101"
             required
             autoComplete="username"
             className="dds-input"

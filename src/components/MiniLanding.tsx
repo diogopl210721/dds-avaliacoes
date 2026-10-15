@@ -439,7 +439,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
         </article>)}</div>;
       case 'garage':
         return <div className="mini-swipe is-garage">
-          <div className="lk-garage" data-swipe-track>{list.map(p => {
+          <div className="lk-garage" data-swipe-track data-swipe-drag>{list.map(p => {
             const parts = specParts(p.description) ?? [];
             const yearTag = parts.find(x => /^(19|20)\d{2}(\/\d{2,4})?$/.test(x));
             return <article key={p.id}>
@@ -633,7 +633,7 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
       {c.products.length > 0 && !look && (withPhotos ? <section className="mini-sec">
         <div className="mini-section-heading" data-reveal><h2>{listTitleFor(c)}</h2>{c.products.length > 1 && <span>Deslize para ver todos</span>}</div>
         <div className="mini-swipe is-cover">
-        <div className={`mini-coverflow${c.products.length === 1 ? ' is-single' : ''}`} data-coverflow data-swipe-track>
+        <div className={`mini-coverflow${c.products.length === 1 ? ' is-single' : ''}`} data-coverflow data-swipe-track data-swipe-drag>
           {c.products.map((p, i) => <div className="mini-product" key={p.id} style={{ '--off': i, '--abs': Math.min(i, 2), zIndex: 10 - Math.min(i, 2) * 3 } as Vars}>
             {imageUrl(p.image) && <button className="mini-photo-button" onClick={() => open(p.image)} aria-label={`Ampliar ${p.name}`} tabIndex={tab}><img src={imageUrl(p.image)} alt={p.name} loading="lazy" /></button>}
             <div className="mini-product-text">

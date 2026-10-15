@@ -1,7 +1,8 @@
 import { RefObject, useEffect } from 'react';
 
-// Carrosséis do mini site (fotos dos produtos e depoimentos) no computador.
-// No celular eles já deslizam com o dedo; no mouse não existe esse gesto, então:
+// Carrosséis do mini site (fotos dos produtos e depoimentos).
+// Depoimentos deslizam com a rolagem nativa do celular; cartões de produtos e carros seguem o dedo
+// por aqui (ver [data-swipe-drag] abaixo). No mouse não existe esse gesto, então:
 //  - setas ‹ › nas laterais ([data-swipe-prev] / [data-swipe-next], só aparecem com mouse, via CSS);
 //  - clicar e arrastar com o mouse, que solta no cartão mais próximo.
 // Cada carrossel fica num .mini-swipe com o trilho [data-swipe-track] dentro.
@@ -51,18 +52,26 @@ export function useMiniSwipe(ref: RefObject<HTMLElement>, enabled: boolean, sign
       };
       box.addEventListener('click', onArrow);
 
-      // Arrastar com o mouse (toque e caneta continuam com a rolagem nativa).
+      // Arrastar com o mouse. Nos trilhos marcados com [data-swipe-drag] (cartões de produtos e carros),
+      // o dedo também é seguido aqui: no iPhone a rolagem nativa desses cartões em 3D não andava.
+      // O CSS deixa só a rolagem vertical com o navegador (touch-action: pan-y).
+      const byFinger = track.hasAttribute('data-swipe-drag');
       let startX = 0, startLeft = 0, startIndex = 0, moved = false, dragging = false, id = -1, blockClickUntil = 0;
+      let lastX = 0, lastT = 0, speed = 0;
       const down = (e: PointerEvent) => {
-        if (e.pointerType !== 'mouse' || e.button !== 0) return;
-        dragging = true; moved = false; id = e.pointerId;
-        startX = e.clientX; startLeft = track.scrollLeft; startIndex = nearest(track);
+        const mouse = e.pointerType === 'mouse';
+        if (mouse ? e.button !== 0 : !byFinger || !e.isPrimary) return;
+        dragging = true; moved = false; id = e.pointerId; speed = 0;
+        startX = lastX = e.clientX; lastT = e.timeStamp; startLeft = track.scrollLeft; startIndex = nearest(track);
       };
       const move = (e: PointerEvent) => {
         if (!dragging || e.pointerId !== id) return;
         const dx = e.clientX - startX;
         if (!moved && Math.abs(dx) < 6) return;
-        if (!moved) { moved = true; track.setPointerCapture(id); box.classList.add('is-dragging'); }
+        if (!moved) { moved = true; try { track.setPointerCapture(id); } catch { /* já solto */ } box.classList.add('is-dragging'); }
+        const now = e.timeStamp; // hora do toque (vários eventos podem chegar juntos)
+        if (now > lastT) speed = speed * 0.4 + ((e.clientX - lastX) / Math.max(4, now - lastT)) * 0.6;
+        lastX = e.clientX; lastT = now;
         track.scrollLeft = startLeft - dx;
         e.preventDefault();
       };
@@ -72,9 +81,10 @@ export function useMiniSwipe(ref: RefObject<HTMLElement>, enabled: boolean, sign
         if (!moved) return;
         moved = false; blockClickUntil = performance.now() + 400;
         box.classList.remove('is-dragging');
-        const dx = e.clientX - startX;
+        const dx = (e.type === 'pointercancel' ? lastX : e.clientX) - startX;
+        const fling = e.timeStamp - lastT < 120 && Math.abs(speed) > 0.35;
         let target = nearest(track);
-        if (target === startIndex && Math.abs(dx) > 40) target += dx < 0 ? 1 : -1;
+        if (target === startIndex && (Math.abs(dx) > 40 || fling)) target += dx < 0 ? 1 : -1;
         goTo(track, target);
       };
       // Depois de arrastar, o clique que vem junto não abre a foto ampliada.

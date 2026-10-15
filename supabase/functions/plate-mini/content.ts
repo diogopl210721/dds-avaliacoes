@@ -63,7 +63,7 @@ export function cleanContent(raw: any) {
 // Endereços que não podem virar mini site: pastas do site e outros sistemas publicados no domínio.
 export const RESERVED = new Set([
   "404", "adm", "admin", "api", "app", "assets", "cname", "crl", "dds", "dds-avaliacoes", "ddsinovacao", "favicon", "index", "link-avaliacao", "loja", "login",
-  "mini", "minisite", "minisites", "plaquinhas", "exemplos", "escoladatora", "vitrine", "demo", "privacidade-zap", "robots", "sistema", "sitemap", "static", "vendor", "www",
+  "mini", "minisite", "minisites", "meusite", "meu-site", "plaquinhas", "exemplos", "escoladatora", "vitrine", "demo", "privacidade-zap", "robots", "sistema", "sitemap", "static", "vendor", "www",
   "sitemelhoropcao", "app-igreja-vila-real", "controle-clientes", "diarioclientes", "telemetria-glp", "leitura-de-medidor", "controleposvendas",
   "controle-pos-vendas", "ieq3pinheiros", "conta-sim-digital", "bora-estudar", "sistema-financeiro-fam-lia", "chacara-ormelez", "crm-clientes",
   "planilhafinanceira", "logisitica", "ieq-3-pinheiros", "chacaraormelez", "diogopl210721-github-io",

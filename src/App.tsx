@@ -8,6 +8,7 @@ import { ScreenLoading } from "./components/ui/Screen";
 // pacote principal, sem o código do banco: abrem rápido no celular. As demais
 // telas são baixadas só quando alguém entra nelas.
 const MiniStudio = lazy(() => import("./pages/MiniStudio"));
+const MiniEntrada = lazy(() => import("./pages/MiniEntrada"));
 const MiniPublic = lazy(() => import("./pages/MiniPublic"));
 const Vitrine = lazy(() => import("./pages/Vitrine"));
 const Ativar = lazy(() => import("./pages/Ativar"));
@@ -46,7 +47,7 @@ export default function App() {
       <Suspense fallback={<ScreenLoading />}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/minisite" element={<MiniStudio />} />
+          <Route path="/minisite" element={<MiniEntrada />} />
           <Route path="/demo" element={<MiniStudio demo />} />
           <Route path="/exemplos" element={<Vitrine />} />
           <Route path="/exemplos/:niche" element={<Vitrine />} />

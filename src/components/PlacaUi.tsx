@@ -14,15 +14,17 @@ const ABAS = [
   { to: "/sistema", rotulo: "Meu sistema" },
 ];
 
-export function AuthShell({ eyebrow, title, text, points = [], children }: {
+export function AuthShell({ eyebrow, title, text, points = [], children, art, back }: {
   eyebrow: string; title: ReactNode; text?: string; points?: string[]; children: ReactNode;
+  // Ilustração da coluna da esquerda (padrão: a plaquinha) e link do topo (padrão: Início).
+  art?: ReactNode; back?: { to: string; label: string };
 }) {
   return (
     <div className="dds-dark min-h-[100dvh] overflow-x-clip">
       <Aurora calm />
       <header className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <BrandMark />
-        <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-[#a7b7d1] hover:text-white transition"><ArrowLeft size={16} /> Início</Link>
+        <Link to={back?.to ?? "/"} className="inline-flex items-center gap-1.5 text-sm text-[#a7b7d1] hover:text-white transition"><ArrowLeft size={16} /> {back?.label ?? "Início"}</Link>
       </header>
       <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-12 lg:pt-10 grid lg:grid-cols-[1fr_minmax(0,500px)] gap-10 xl:gap-20 items-start">
         <aside className="hidden lg:block pt-6">
@@ -32,9 +34,9 @@ export function AuthShell({ eyebrow, title, text, points = [], children }: {
           {points.length > 0 && <ul className="mt-7 space-y-3 dds-rise" style={{ ["--d" as string]: ".18s" }}>
             {points.map(p => <li key={p} className="flex items-center gap-3 text-[15px] text-[#d6e3f8]"><CheckCircle2 size={18} className="text-[#66e0ff] shrink-0" />{p}</li>)}
           </ul>}
-          <div className="mt-12 w-[210px] dds-stage dds-float dds-rise" style={{ ["--d" as string]: ".24s" }} aria-hidden="true">
+          {art ?? <div className="mt-12 w-[210px] dds-stage dds-float dds-rise" style={{ ["--d" as string]: ".24s" }} aria-hidden="true">
             <Tilt base={{ x: 10, y: 18 }}><div className="dds-plaque-edge" /><Plaque /></Tilt>
-          </div>
+          </div>}
         </aside>
         <div className="w-full max-w-[500px] mx-auto lg:mx-0 dds-rise" style={{ ["--d" as string]: ".08s" }}>
           <div className="dds-card p-5 sm:p-7 text-ink shadow-[0_40px_80px_-40px_#000]">{children}</div>

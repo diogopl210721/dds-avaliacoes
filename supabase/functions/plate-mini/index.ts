@@ -51,7 +51,11 @@ Deno.serve(async (req) => {
     if (plateError) throw plateError;
     if (!plate || !bcrypt.compareSync(senha, plate.pin_hash)) return json({ error: "Código ou senha inválidos." }, 401);
     await db.from("plate_mini_attempts").delete().eq("key", key);
-    if (plate.oculta || plate.status !== "ATIVA" || !plate.company_id) return json({ error: "Esta placa precisa estar ativada para acessar o mini site." }, 403);
+    if (plate.oculta || plate.status !== "ATIVA" || !plate.company_id) {
+      // Acesso só de mini site (SITE101): bloqueado pelo admin ou esperando o cliente criar a senha.
+      if (/^SITE-?\d+$/.test(codigo)) return json({ error: "Este acesso está bloqueado. Fale com a DDS pelo WhatsApp." }, 403);
+      return json({ error: "Esta placa precisa estar ativada para acessar o mini site." }, 403);
+    }
     if (body.action === "get") {
       const { data: page, error } = await db.from("mini_pages").select("id, slug, content, published").eq("plate_id", plate.id).eq("plate_company_id", plate.company_id).maybeSingle();
       if (error) throw error;

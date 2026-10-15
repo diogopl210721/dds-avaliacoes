@@ -1,32 +1,47 @@
-import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { CSSProperties, Fragment, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
-  ArrowDown, ArrowRight, ArrowUpRight, Check, Globe, Image, LayoutGrid, MapPin, MessageCircle, Nfc, PenLine,
-  Plus, QrCode, Send, Share2, Smartphone, Sparkles, Star, UserPlus, X,
+  ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronDown, Globe, Image, KeyRound, MapPin, MessageCircle, Nfc, PenLine,
+  Play, Plus, QrCode, Rocket, Share2, Smartphone, Sparkles, Star, UserPlus, X,
 } from 'lucide-react';
-import { Aurora, BrandMark } from '../components/ui/Fx';
-import { NicheCard, NicheChips, NicheViewer, GroupFilter, nichesOf, PhonePoster, withName } from '../components/NicheShowcase';
+import { Aurora, BrandMark, CountUp, useReveal } from '../components/ui/Fx';
+import { NicheCard, NicheChips, NicheViewer, GroupFilter, nichesOf } from '../components/NicheShowcase';
+import BuildDemo, { DEMO_STEPS } from '../components/BuildDemo';
 import { NICHES, NicheId, nicheById } from '../lib/miniNicheCore';
-import { nicheDemo } from '../lib/miniNicheDemos';
 import { MINI_THEMES } from '../lib/miniPage';
+import { paletteVars } from '../lib/miniPalettes';
 import { loadFonts } from '../lib/miniFonts';
 import '../mini.css';
 
 // Página de vendas dos mini sites (/exemplos, link curto www.ddsinovacao.com.br/minisites).
-// A pessoa digita o nome da empresa dela e vê todos os modelos com esse nome; toca em um ramo e a
-// página inteira abre. /exemplos/<ramo>?nome=... abre direto o exemplo (link para mandar depois).
+// Gancho: o site pronto em 5 minutos, por R$ 200 uma vez só. Um celular no topo monta um site sozinho
+// (BuildDemo, com o nome que a pessoa digitar); os modelos aparecem logo abaixo (6 e "ver todos").
+// Todo botão de compra chama no WhatsApp; o acesso ao estúdio sai pelo admin (código SITE101 + link).
+// /exemplos/<ramo>?nome=... abre direto o exemplo (link para mandar depois).
 // No meio e no fim, a propaganda da plaquinha de avaliações leva para www.ddsinovacao.com.br/plaquinhas/.
 
 const WHATS = '5541991542931';
 const wa = (msg: string) => `https://wa.me/${WHATS}?text=${encodeURIComponent(msg)}`;
 const PLAQUINHA_URL = 'https://www.ddsinovacao.com.br/plaquinhas/';
 const PLAQUINHA_IMG = 'https://www.ddsinovacao.com.br/plaquinhas/placa-google.png';
-const HERO_NICHES: NicheId[] = ['moda', 'pizzaria', 'floricultura'];
+const PRECO = 200;
+const DE_CARA = 6;
+const vars = (o: Record<string, string | number>) => o as CSSProperties;
 
 const STEPS: { icon: ReactNode; title: string; text: string }[] = [
-  { icon: <LayoutGrid size={20} />, title: 'Escolha o modelo', text: `São ${NICHES.length} ramos, cada um com visual próprio. Toque em "Quero um assim" no que combina com você.` },
-  { icon: <Send size={20} />, title: 'Mande suas informações', text: 'Pelo WhatsApp: fotos, produtos ou cardápio, preços, horários, endereço e redes sociais.' },
-  { icon: <Globe size={20} />, title: 'Seu site no ar', text: 'No endereço www.ddsinovacao.com.br/suaempresa, pronto para a bio do Instagram, o Google e o WhatsApp.' },
+  { icon: <MessageCircle size={20} />, title: 'Chame no WhatsApp', text: `Escolha o modelo e fale com a gente. São R$ ${PRECO}, pagos uma vez só.` },
+  { icon: <KeyRound size={20} />, title: 'Receba o seu link', text: 'Você toca no link, cria a sua senha e entra no seu estúdio.' },
+  { icon: <PenLine size={20} />, title: 'Monte em 5 minutos', text: 'Coloque nome, fotos, produtos e WhatsApp. Você vê como fica enquanto preenche.' },
+  { icon: <Rocket size={20} />, title: 'Toque em Publicar', text: 'Seu site no ar em www.ddsinovacao.com.br/suaempresa. Mude quantas vezes quiser.' },
+];
+
+// Passos da janela "Como funciona": os dois primeiros acontecem antes; os outros acendem junto com a demonstração.
+const HOW: { title: string; text: string; demo?: number[] }[] = [
+  { title: `Chame no WhatsApp e pague R$ ${PRECO}`, text: 'Uma vez só. Sem mensalidade.' },
+  { title: 'Receba o link e crie sua senha', text: 'O seu código de acesso vem junto (ex.: SITE101).' },
+  { title: 'Digite o nome e escolha o modelo', text: `São ${NICHES.length} ramos, cada um com visual próprio.`, demo: [0, 1] },
+  { title: 'Coloque fotos e WhatsApp', text: 'Você vê como fica na hora, enquanto preenche.', demo: [2] },
+  { title: 'Toque em Publicar', text: 'Pronto: seu site no ar. Mude quando quiser.', demo: [3, 4] },
 ];
 
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
@@ -37,17 +52,21 @@ const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Smartphone size={19} />, title: 'Feito para o celular', text: 'Abre rápido no celular e também fica bonito no computador.' },
   { icon: <Sparkles size={19} />, title: 'Visual do seu ramo', text: 'Cores, letras e um efeito animado na capa que reage ao toque.' },
   { icon: <UserPlus size={19} />, title: 'Salvar contato', text: 'O cliente salva o seu número na agenda com um toque.' },
-  { icon: <PenLine size={19} />, title: 'Você atualiza', text: 'Troque fotos, preços e textos quando quiser, no seu próprio sistema.' },
+  { icon: <PenLine size={19} />, title: 'Mude quando quiser', text: 'Troque fotos, preços e textos quantas vezes quiser, sem pagar nada a mais.' },
 ];
 
 const FAQ: [string, string][] = [
-  ['Preciso ter domínio ou hospedagem?', 'Não. O seu site fica em www.ddsinovacao.com.br/suaempresa, já no ar e pronto para compartilhar.'],
-  ['Funciona no celular?', 'Sim. Os modelos foram feitos primeiro para o celular, que é onde seus clientes vão abrir, e também ficam bonitos no computador.'],
-  ['Posso mudar fotos, preços e textos depois?', 'Sim. Você recebe um acesso ao seu sistema para atualizar quando quiser. Se preferir, é só pedir pelo WhatsApp.'],
-  ['Quanto custa?', 'Chame no WhatsApp: a gente conta os valores e tira todas as suas dúvidas, sem compromisso.'],
+  ['Quanto custa?', `R$ ${PRECO}, pagamento único. Sem mensalidade, sem pegadinha e sem surpresas.`],
+  ['Quanto tempo leva?', 'Depois de receber o seu link de acesso, você monta em uns 5 minutos: coloca as informações, vê como ficou e toca em Publicar.'],
+  ['Posso mudar o site depois?', 'Quantas vezes quiser, sem pagar nada a mais. Você entra no seu estúdio, muda e publica de novo. Se preferir, é só pedir pelo WhatsApp.'],
+  ['Preciso ter domínio ou hospedagem?', 'Não. O seu site fica em www.ddsinovacao.com.br/suaempresa, já no ar e sem custo de hospedagem.'],
+  ['Posso usar um domínio só meu?', 'Pode. Registre o domínio (ex.: suaempresa.com.br) no registro.br e chame a gente no WhatsApp que conectamos ao seu site.'],
   ['Preciso ter a plaquinha de avaliações?', 'Não. O mini site pode ser contratado sozinho. Se tiver loja física, dá para ter os dois no mesmo sistema.'],
   ['As empresas dos exemplos são reais?', 'Não. Empresas, depoimentos e números dos exemplos são fictícios e as fotos são ilustrativas. O seu terá as suas fotos e informações.'],
 ];
+
+const H1_A = 'O site do seu negócio'.split(' ');
+const H1_B = 'pronto em 5 minutos.'.split(' ');
 
 export default function Vitrine() {
   const { niche } = useParams();
@@ -56,16 +75,53 @@ export default function Vitrine() {
   const name = (params.get('nome') ?? '').slice(0, 60);
   const [draft, setDraft] = useState(name);
   const [group, setGroup] = useState<GroupFilter>('todos');
+  const [all, setAll] = useState(false);
+  const [how, setHow] = useState(false);
+  const [demoStep, setDemoStep] = useState(0);
+  const [howStep, setHowStep] = useState(0);
+  const [dock, setDock] = useState(false);
+  const [priceSeen, setPriceSeen] = useState(false);
   const [copied, setCopied] = useState(false);
   const open = nicheById(niche)?.id ?? null;
   const list = useMemo(() => nichesOf(group).map(n => n.id), [group]);
+  const shown = group === 'todos' && !all ? list.slice(0, DE_CARA) : list;
   const viewerIds = open && !list.includes(open) ? nichesOf('todos').map(n => n.id) : list;
   const typing = useRef<ReturnType<typeof setTimeout>>();
   const gridRef = useRef<HTMLDivElement>(null);
-  const heroPhones = useMemo(() => HERO_NICHES.map(id => ({ id, theme: nicheById(id)!.theme, content: withName(nicheDemo(id, 'thumb'), name) })), [name]);
+  const heroRef = useRef<HTMLElement>(null);
+  const finalRef = useRef<HTMLElement>(null);
+  const priceRef = useRef<HTMLDivElement>(null);
+  const page = useReveal<HTMLElement>();
+  // Duas voltas dos ramos na faixa que corre (a segunda é cópia, para o loop não ter emenda).
+  const ribbon = useMemo(() => NICHES.map(n => ({ id: n.id, label: n.short, color: paletteVars(n.theme, n.palette)['--accent'] })), []);
 
-  useEffect(() => { document.title = 'Mini sites para o seu negócio · DDS Inovação'; loadFonts(MINI_THEMES); }, []);
+  useEffect(() => { document.title = 'Seu site pronto em 5 minutos · DDS Inovação'; loadFonts(MINI_THEMES); }, []);
   useEffect(() => { setDraft(name); }, [name]);
+
+  // Barra fixa do WhatsApp no celular: aparece depois do topo e some na chamada final.
+  useEffect(() => {
+    if (!('IntersectionObserver' in window)) return;
+    let heroOut = false, finalIn = false;
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.target === heroRef.current) heroOut = !e.isIntersecting; if (e.target === finalRef.current) finalIn = e.isIntersecting; });
+      setDock(heroOut && !finalIn);
+    });
+    if (heroRef.current) io.observe(heroRef.current);
+    if (finalRef.current) io.observe(finalRef.current);
+    const pio = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setPriceSeen(true); pio.disconnect(); } }, { threshold: 0.4 });
+    if (priceRef.current) pio.observe(priceRef.current);
+    return () => { io.disconnect(); pio.disconnect(); };
+  }, []);
+
+  // Janela "Como funciona": Esc fecha e a página de trás não rola.
+  useEffect(() => {
+    if (!how) return;
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setHow(false); };
+    window.addEventListener('keydown', key);
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { window.removeEventListener('keydown', key); document.body.style.overflow = overflow; };
+  }, [how]);
 
   const query = name ? `?nome=${encodeURIComponent(name)}` : '';
   function setName(value: string) {
@@ -79,8 +135,10 @@ export default function Vitrine() {
   }
   const show = (id: NicheId) => navigate(`/exemplos/${id}${query}`, { replace: !!open });
   const close = () => navigate(`/exemplos${query}`, { replace: true });
-  const toModels = () => gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  const quero = wa(`Olá! Vi os mini sites da DDS e quero o meu${name ? ` para a ${name}` : ''}.`);
+  const toModels = () => { setHow(false); gridRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  const toPrice = () => priceRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const quero = wa(`Olá! Vi a página dos mini sites da DDS (R$ ${PRECO}) e quero fazer o meu${name ? ` para a ${name}` : ''}.`);
+  const whats = (label: string, extra = '') => <a className={`dds-btn dds-btn-whats dds-btn-lg ${extra}`} href={quero} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} /> {label}</a>;
 
   async function share(id: NicheId) {
     const n = nicheById(id)!;
@@ -99,58 +157,107 @@ export default function Vitrine() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
         <BrandMark />
         <nav className="flex items-center gap-2">
-          <a className="hidden sm:inline-flex dds-btn dds-btn-ghost-dark dds-btn-sm" href={PLAQUINHA_URL}><QrCode size={15} /> Plaquinha de avaliações</a>
-          <a className="dds-btn dds-btn-whats dds-btn-sm sm:px-4" href={quero} target="_blank" rel="noopener noreferrer"><MessageCircle size={16} /> Quero o meu</a>
+          <button type="button" onClick={() => setHow(true)} className="hidden md:inline-flex dds-btn dds-btn-ghost-dark dds-btn-sm"><Play size={14} /> Como funciona</button>
+          <a className="hidden lg:inline-flex dds-btn dds-btn-ghost-dark dds-btn-sm" href={PLAQUINHA_URL}><QrCode size={15} /> Plaquinha de avaliações</a>
+          <a className="dds-btn dds-btn-whats dds-btn-sm sm:px-4" href={quero} target="_blank" rel="noopener noreferrer"><MessageCircle size={16} /> Chamar no WhatsApp</a>
         </nav>
       </div>
     </header>
 
-    <main className="max-w-6xl mx-auto px-4 sm:px-6">
-      {/* Topo de vendas */}
-      <section className="vt-hero pt-10 sm:pt-14 pb-8 sm:pb-10">
+    <main ref={page} className="max-w-6xl mx-auto px-4 sm:px-6">
+      {/* Topo: gancho + celular que monta o site sozinho */}
+      <section ref={heroRef} className="vt-hero pt-9 sm:pt-14 pb-6 sm:pb-8">
         <div>
-          <span className="dds-eyebrow"><Sparkles size={14} className="text-[#66e0ff]" />Mini sites para negócios locais · {NICHES.length} ramos</span>
-          <h1 className="mt-5 font-display font-extrabold text-[clamp(34px,6.2vw,62px)] leading-[1.02] tracking-[-.045em] text-white">
-            O site do <span className="font-serif italic font-normal dds-spectrum-text">seu negócio</span>, pronto para vender pelo WhatsApp.
+          <span className="dds-eyebrow dds-rise"><Sparkles size={14} className="text-[#66e0ff]" />Mini sites para negócios locais · {NICHES.length} ramos</span>
+          <h1 className="vt-words mt-5 font-display font-extrabold text-[clamp(36px,6.4vw,66px)] leading-[1.02] tracking-[-.045em] text-white">
+            {H1_A.map((w, i) => <Fragment key={w + i}><span style={vars({ '--k': i })}>{w}</span>{' '}</Fragment>)}
+            {H1_B.map((w, i) => <Fragment key={w + i}><span className="dds-spectrum-text" style={vars({ '--k': H1_A.length + i })}>{w}</span>{i < H1_B.length - 1 ? ' ' : ''}</Fragment>)}
           </h1>
-          <p className="mt-4 max-w-xl text-[16px] sm:text-lg leading-relaxed text-[#a7b7d1]">Escolha um modelo do seu ramo, veja como fica com o nome da sua empresa e a gente monta com as suas fotos, produtos e contatos.</p>
-          <label className="vt-name mt-7">
+          <p className="mt-4 max-w-xl text-[16.5px] sm:text-lg leading-relaxed text-[#a7b7d1] dds-rise" style={vars({ '--d': '.7s' })}>Depois de colocar suas informações, <strong className="text-white font-semibold">é só tocar em Publicar</strong>. Sem programador e sem complicação: você vê como fica na hora.</p>
+          <button type="button" onClick={toPrice} className="vt-price-pill dds-rise" style={vars({ '--d': '.85s' })}><b>R$ {PRECO}</b> pagamento único <span>sem mensalidade</span></button>
+          <label className="vt-name mt-6 dds-rise" style={vars({ '--d': '.95s' })}>
             <PenLine size={18} aria-hidden="true" />
             <span className="sr-only">Nome da sua empresa</span>
             <input value={draft} onChange={e => setName(e.target.value)} maxLength={60} placeholder="Digite o nome da sua empresa" autoComplete="off" enterKeyHint="done" onKeyDown={e => { if (e.key === 'Enter') toModels(); }} />
             {draft && <button type="button" onClick={() => setName('')} aria-label="Apagar o nome"><X size={17} /></button>}
           </label>
-          <p className="mt-2 text-[13px] text-[#7f93b5]">{name ? <>Todos os modelos estão mostrando <strong className="text-white font-semibold">{name}</strong>.</> : 'Veja todos os modelos com o seu nome, na hora.'}</p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button type="button" onClick={toModels} className="dds-btn dds-btn-glow dds-btn-lg">Ver os modelos <ArrowDown size={18} /></button>
-            <a className="dds-btn dds-btn-whats dds-btn-lg" href={quero} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} /> Falar no WhatsApp</a>
+          <p className="mt-2 text-[13px] text-[#7f93b5]">{name ? <>Os modelos e a demonstração estão mostrando <strong className="text-white font-semibold">{name}</strong>.</> : 'Veja os modelos e a demonstração com o nome da sua empresa.'}</p>
+          <div className="mt-6 flex flex-wrap gap-3 max-[400px]:gap-2 dds-rise" style={vars({ '--d': '1.05s' })}>
+            <button type="button" onClick={toModels} className="dds-btn dds-btn-glow dds-btn-lg flex-1 sm:flex-none !px-3 sm:!px-6 max-[400px]:!text-[14.5px] max-[400px]:!gap-1.5 max-[340px]:basis-full">Ver os modelos <ArrowDown size={18} /></button>
+            <button type="button" onClick={() => setHow(true)} className="dds-btn dds-btn-ghost-dark dds-btn-lg flex-1 sm:flex-none !px-3 sm:!px-6 max-[400px]:!text-[14.5px] max-[400px]:!gap-1.5 max-[340px]:basis-full"><Play size={17} /> Como funciona</button>
           </div>
-          <ul className="vt-checks mt-6">
-            {['Botão de WhatsApp', 'Link para a bio do Instagram', 'Sem precisar de domínio'].map(t => <li key={t}><Check size={15} />{t}</li>)}
-          </ul>
         </div>
-        <div className="vt-hero-phones" aria-hidden="true">
-          {heroPhones.map((p, i) => <button key={p.id} type="button" tabIndex={-1} className={`vt-hero-phone p${i}`} onClick={() => show(p.id)}><PhonePoster content={p.content} theme={p.theme} /></button>)}
+        <div className="vt-hero-demo dds-rise" style={vars({ '--d': '.3s' })}>
+          <span className="vt-float f1" aria-hidden="true"><Check size={14} /> Botão de WhatsApp</span>
+          <span className="vt-float f2" aria-hidden="true"><Check size={14} /> Fotos e preços</span>
+          <span className="vt-float f3" aria-hidden="true"><Check size={14} /> Mude quando quiser</span>
+          <BuildDemo name={name} onStep={setDemoStep} />
+          <p className="vt-demo-caption" aria-hidden="true"><b>{demoStep + 1}</b>{DEMO_STEPS[demoStep]}<span className="vt-demo-dots">{DEMO_STEPS.map((_, i) => <i key={i} className={i === demoStep ? 'on' : ''} />)}</span></p>
         </div>
       </section>
 
+      {/* Faixa com os ramos */}
+      <div className="vt-marquee" aria-label="Ramos com modelo pronto">
+        {[0, 1].map(row => <div key={row} className={`vt-marquee-row${row ? ' rev' : ''}`}>
+          {[0, 1].map(copy => (row ? [...ribbon].reverse() : ribbon).map(n => <button key={`${copy}${n.id}`} type="button" className="vt-mq" onClick={() => show(n.id)} tabIndex={copy || row ? -1 : 0} aria-hidden={copy || row ? true : undefined} style={vars({ color: n.color })}><i style={vars({ background: n.color })} /><span style={{ color: '#cfe0ff' }}>{n.label}</span></button>))}
+        </div>)}
+      </div>
+
       {/* Modelos */}
-      <div ref={gridRef} className="scroll-mt-16">
+      <div ref={gridRef} className="scroll-mt-16 pt-8">
         <div className="pt-2 pb-1">
           <h2 className="font-display text-[clamp(24px,3.4vw,34px)] font-extrabold tracking-[-.035em] text-white">Escolha o modelo do seu ramo</h2>
           <p className="mt-1 text-[15px] text-[#a7b7d1]">Toque em um exemplo para abrir a página inteira. Na capa, o efeito reage ao toque.</p>
         </div>
-        <div className="vt-filter sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3"><NicheChips value={group} onChange={setGroup} /></div>
-        <section className="nc-grid pt-4 pb-14" aria-label="Exemplos por ramo">
-          {list.map((id, i) => <NicheCard key={id} id={id} name={name} index={i} paused={!!open} onOpen={show} />)}
+        <div className="vt-filter sticky top-16 z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3"><NicheChips value={group} onChange={g => { setGroup(g); setAll(false); }} /></div>
+        <section className={`nc-grid pt-4 pb-14${all ? ' is-all' : ''}`} aria-label="Exemplos por ramo">
+          {shown.map((id, i) => <NicheCard key={id} id={id} name={name} index={i} paused={!!open || how} onOpen={show} />)}
         </section>
+        {group === 'todos' && <div className="vt-more">
+          <button type="button" aria-expanded={all} onClick={() => { if (all) gridRef.current?.scrollIntoView({ block: 'start' }); setAll(!all); }}>
+            {all ? 'Mostrar menos' : <>Ver todos os modelos <b>{NICHES.length}</b></>}<ChevronDown size={18} />
+          </button>
+        </div>}
       </div>
+
+      {/* Preço */}
+      <section id="preco" className="pb-16 scroll-mt-20" aria-labelledby="vt-preco">
+        <div className="vt-price-sec">
+          <div data-reveal>
+            <h2 id="vt-preco" className="font-display text-[clamp(28px,4.2vw,44px)] font-extrabold leading-[1.05] tracking-[-.045em] text-white">Um preço só. <span className="font-serif italic font-normal dds-spectrum-text">O site é seu.</span></h2>
+            <p className="mt-3 max-w-lg text-[16px] leading-relaxed text-[#a7b7d1]">Você paga uma vez e pode mudar fotos, preços e textos quantas vezes quiser.</p>
+            <p className="mt-6 text-[12px] font-bold uppercase tracking-[.14em] text-[#7f93b5]">Aqui não tem</p>
+            <div className="vt-nos">{['Mensalidade', 'Pegadinha', 'Surpresas'].map((t, i) => <span key={t} style={vars({ '--k': i })}><X size={14} />{t}</span>)}</div>
+            <div className="vt-domain">
+              <i><Globe size={20} /></i>
+              <div>
+                <h3>Quer um endereço só seu?</h3>
+                <p>Registre o seu domínio (ex.: suaempresa.com.br) no <a href="https://registro.br" target="_blank" rel="noopener noreferrer">registro.br</a> e chame a gente no WhatsApp: conectamos ao seu site.</p>
+              </div>
+            </div>
+          </div>
+          <div ref={priceRef} className="vt-price dds-spectrum-border" data-reveal>
+            <div className="vt-price-in">
+              <span className="vt-price-tag"><Check size={13} /> Pagamento único</span>
+              <div className="vt-price-num" aria-label={`R$ ${PRECO},00`}><small>R$</small>{priceSeen ? <CountUp value={PRECO} duration={1300} /> : PRECO}<small>,00</small></div>
+              <p className="vt-price-sub">uma vez só · <strong>sem mensalidade</strong></p>
+              <ul className="vt-price-list">
+                {['Sem mensalidade, sem pegadinha, sem surpresas', 'Mude quantas vezes quiser', 'Pronto em uns 5 minutos', 'Endereço www.ddsinovacao.com.br/suaempresa', `Modelo do seu ramo (são ${NICHES.length})`].map(t => <li key={t}><Check size={18} />{t}</li>)}
+              </ul>
+              <span className="vt-ring block">{whats('Chamar no WhatsApp', 'w-full')}</span>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Como funciona */}
       <section className="pb-14" aria-labelledby="vt-como">
-        <h2 id="vt-como" className="font-display text-[clamp(26px,3.8vw,38px)] font-extrabold tracking-[-.04em] text-white">Como funciona</h2>
-        <ol className="vt-steps mt-6">
-          {STEPS.map((s, i) => <li key={s.title}><span className="vt-step-n">{i + 1}</span><i>{s.icon}</i><h3>{s.title}</h3><p>{s.text}</p></li>)}
+        <div className="vt-head">
+          <h2 id="vt-como" className="font-display text-[clamp(26px,3.8vw,38px)] font-extrabold tracking-[-.04em] text-white">Como funciona</h2>
+          <button type="button" onClick={() => setHow(true)} className="dds-btn dds-btn-ghost-dark"><Play size={16} /> Ver a demonstração</button>
+        </div>
+        <ol className="vt-steps is-4 mt-6">
+          {STEPS.map((s, i) => <li key={s.title} data-reveal style={vars({ '--k': i })}><span className="vt-step-n">{i + 1}</span><i>{s.icon}</i><h3>{s.title}</h3><p>{s.text}</p></li>)}
         </ol>
       </section>
 
@@ -158,13 +265,13 @@ export default function Vitrine() {
       <section className="pb-14" aria-labelledby="vt-inclui">
         <h2 id="vt-inclui" className="font-display text-[clamp(26px,3.8vw,38px)] font-extrabold tracking-[-.04em] text-white">O que vem no seu mini site</h2>
         <ul className="vt-features mt-6">
-          {FEATURES.map(f => <li key={f.title}><i>{f.icon}</i><h3>{f.title}</h3><p>{f.text}</p></li>)}
+          {FEATURES.map((f, i) => <li key={f.title} data-reveal style={vars({ '--k': i % 4 })}><i>{f.icon}</i><h3>{f.title}</h3><p>{f.text}</p></li>)}
         </ul>
       </section>
 
       {/* Faixa da plaquinha */}
       <section className="pb-14" aria-label="Plaquinha de avaliações do Google">
-        <div className="vt-plaq">
+        <div className="vt-plaq" data-reveal>
           <div className="vt-plaq-copy">
             <span className="vt-plaq-eyebrow"><Nfc size={14} /> Tem loja física?</span>
             <h2>Plaquinha de avaliações do Google, com QR Code e NFC.</h2>
@@ -187,25 +294,57 @@ export default function Vitrine() {
       </section>
 
       {/* Chamada final + lembrete da plaquinha */}
-      <section className="pb-20">
-        <div className="dds-spectrum-border rounded-[28px]">
+      <section ref={finalRef} className="pb-28 md:pb-20">
+        <div className="dds-spectrum-border rounded-[28px]" data-reveal>
           <div className="rounded-[28px] bg-gradient-to-br from-[#10244f] via-navy-900 to-navy-950 p-7 sm:p-10 flex flex-col sm:flex-row sm:items-center gap-6 justify-between">
             <div>
-              <h2 className="font-display text-[clamp(24px,3.6vw,36px)] font-extrabold leading-[1.08] tracking-[-.04em] text-white">Gostou de algum? <span className="font-serif italic font-normal text-brand-300">A gente monta o seu.</span></h2>
-              <p className="mt-2 text-[15px] text-[#a7b7d1] max-w-xl">Com as suas fotos, os seus produtos e o seu WhatsApp. Pronto para a bio do Instagram e para mandar aos clientes.</p>
+              <h2 className="font-display text-[clamp(24px,3.6vw,36px)] font-extrabold leading-[1.08] tracking-[-.04em] text-white">Pronto para ter o seu? <span className="font-serif italic font-normal text-brand-300">Em 5 minutos.</span></h2>
+              <p className="mt-2 text-[15px] text-[#a7b7d1] max-w-xl">R$ {PRECO}, pagamento único. Chame no WhatsApp, receba o seu link e publique do seu jeito.</p>
             </div>
-            <a className="dds-btn dds-btn-whats dds-btn-lg shrink-0" href={quero} target="_blank" rel="noopener noreferrer"><MessageCircle size={19} /> Quero o meu mini site</a>
+            <span className="vt-ring shrink-0">{whats('Falar no WhatsApp agora')}</span>
           </div>
         </div>
         <a href={PLAQUINHA_URL} className="vt-plaq-line mt-4"><QrCode size={18} /><span>Também tem loja física? <strong>Conheça a plaquinha de avaliações do Google</strong></span><ArrowRight size={16} /></a>
-        <p className="mt-6 text-center text-[13px] text-[#7f93b5]">Empresas, depoimentos e números dos exemplos são fictícios. Fotos ilustrativas do Unsplash. <Link to="/" className="underline underline-offset-4 hover:text-white">DDS Avaliações</Link></p>
+        <p className="mt-6 text-center text-[13px] text-[#7f93b5]">Empresas, depoimentos e números dos exemplos são fictícios. Fotos ilustrativas do Unsplash. <Link to="/minisite" className="underline underline-offset-4 hover:text-white">Já sou cliente: entrar</Link> · <Link to="/" className="underline underline-offset-4 hover:text-white">DDS Avaliações</Link></p>
       </section>
     </main>
+
+    {/* Celular: WhatsApp sempre à mão depois do topo */}
+    <div className={`vt-dock${dock && !open && !how ? ' is-on' : ''}`} aria-hidden={!dock}>
+      <span><b>R$ {PRECO}</b><small>pagamento único</small></span>
+      <a className="dds-btn dds-btn-whats" href={quero} target="_blank" rel="noopener noreferrer" tabIndex={dock ? 0 : -1}><MessageCircle size={17} /> Chamar no WhatsApp</a>
+    </div>
+
+    {how && <div className="vt-how" role="dialog" aria-modal="true" aria-labelledby="vt-how-t" onClick={() => setHow(false)}>
+      <div className="vt-how-panel" onClick={e => e.stopPropagation()}>
+        <button type="button" className="vt-how-close" onClick={() => setHow(false)} aria-label="Fechar"><X size={19} /></button>
+        <BuildDemo name={name} big onStep={setHowStep} />
+        <div className="w-full">
+          <h2 id="vt-how-t">Como funciona</h2>
+          <p className="mt-1.5 text-[15px] text-[#a7b7d1]">Do WhatsApp ao seu site no ar.</p>
+          <HowSteps step={howStep} />
+          <div className="vt-how-actions">
+            <span className="vt-ring">{whats('Chamar no WhatsApp')}</span>
+            <button type="button" onClick={toModels} className="dds-btn dds-btn-ghost-dark dds-btn-lg">Ver os modelos <ArrowDown size={17} /></button>
+          </div>
+        </div>
+      </div>
+    </div>}
 
     {open && <NicheViewer id={open} ids={viewerIds} name={name} onClose={close} onNav={show}
       actions={<>
         <button type="button" className="nv-ghost" onClick={() => share(open)} aria-label="Compartilhar este exemplo">{copied ? <Check size={17} /> : <Share2 size={17} />}<span>{copied ? 'Link copiado' : 'Enviar'}</span></button>
-        <a className="nv-cta is-whats" href={wa(`Olá! Vi o exemplo de mini site de ${nicheById(open)!.label} na vitrine da DDS e quero um assim${name ? ` para a ${name}` : ''}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} /> Quero um assim <ArrowRight size={15} className="nv-cta-arrow" /></a>
+        <a className="nv-cta is-whats" href={wa(`Olá! Vi o exemplo de mini site de ${nicheById(open)!.label} na página da DDS e quero um assim${name ? ` para a ${name}` : ''}.`)} target="_blank" rel="noopener noreferrer"><MessageCircle size={17} /> Chamar no WhatsApp <ArrowRight size={15} className="nv-cta-arrow" /></a>
       </>} />}
   </div>;
+}
+
+// Lista de passos da janela "Como funciona": o passo da demonstração acende.
+function HowSteps({ step }: { step: number }) {
+  return <ol className="vt-how-steps">
+    {HOW.map((h, i) => <li key={h.title} className={h.demo ? (h.demo.includes(step) ? 'is-on' : '') : 'is-pre'}>
+      <b>{h.demo ? i + 1 : <Check size={15} />}</b>
+      <div><h3>{h.title}</h3><p>{h.text}</p></div>
+    </li>)}
+  </ol>;
 }

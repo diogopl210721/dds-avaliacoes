@@ -9,8 +9,8 @@ import { GroupFilter, NicheCard, NicheChips, NicheViewer, nichesOf } from "./Nic
 import { Aurora, Spinner } from "./ui/Fx";
 import "../mini.css";
 
-// Acessos só de mini site (sem plaquinha) usam a série SITE-0001, SITE-0002…
-export const isSiteAccess = (codigo: string) => /^SITE-\d+$/i.test(codigo.trim());
+// Acessos só de mini site (sem plaquinha) usam a série SITE101, SITE102… (o formato SITE-0001 também vale).
+export const isSiteAccess = (codigo: string) => /^SITE-?\d+$/i.test(codigo.trim());
 
 export type PlateMiniAccess = {
   codigo: string; senha: string; page: MiniRecord | null;

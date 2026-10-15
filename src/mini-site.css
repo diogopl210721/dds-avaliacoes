@@ -139,10 +139,14 @@
 /* Carrosséis no computador: setas e arrastar com o mouse (ver lib/miniSwipe.ts). No celular, só o dedo. */
 .mini-swipe{position:relative}
 .mini-swipe-btn{display:none}
+/* Cartões de produtos e carros: o dedo é seguido pelo código (no iPhone, a rolagem nativa
+   travava com os cartões em 3D). A rolagem da página para cima e para baixo continua nativa. */
+.mini-swipe [data-swipe-drag]{touch-action:pan-y pinch-zoom}
+.mini-swipe.is-dragging [data-swipe-track]{scroll-snap-type:none;-webkit-user-select:none;user-select:none}
+.mini-swipe.is-dragging .mini-product{transition:none}
 @media (hover:hover) and (pointer:fine){
   .mini-swipe [data-swipe-track]{cursor:grab}
-  .mini-swipe.is-dragging [data-swipe-track]{cursor:grabbing;scroll-snap-type:none;-webkit-user-select:none;user-select:none}
-  .mini-swipe.is-dragging .mini-product{transition:none}
+  .mini-swipe.is-dragging [data-swipe-track]{cursor:grabbing}
   .mini-swipe img{-webkit-user-drag:none}
   .mini-swipe-btn{position:absolute;z-index:20;top:50%;display:grid;place-items:center;width:44px;height:44px;border-radius:50%;cursor:pointer;
     background:color-mix(in srgb,var(--bg) 72%,transparent);color:var(--ink);border:1px solid color-mix(in srgb,var(--ink) 20%,transparent);

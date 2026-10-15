@@ -15,9 +15,12 @@ import { ScreenLoading } from "../../components/ui/Screen";
 
 const MiniStudio = lazy(() => import("../MiniStudio"));
 
-// Acessos só de mini site (sem plaquinha): série SITE-0001, SITE-0002… (função admin-create-site-access).
-const soSite = (codigo: string) => /^SITE-\d+$/i.test(codigo);
-const SISTEMA_URL = "https://www.ddsinovacao.com.br/dds-avaliacoes/#/sistema";
+// Acessos só de mini site (sem plaquinha): série SITE101, SITE102… (função admin-create-site-access).
+// O cliente recebe um link de ativação, cria a própria senha e entra em www.ddsinovacao.com.br/meusite.
+const soSite = (codigo: string) => /^SITE-?\d+$/i.test(codigo);
+const ATIVAR_URL = "https://www.ddsinovacao.com.br/dds-avaliacoes/#/minisite?ativar=";
+const ENTRAR_URL = "www.ddsinovacao.com.br/meusite";
+type EnvioAcesso = { tipo: "novo" | "senha"; codigo: string; link: string; empresa: string; telefone: string };
 
 type DdsLinkResumo = {
   id: string;
@@ -67,6 +70,8 @@ export default function AdminPlacas() {
 
   const [selecionada, setSelecionada] = useState<Plate | null>(null);
   const [novoSite, setNovoSite] = useState(false);
+  const [envio, setEnvio] = useState<EnvioAcesso | null>(null);
+  const [tipo, setTipo] = useState<"placas" | "sites">("placas");
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [novoDestino, setNovoDestino] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -102,7 +107,9 @@ export default function AdminPlacas() {
     }
   }
 
+  // Placas e clientes só de mini site ficam em listas separadas (abas acima da busca).
   const filtradas = plates.filter((p) => {
+    if (soSite(p.codigo) !== (tipo === "sites")) return false;
     if (!busca) return true;
     const alvo = busca.toLowerCase();
     // Só busca nos campos que aparecem na própria tabela (código, PIN,
@@ -175,6 +182,23 @@ export default function AdminPlacas() {
       a.click();
       await new Promise((r) => setTimeout(r, 150)); // evita bloqueio de pop-up do navegador
     }
+  }
+
+  // Cliente de mini site esqueceu a senha: a antiga para de valer e sai um novo link para ele criar outra.
+  async function novoLinkSenha(p: Plate) {
+    if (!window.confirm(`Gerar um novo link de senha para ${p.codigo}? A senha atual do cliente para de funcionar até ele criar a nova.`)) return;
+    try {
+      const data = await callFunction<{ codigo: string; link: string; empresa: string; telefone: string }>("admin-create-site-access", { acao: "novo-link", codigo: p.codigo });
+      setEnvio({ tipo: "senha", ...data });
+      carregar();
+    } catch (e: any) { alert(e.message || "Não foi possível gerar o link."); }
+  }
+
+  // Link de ativação ainda não usado (o cliente não criou a senha).
+  async function reenviarLink(p: Plate) {
+    if (!p.dds_links?.slug) return;
+    const { data } = await supabase.from("companies").select("telefone").eq("id", p.company_id ?? "").maybeSingle();
+    setEnvio({ tipo: "novo", codigo: p.codigo, link: ATIVAR_URL + p.dds_links.slug, empresa: p.companies?.nome ?? "", telefone: (data as any)?.telefone ?? "" });
   }
 
   async function alterarStatus(plateId: string, novoStatus: "BLOQUEADA" | "ATIVA" | "DESATIVADA") {
@@ -386,7 +410,7 @@ export default function AdminPlacas() {
               {criando ? <><Spinner /> Gerando...</> : <><Plus size={18} /> Gerar placas</>}
             </button>
             <button onClick={() => setNovoSite(true)} className="dds-btn dds-btn-ghost-dark" title="Cliente que quer só o mini site, sem plaquinha">
-              <Globe size={17} /> <span className="hidden sm:inline">Cliente sem plaquinha</span><span className="sm:hidden">Só site</span>
+              <Globe size={17} /> <span className="hidden sm:inline">Novo cliente de mini site</span><span className="sm:hidden">Mini site</span>
             </button>
           </div>
         </div>
@@ -417,6 +441,14 @@ export default function AdminPlacas() {
 
         <div className={`grid gap-5 items-start ${selecionada ? "lg:grid-cols-[minmax(0,1fr)_420px]" : ""}`}>
           <section className="dds-card overflow-hidden">
+            <div className="px-3 sm:px-4 pt-3 sm:pt-4 flex gap-1.5" role="tablist" aria-label="Tipo de cadastro">
+              {([["placas", "Placas", placasReais.length], ["sites", "Clientes de mini site", plates.length - placasReais.length]] as const).map(([id, rotulo, n]) => (
+                <button key={id} type="button" role="tab" aria-selected={tipo === id} onClick={() => { setTipo(id); setPagina(0); setSelecionada(null); }}
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors ${tipo === id ? "bg-navy-900 text-white" : "text-ink-muted hover:bg-[#f1f4f9] hover:text-ink"}`}>
+                  {id === "sites" && <Globe size={14} />}{rotulo}<span className={`rounded-full px-2 py-0.5 text-[11px] ${tipo === id ? "bg-white/15" : "bg-[#eef2f8]"}`}>{n}</span>
+                </button>
+              ))}
+            </div>
             <div className="p-3 sm:p-4 border-b border-[#eef2f8] flex items-center gap-3">
               <label className="relative flex-1">
                 <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8d9bb5]" aria-hidden="true" />
@@ -428,13 +460,13 @@ export default function AdminPlacas() {
                   aria-label="Pesquisar placas"
                 />
               </label>
-              <span className="hidden sm:block text-sm text-ink-muted whitespace-nowrap">{filtradas.length} placa(s)</span>
+              <span className="hidden sm:block text-sm text-ink-muted whitespace-nowrap">{filtradas.length} {tipo === "sites" ? "cliente(s)" : "placa(s)"}</span>
             </div>
 
             {carregando ? (
               <div className="p-4 space-y-3" aria-busy="true">{[0, 1, 2, 3, 4].map(i => <div key={i} className="dds-skel h-11" />)}</div>
             ) : filtradas.length === 0 ? (
-              <p className="p-8 text-center text-ink-muted text-sm">Nenhuma placa encontrada.</p>
+              <p className="p-8 text-center text-ink-muted text-sm">{tipo === "sites" ? (busca ? "Nenhum cliente de mini site encontrado." : "Nenhum cliente de mini site ainda. Use \"Novo cliente de mini site\" no topo.") : "Nenhuma placa encontrada."}</p>
             ) : (
               <>
                 {/* Celular: uma linha por placa (sem tabela), pra caber inteira na
@@ -449,7 +481,7 @@ export default function AdminPlacas() {
                       <span className="font-mono font-bold text-sm shrink-0">{p.codigo}</span>
                       {soSite(p.codigo) && <SiteBadge />}
                       <span className="text-sm text-ink-muted truncate flex-1 min-w-0">{p.companies?.nome ?? "—"}</span>
-                      <StatusBadge status={p.status} />
+                      {soSite(p.codigo) ? <SiteStatus status={p.status} /> : <StatusBadge status={p.status} />}
                       <ChevronRight size={16} className="text-[#b9c6dc] shrink-0" />
                     </li>
                   ))}
@@ -493,7 +525,7 @@ export default function AdminPlacas() {
                           </td>
                           <td className="px-4 py-3 max-w-[220px] truncate">{p.companies?.nome ?? <span className="text-[#b9c6dc]">—</span>}</td>
                           <td className="px-4 py-3">
-                            <StatusBadge status={p.status} />
+                            {soSite(p.codigo) ? <SiteStatus status={p.status} /> : <StatusBadge status={p.status} />}
                           </td>
                           <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                             <div className="flex justify-end gap-1">
@@ -502,9 +534,13 @@ export default function AdminPlacas() {
                               ) : (
                                 <AcaoIcone rotulo="Desbloquear" onClick={() => alterarStatus(p.id, "ATIVA")}><Unlock size={15} /></AcaoIcone>
                               )}
-                              <AcaoIcone rotulo="Transferir" onClick={() => transferirPlaca(p.id)}><ArrowLeftRight size={15} /></AcaoIcone>
-                              <AcaoIcone rotulo="Novo PIN" onClick={() => novoPin(p.codigo, p.id)}><KeyRound size={15} /></AcaoIcone>
-                              <AcaoIcone rotulo="Resetar" onClick={() => resetarPlaca(p.codigo, p.id)}><RotateCcw size={15} /></AcaoIcone>
+                              {soSite(p.codigo) ? <>
+                                <AcaoIcone rotulo="Novo link de senha" onClick={() => novoLinkSenha(p)}><KeyRound size={15} /></AcaoIcone>
+                              </> : <>
+                                <AcaoIcone rotulo="Transferir" onClick={() => transferirPlaca(p.id)}><ArrowLeftRight size={15} /></AcaoIcone>
+                                <AcaoIcone rotulo="Novo PIN" onClick={() => novoPin(p.codigo, p.id)}><KeyRound size={15} /></AcaoIcone>
+                                <AcaoIcone rotulo="Resetar" onClick={() => resetarPlaca(p.codigo, p.id)}><RotateCcw size={15} /></AcaoIcone>
+                              </>}
                               <AcaoIcone rotulo="Excluir" perigo onClick={() => excluirPlaca(p.codigo, p.id)}><Trash2 size={15} /></AcaoIcone>
                             </div>
                           </td>
@@ -521,7 +557,7 @@ export default function AdminPlacas() {
                   <ChevronLeft size={15} /> Anterior
                 </button>
                 <span className="text-ink-muted text-center">
-                  Página {paginaAtual + 1} de {totalPaginas}<span className="hidden sm:inline"> · {filtradas.length} placa(s)</span>
+                  Página {paginaAtual + 1} de {totalPaginas}<span className="hidden sm:inline"> · {filtradas.length} {tipo === "sites" ? "cliente(s)" : "placa(s)"}</span>
                 </span>
                 <button onClick={() => setPagina((p) => Math.min(totalPaginas - 1, p + 1))} disabled={paginaAtual >= totalPaginas - 1} className="dds-btn dds-btn-outline dds-btn-sm">
                   Próximo <ChevronRight size={15} />
@@ -543,7 +579,7 @@ export default function AdminPlacas() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-mono text-xl font-extrabold tracking-wide">{selecionada.codigo}</p>
-                      <p className="text-sm text-ink-muted">
+                      {soSite(selecionada.codigo) ? <p className="text-sm text-ink-muted">Senha escolhida pelo cliente</p> : <p className="text-sm text-ink-muted">
                         PIN:{" "}
                         {selecionada.pin ? (
                           <button onClick={() => copiarTexto(selecionada.pin!, "pin")} className="font-mono font-semibold text-ink hover:text-brand-700">
@@ -553,7 +589,7 @@ export default function AdminPlacas() {
                         ) : (
                           "—"
                         )}
-                      </p>
+                      </p>}
                     </div>
                     <div className="flex items-start gap-2">
                       {selecionada.dds_links?.qr_png_path && (
@@ -571,8 +607,11 @@ export default function AdminPlacas() {
                 <div className="p-5 space-y-5">
                   <dl className="grid grid-cols-2 gap-2.5 text-sm">
                     <Info rotulo="Empresa" className="col-span-2"><span className="flex items-center gap-2"><Store size={15} className="text-ink-muted" />{selecionada.companies?.nome ?? "—"}</span></Info>
+                    {soSite(selecionada.codigo) ? <>
+                    <Info rotulo="Situação"><SiteStatus status={selecionada.status} /></Info>
+                    <Info rotulo="Tipo"><SiteBadge /></Info>
+                    </> : <>
                     <Info rotulo="Status da placa"><StatusBadge status={selecionada.status} /></Info>
-                    {soSite(selecionada.codigo) ? <Info rotulo="Tipo"><SiteBadge /></Info> : <>
                     <Info rotulo="Status do link">{selecionada.dds_links ? <LinkBadge status={selecionada.dds_links.status} /> : "—"}</Info>
                     <Info rotulo="Acessos" className="col-span-2">
                       {scansTotal ? (
@@ -581,21 +620,30 @@ export default function AdminPlacas() {
                     </Info>
                     </>}
                   </dl>
-                  {soSite(selecionada.codigo) && <p className="rounded-2xl bg-[#f3f0ff] border border-[#e1dafe] px-3.5 py-3 text-sm text-[#4b3fb0] leading-relaxed">Acesso só de mini site, sem plaquinha. O cliente entra em <strong>Meu sistema</strong> com este código e o PIN.</p>}
+                  {soSite(selecionada.codigo) && <div className="rounded-2xl bg-[#f3f0ff] border border-[#e1dafe] px-3.5 py-3 text-sm text-[#4b3fb0] leading-relaxed">
+                    {selecionada.status === "AGUARDANDO_ATIVACAO" ? <>
+                      <p><strong>Esperando o cliente criar a senha.</strong> Ele abre o link que você mandou, escolhe a senha de 4 números e já entra no estúdio.</p>
+                      <div className="mt-2.5 flex flex-wrap gap-2">
+                        <button onClick={() => reenviarLink(selecionada)} className="dds-btn dds-btn-sm bg-[#6d5ae6] text-white hover:bg-[#5b48d6]"><MessageCircle size={14} /> Mandar o link de novo</button>
+                        {selecionada.dds_links?.slug && <button onClick={() => copiarTexto(ATIVAR_URL + selecionada.dds_links!.slug, "qr")} className="dds-btn dds-btn-outline dds-btn-sm"><Copy size={14} /> {copiado === "qr" ? "Link copiado ✓" : "Copiar link"}</button>}
+                      </div>
+                    </> : selecionada.status === "BLOQUEADA" ? <p><strong>Bloqueado.</strong> O cliente não consegue entrar nem mudar o mini site. O site publicado continua no ar.</p>
+                    : <p><strong>Ativo.</strong> O cliente entra em <strong>{ENTRAR_URL}</strong> com {selecionada.codigo} e a senha que ele criou. Esqueceu? Use <strong>Novo link de senha</strong>.</p>}
+                  </div>}
 
                   <div className="relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br from-navy-800 to-navy-950">
                     <div aria-hidden="true" className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-[radial-gradient(closest-side,#399cff66,transparent)]" />
                     <h3 className="relative flex items-center gap-2 font-display font-bold"><Sparkles size={16} className="text-[#66e0ff]" /> Mini site do cliente</h3>
-                    <p className="relative mt-1 text-sm text-[#a7b7d1]">{selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema, ou você monta por ele aqui.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
-                    <div className="relative mt-3">
+                    <p className="relative mt-1 text-sm text-[#a7b7d1]">{soSite(selecionada.codigo) && selecionada.mini_site_enabled ? 'Liberado: o cliente monta e publica no estúdio dele, quantas vezes quiser.' : selecionada.mini_site_enabled ? 'Liberado: o cliente já pode criar e publicar no próprio sistema, ou você monta por ele aqui.' : 'Aguardando contratação e confirmação do pagamento.'}</p>
+                    {!(soSite(selecionada.codigo) && selecionada.mini_site_enabled) && <div className="relative mt-3">
                       {!selecionada.mini_site_enabled && <button onClick={liberarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="dds-btn dds-btn-glow dds-btn-sm">{salvando ? 'Liberando…' : 'Pagamento confirmado · liberar mini site'}</button>}
                       {selecionada.mini_site_enabled && <button onClick={montarMiniSite} disabled={salvando || selecionada.status !== 'ATIVA'} className="dds-btn dds-btn-glow dds-btn-sm">{salvando ? 'Abrindo…' : 'Montar mini site'}</button>}
-                      {selecionada.status !== 'ATIVA' && <p className="mt-2 text-xs text-[#a7b7d1]">A placa precisa estar ativa para a liberação.</p>}
-                    </div>
+                      {selecionada.status !== 'ATIVA' && <p className="mt-2 text-xs text-[#a7b7d1]">{soSite(selecionada.codigo) ? 'O acesso precisa estar ativo (cliente com senha criada).' : 'A placa precisa estar ativa para a liberação.'}</p>}
+                    </div>}
                   </div>
 
                   <div>
-                    <p className="dds-label">Ações da placa</p>
+                    <p className="dds-label">{soSite(selecionada.codigo) ? "Ações do acesso" : "Ações da placa"}</p>
                     <div className="flex flex-wrap gap-2">
                       {selecionada.status !== "BLOQUEADA" ? (
                         <AcaoBotao onClick={() => alterarStatus(selecionada.id, "BLOQUEADA")}><Lock size={14} /> Bloquear</AcaoBotao>
@@ -603,7 +651,9 @@ export default function AdminPlacas() {
                         <AcaoBotao onClick={() => alterarStatus(selecionada.id, "ATIVA")}><Unlock size={14} /> Desbloquear</AcaoBotao>
                       )}
                       {!soSite(selecionada.codigo) && <AcaoBotao onClick={() => transferirPlaca(selecionada.id)}><ArrowLeftRight size={14} /> Transferir</AcaoBotao>}
-                      <AcaoBotao onClick={() => novoPin(selecionada.codigo, selecionada.id)}><KeyRound size={14} /> Novo PIN</AcaoBotao>
+                      {soSite(selecionada.codigo)
+                        ? <AcaoBotao onClick={() => novoLinkSenha(selecionada)}><KeyRound size={14} /> Novo link de senha</AcaoBotao>
+                        : <AcaoBotao onClick={() => novoPin(selecionada.codigo, selecionada.id)}><KeyRound size={14} /> Novo PIN</AcaoBotao>}
                       {!soSite(selecionada.codigo) && <AcaoBotao onClick={() => resetarPlaca(selecionada.codigo, selecionada.id)}><RotateCcw size={14} /> Resetar</AcaoBotao>}
                       <AcaoBotao perigo onClick={() => excluirPlaca(selecionada.codigo, selecionada.id)}><Trash2 size={14} /> Excluir</AcaoBotao>
                     </div>
@@ -725,7 +775,8 @@ export default function AdminPlacas() {
           )}
         </div>
       </main>
-      {novoSite && <NovoAcessoSite onFechar={() => setNovoSite(false)} onCriado={() => { setBusca(""); setPagina(0); carregar(); }} />}
+      {novoSite && <NovoAcessoSite onFechar={() => setNovoSite(false)} onCriado={(criado) => { setNovoSite(false); setEnvio({ tipo: "novo", ...criado }); setTipo("sites"); setBusca(""); setPagina(0); carregar(); }} />}
+      {envio && <MensagemAcesso envio={envio} onFechar={() => setEnvio(null)} />}
     </div>
   );
 }
@@ -734,14 +785,21 @@ function SiteBadge() {
   return <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f0ff] px-2 py-0.5 font-sans text-[11px] font-bold text-[#6d5ae6]"><Globe size={11} /> Só mini site</span>;
 }
 
-// Cria o acesso só de mini site e já entrega a mensagem pronta para mandar ao cliente.
-function NovoAcessoSite({ onFechar, onCriado }: { onFechar: () => void; onCriado: () => void }) {
+function SiteStatus({ status }: { status: string }) {
+  const [cor, rotulo] = status === "AGUARDANDO_ATIVACAO" ? ["bg-amber-50 text-amber-700 ring-amber-200", "Esperando a senha"]
+    : status === "ATIVA" ? ["bg-emerald-50 text-emerald-700 ring-emerald-200", "Ativo"]
+    : status === "BLOQUEADA" ? ["bg-rose-50 text-rose-700 ring-rose-200", "Bloqueado"]
+    : ["bg-slate-50 text-slate-600 ring-slate-200", status];
+  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 whitespace-nowrap ${cor}`}>{rotulo}</span>;
+}
+
+// Novo cliente de mini site: nome e WhatsApp. O código (SITE101…) e o link de ativação saem na hora,
+// e a mensagem pronta para mandar abre em seguida (MensagemAcesso).
+function NovoAcessoSite({ onFechar, onCriado }: { onFechar: () => void; onCriado: (criado: Omit<EnvioAcesso, "tipo">) => void }) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [criando, setCriando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [criado, setCriado] = useState<{ codigo: string; pin: string; empresa: string; telefone: string } | null>(null);
-  const [copiado, setCopiado] = useState(false);
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") onFechar(); };
     window.addEventListener("keydown", tecla);
@@ -753,72 +811,94 @@ function NovoAcessoSite({ onFechar, onCriado }: { onFechar: () => void; onCriado
     if (criando) return;
     setCriando(true); setErro(null);
     try {
-      const data = await callFunction<{ codigo?: string; pin?: string; empresa?: string; telefone?: string; error?: string }>("admin-create-site-access", { nome, telefone });
-      if (data.error || !data.codigo || !data.pin) throw new Error(data.error || "Não foi possível criar o acesso.");
-      setCriado({ codigo: data.codigo, pin: data.pin, empresa: data.empresa ?? nome, telefone: data.telefone ?? "" });
-      onCriado();
+      const data = await callFunction<{ codigo?: string; link?: string; empresa?: string; telefone?: string; error?: string }>("admin-create-site-access", { nome, telefone });
+      if (data.error || !data.codigo || !data.link) throw new Error(data.error || "Não foi possível criar o acesso.");
+      onCriado({ codigo: data.codigo, link: data.link, empresa: data.empresa ?? nome, telefone: data.telefone ?? "" });
     } catch (e: any) { setErro(e.message ?? "Não foi possível criar o acesso."); }
     finally { setCriando(false); }
   }
 
-  const mensagem = criado ? [
-    `Olá! Aqui está o acesso ao mini site da ${criado.empresa}:`,
+  return (
+    <Janela titulo="Novo cliente de mini site" texto="Para quem não tem plaquinha. Gere depois do pagamento: o mini site já sai liberado e o cliente cria a própria senha pelo link." onFechar={onFechar}>
+      <form onSubmit={criar} className="mt-5 space-y-4">
+        <label className="block">
+          <span className="dds-label">Nome da empresa</span>
+          <input value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={100} placeholder="Ex: Doce Sabor Confeitaria" className="dds-input" autoFocus />
+        </label>
+        <label className="block">
+          <span className="dds-label">WhatsApp do cliente (opcional)</span>
+          <input value={telefone} onChange={(e) => setTelefone(e.target.value)} inputMode="tel" placeholder="(41) 99999-9999" className="dds-input" />
+          <span className="dds-help">Para abrir a conversa com ele já com o link na mensagem.</span>
+        </label>
+        {erro && <p className="dds-error" role="alert">{erro}</p>}
+        <button type="submit" disabled={criando || !nome.trim()} className="dds-btn dds-btn-primary w-full">{criando ? <><Spinner /> Criando…</> : <><Plus size={17} /> Criar acesso e gerar o link</>}</button>
+      </form>
+    </Janela>
+  );
+}
+
+// Mensagem pronta para o cliente: link de ativação (criar a senha) + código + endereço para entrar depois.
+function MensagemAcesso({ envio, onFechar }: { envio: EnvioAcesso; onFechar: () => void }) {
+  const [copiado, setCopiado] = useState<"msg" | "link" | null>(null);
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") onFechar(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [onFechar]);
+  const mensagem = (envio.tipo === "novo" ? [
+    `Olá${envio.empresa ? `, ${envio.empresa}` : ""}! Seu mini site da DDS está liberado.`,
     "",
-    `Entre em: ${SISTEMA_URL}`,
-    `Código: ${criado.codigo}`,
-    `Senha: ${criado.pin}`,
+    "1) Toque no link e crie a sua senha de 4 números:",
+    envio.link,
     "",
-    "Lá você vê os modelos de cada ramo. Escolha o seu e me chame aqui. Assim que o pagamento for confirmado, eu libero para você montar e publicar o seu mini site.",
-  ].join("\n") : "";
-  const digitos = criado?.telefone.replace(/\D/g, "") ?? "";
+    `2) Seu código de acesso: ${envio.codigo}`,
+    "",
+    `Depois, para entrar e mudar o site quando quiser: ${ENTRAR_URL}`,
+  ] : [
+    `Olá${envio.empresa ? `, ${envio.empresa}` : ""}! Aqui está o link para criar uma nova senha do seu mini site (código ${envio.codigo}):`,
+    envio.link,
+    "",
+    `Depois, para entrar: ${ENTRAR_URL}`,
+  ]).join("\n");
+  const digitos = envio.telefone.replace(/\D/g, "");
   const numero = digitos.length === 10 || digitos.length === 11 ? `55${digitos}` : digitos;
   const linkWhats = `https://wa.me/${numero.length >= 12 ? numero : ""}?text=${encodeURIComponent(mensagem)}`;
-  async function copiar() {
-    try { await navigator.clipboard.writeText(mensagem); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { /* sem permissão */ }
+  async function copiar(valor: string, marca: "msg" | "link") {
+    try { await navigator.clipboard.writeText(valor); setCopiado(marca); setTimeout(() => setCopiado(null), 2000); } catch { window.prompt("Copie:", valor); }
   }
+  return (
+    <Janela titulo={envio.tipo === "novo" ? "Acesso criado" : "Novo link de senha"} texto={envio.tipo === "novo" ? "Mande a mensagem abaixo. O link vale até o cliente criar a senha." : "A senha antiga já não vale. Mande o link para o cliente criar outra."} onFechar={onFechar}>
+      <div className="mt-5 space-y-4">
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-2.5">
+          <div className="rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] px-3.5 py-3"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-ink-muted">Código</p><p className="mt-1 font-mono text-xl font-extrabold text-ink">{envio.codigo}</p></div>
+          <div className="rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] px-3.5 py-3 min-w-0"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-ink-muted">Empresa</p><p className="mt-1 font-display text-[15px] font-bold text-ink truncate">{envio.empresa || "—"}</p></div>
+        </div>
+        <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] p-3.5 font-sans text-[13px] leading-relaxed text-ink-soft">{mensagem}</pre>
+        <div className="grid gap-2">
+          <a href={linkWhats} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-whats"><MessageCircle size={16} /> {numero.length >= 12 ? "Enviar no WhatsApp dele" : "Enviar pelo WhatsApp"}</a>
+          <button type="button" onClick={() => copiar(mensagem, "msg")} className="dds-btn dds-btn-outline"><Copy size={15} /> {copiado === "msg" ? "Copiada ✓" : "Copiar mensagem"}</button>
+        </div>
+        <button type="button" onClick={() => copiar(envio.link, "link")} className="text-xs font-semibold text-brand-600 hover:text-brand-700">{copiado === "link" ? "Link copiado ✓" : "Copiar só o link"}</button>
+      </div>
+    </Janela>
+  );
+}
 
+function Janela({ titulo, texto, onFechar, children }: { titulo: string; texto: string; onFechar: () => void; children: ReactNode }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-navy-950/60 backdrop-blur-[2px] p-0 sm:p-4" onClick={onFechar}>
-      <div role="dialog" aria-modal="true" aria-label="Cliente sem plaquinha" onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto dds-scroll rounded-t-[28px] sm:rounded-[24px] bg-white p-5 sm:p-6 shadow-lift dds-rise">
+      <div role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto dds-scroll rounded-t-[28px] sm:rounded-[24px] bg-white p-5 sm:p-6 shadow-lift dds-rise">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="grid place-items-center w-11 h-11 shrink-0 rounded-2xl bg-[#f3f0ff] text-[#6d5ae6]"><Globe size={20} /></span>
             <div>
-              <h2 className="font-display text-lg font-extrabold tracking-tight text-ink">Cliente sem plaquinha</h2>
-              <p className="text-sm text-ink-muted leading-relaxed">Cria um acesso só de mini site. O mini site fica bloqueado até você liberar depois do pagamento.</p>
+              <h2 className="font-display text-lg font-extrabold tracking-tight text-ink">{titulo}</h2>
+              <p className="text-sm text-ink-muted leading-relaxed">{texto}</p>
             </div>
           </div>
           <button onClick={onFechar} className="grid place-items-center w-9 h-9 shrink-0 rounded-xl text-ink-muted hover:bg-[#f1f4f9] hover:text-ink" aria-label="Fechar"><X size={18} /></button>
         </div>
-
-        {!criado ? (
-          <form onSubmit={criar} className="mt-5 space-y-4">
-            <label className="block">
-              <span className="dds-label">Nome da empresa</span>
-              <input value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={100} placeholder="Ex: Doce Sabor Confeitaria" className="dds-input" autoFocus />
-            </label>
-            <label className="block">
-              <span className="dds-label">WhatsApp do cliente (opcional)</span>
-              <input value={telefone} onChange={(e) => setTelefone(e.target.value)} inputMode="tel" placeholder="(41) 99999-9999" className="dds-input" />
-              <span className="dds-help">Para abrir a conversa com ele já com o acesso na mensagem.</span>
-            </label>
-            {erro && <p className="dds-error" role="alert">{erro}</p>}
-            <button type="submit" disabled={criando || !nome.trim()} className="dds-btn dds-btn-primary w-full">{criando ? <><Spinner /> Criando…</> : <><Plus size={17} /> Criar acesso</>}</button>
-          </form>
-        ) : (
-          <div className="mt-5 space-y-4">
-            <div className="grid grid-cols-2 gap-2.5">
-              <div className="rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] px-3.5 py-3"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-ink-muted">Código</p><p className="mt-1 font-mono text-xl font-extrabold text-ink">{criado.codigo}</p></div>
-              <div className="rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] px-3.5 py-3"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-ink-muted">Senha</p><p className="mt-1 font-mono text-xl font-extrabold text-ink tracking-[.2em]">{criado.pin}</p></div>
-            </div>
-            <pre className="whitespace-pre-wrap rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] p-3.5 font-sans text-[13px] leading-relaxed text-ink-soft">{mensagem}</pre>
-            <div className="flex flex-wrap gap-2">
-              <a href={linkWhats} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-whats flex-1"><MessageCircle size={16} /> {numero.length >= 12 ? "Enviar no WhatsApp dele" : "Enviar pelo WhatsApp"}</a>
-              <button type="button" onClick={copiar} className="dds-btn dds-btn-outline"><Copy size={15} /> {copiado ? "Copiada ✓" : "Copiar mensagem"}</button>
-            </div>
-            <p className="text-xs text-ink-muted leading-relaxed">Depois do pagamento, abra o acesso na lista e toque em <strong>Pagamento confirmado · liberar mini site</strong>.</p>
-          </div>
-        )}
+        {children}
       </div>
     </div>
   );
