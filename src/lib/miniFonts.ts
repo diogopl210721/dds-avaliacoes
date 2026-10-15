@@ -25,6 +25,15 @@ export const THEME_FONTS: Record<MiniTheme, string[]> = {
   oficio: ['Libre+Caslon+Display', 'Libre+Caslon+Text:ital,wght@0,400;0,700;1,400', 'Public+Sans:wght@400;500;600;700'],
   mesa: ['Abril+Fatface', 'Karla:wght@400;500;600;700;800'],
   tigela: ['Lilita+One', 'Fredoka:wght@400;500;600;700'],
+  safra: ['Cinzel:wght@400;600;700', 'Lato:ital,wght@0,400;0,700;1,400'],
+  esmalte: ['Syne:wght@600;700;800', 'Outfit:wght@300;400;500;600;700'],
+  serena: ['Tenor+Sans', 'Mulish:wght@300;400;500;600;700'],
+  fluxo: ['Red+Hat+Display:wght@300;400;700;900', 'Red+Hat+Text:wght@400;500;600;700'],
+  cuidar: ['Literata:ital,wght@0,400;0,600;1,400;1,500', 'Nunito+Sans:wght@400;600;700;800'],
+  patas: ['Baloo+2:wght@500;600;700;800'],
+  motor: ['Rajdhani:wght@500;600;700', 'IBM+Plex+Sans:wght@400;500;600;700'],
+  brilho: ['Righteous', 'Outfit:wght@300;400;500;600;700'],
+  presente: ['Shrikhand', 'Rubik:wght@400;500;600;700;800'],
 };
 
 export function fontsUrl(themes: MiniTheme[]) {

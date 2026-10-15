@@ -178,9 +178,72 @@ export const PALETTES: Record<MiniTheme, Palette[]> = {
     mk('p3', 'Pistache e chocolate', { bg: '#effaf5', surface: '#ffffff', ink: '#14281f', muted: '#52685d', accent: '#1c7a5c', accent2: '#ff7aa8', line: '#14281f1f', fx: ['#ff7aa8', '#ffd23f', '#a46a44'], extra: { calda: '#5b341c' } }),
     mk('p4', 'Noite roxa', { bg: '#1a0b24', surface: '#261334', ink: '#fbefff', muted: '#c2a9d1', accent: '#ffd23f', accent2: '#ff4f8b', onAccent: '#1a0b24', line: '#fbefff21', fx: ['#ff4f8b', '#ffd23f', '#7ad3a8'], extra: { calda: '#8a2ab8' } }),
   ],
+  // Adega: rótulo de vinho; labelink é a cor do nome no rótulo de papel.
+  safra: [
+    mk('p1', 'Tinto', { bg: '#170e11', surface: '#22151a', ink: '#f4ead9', muted: '#bfa999', accent: '#c9a45c', accent2: '#8c1c32', onAccent: '#170e11', line: '#f4ead91f', fx: ['#f4dfa6', '#c9a45c', '#ffffff'], extra: { labelink: '#6b1426' } }),
+    mk('p2', 'Branco e ouro', { bg: '#f6f0e4', surface: '#fffaf0', ink: '#2a1d16', muted: '#76665a', accent: '#7a1d2e', accent2: '#b08a3e', line: '#2a1d161f', fx: ['#e9d9a8', '#b08a3e', '#ffffff'], extra: { labelink: '#7a1d2e' } }),
+    mk('p3', 'Rosé', { bg: '#f8ecea', surface: '#fffaf8', ink: '#3a1a20', muted: '#7d5c62', accent: '#a83a52', accent2: '#c99a6b', line: '#3a1a201f', fx: ['#f6c8cf', '#e8a3b0', '#ffffff'], extra: { labelink: '#a83a52' } }),
+    mk('p4', 'Cerveja', { bg: '#14100a', surface: '#1f1810', ink: '#f7ecd6', muted: '#bca88a', accent: '#f2a51a', accent2: '#5a3a12', onAccent: '#14100a', line: '#f7ecd61f', fx: ['#ffd77a', '#f2a51a', '#fff4d6'], extra: { labelink: '#7a4a0c' } }),
+  ],
+  // Unhas e cílios: cores de esmalte.
+  esmalte: [
+    mk('p1', 'Nude', { bg: '#fbf3ef', surface: '#ffffff', ink: '#3a2420', muted: '#80625a', accent: '#b84a62', accent2: '#e8b4a0', line: '#3a24201c', fx: ['#e8b4a0', '#d98a8a', '#f3d6c8'] }),
+    mk('p2', 'Vermelho clássico', { bg: '#fff5f4', surface: '#ffffff', ink: '#2e1013', muted: '#7a5558', accent: '#c8102e', accent2: '#f6c1c1', line: '#2e10131c', fx: ['#e2313f', '#8a0f1f', '#f6c1c1'] }),
+    mk('p3', 'Lilás', { bg: '#f7f2fd', surface: '#ffffff', ink: '#2a1d40', muted: '#695b80', accent: '#7b4fd0', accent2: '#c7b2f2', line: '#2a1d401c', fx: ['#b89cf0', '#e9a8d8', '#8fd3e8'] }),
+    mk('p4', 'Preto e dourado', { bg: '#121012', surface: '#1c191c', ink: '#f5ede6', muted: '#b5a9a3', accent: '#d4af5a', accent2: '#3a3236', onAccent: '#121012', line: '#f5ede621', fx: ['#d4af5a', '#e8c9c0', '#8a2b3a'] }),
+  ],
+  // Estética: spa calmo, vidro fosco.
+  serena: [
+    mk('p1', 'Areia e sálvia', { bg: '#f4f1ea', surface: '#fbfaf6', ink: '#2c3329', muted: '#6a7066', accent: '#56704f', accent2: '#c9a98a', line: '#2c33291c', fx: ['#f1d9cf', '#dfe8d6', '#ffffff'] }),
+    mk('p2', 'Rosé', { bg: '#faf2ef', surface: '#fffbfa', ink: '#3a2a2a', muted: '#7a6565', accent: '#a0596a', accent2: '#d9b8a8', line: '#3a2a2a1c', fx: ['#f6d2d6', '#f0e0d6', '#ffffff'] }),
+    mk('p3', 'Água', { bg: '#eff6f6', surface: '#fbfefe', ink: '#16302f', muted: '#566c6b', accent: '#2a7671', accent2: '#a9cfcb', line: '#16302f1c', fx: ['#d0ecea', '#e6f1f3', '#ffffff'] }),
+    mk('p4', 'Noite', { bg: '#141716', surface: '#1c201f', ink: '#eef0ea', muted: '#a6aca5', accent: '#c9b28a', accent2: '#7e9a7a', onAccent: '#141716', line: '#eef0ea21', fx: ['#c9b28a', '#7e9a7a', '#eef0ea'] }),
+  ],
+  // Pilates e yoga: tons de tapetinho.
+  fluxo: [
+    mk('p1', 'Sálvia', { bg: '#f2f4ee', surface: '#ffffff', ink: '#24302a', muted: '#5f6b63', accent: '#466f58', accent2: '#e3b48a', line: '#24302a1c', fx: ['#cfe2d4', '#f2dcc6', '#e3e9f4'] }),
+    mk('p2', 'Terracota', { bg: '#f8f0e8', surface: '#ffffff', ink: '#3a2418', muted: '#78604f', accent: '#a9532f', accent2: '#7a9a7e', line: '#3a24181c', fx: ['#f2cdb5', '#d9e4d4', '#f6e4d6'] }),
+    mk('p3', 'Lavanda', { bg: '#f4f1fa', surface: '#ffffff', ink: '#2b2440', muted: '#655d80', accent: '#6b58b0', accent2: '#e6a7c0', line: '#2b24401c', fx: ['#ddd3f3', '#f6d6e4', '#d6ecef'] }),
+    mk('p4', 'Oceano', { bg: '#eef4f7', surface: '#ffffff', ink: '#13293a', muted: '#526878', accent: '#1d6a8f', accent2: '#f0a86a', line: '#13293a1c', fx: ['#cfe5f0', '#f6ddc8', '#dcefe9'] }),
+  ],
+  // Terapias: formas orgânicas e cores calmas.
+  cuidar: [
+    mk('p1', 'Lilás calmo', { bg: '#f7f4fb', surface: '#ffffff', ink: '#2b2340', muted: '#665d7d', accent: '#6a52b3', accent2: '#2f9884', line: '#2b23401c', fx: ['#e3dbf6', '#cfeee6', '#f6e2ea'] }),
+    mk('p2', 'Menta', { bg: '#f1f8f5', surface: '#ffffff', ink: '#16302a', muted: '#53695f', accent: '#1e7a62', accent2: '#d9784a', line: '#16302a1c', fx: ['#cdeee2', '#f6dcc8', '#e3f1ec'] }),
+    mk('p3', 'Pêssego', { bg: '#fdf4ee', surface: '#ffffff', ink: '#3a2418', muted: '#7a6052', accent: '#b8572f', accent2: '#4f8496', line: '#3a24181c', fx: ['#f8d6c2', '#d2e6ec', '#fbe7dc'] }),
+    mk('p4', 'Azul sereno', { bg: '#f1f5fb', surface: '#ffffff', ink: '#152640', muted: '#56627a', accent: '#2e5fae', accent2: '#d9952a', line: '#1526401c', fx: ['#d5e2f6', '#f6e2c0', '#e6eefa'] }),
+  ],
+  // Veterinária: plaquinha de coleira.
+  patas: [
+    mk('p1', 'Azul', { bg: '#f2f7fc', surface: '#ffffff', ink: '#11243a', muted: '#52647a', accent: '#1f68c8', accent2: '#ffb347', line: '#11243a1c', fx: ['#1f68c8', '#ffb347', '#9cc4f2'] }),
+    mk('p2', 'Verde', { bg: '#f2f8f1', surface: '#ffffff', ink: '#16301a', muted: '#53695a', accent: '#2c7d38', accent2: '#ff9f6b', line: '#16301a1c', fx: ['#2c7d38', '#ff9f6b', '#a8d8a8'] }),
+    mk('p3', 'Laranja', { bg: '#fff6ee', surface: '#ffffff', ink: '#3a1f0e', muted: '#7a6050', accent: '#c4561a', accent2: '#3a8fd1', line: '#3a1f0e1c', fx: ['#c4561a', '#3a8fd1', '#f8c8a0'] }),
+    mk('p4', 'Roxo', { bg: '#f7f3fc', surface: '#ffffff', ink: '#25183f', muted: '#62577c', accent: '#7140c0', accent2: '#ffc145', line: '#25183f1c', fx: ['#7140c0', '#ffc145', '#cdb6f0'] }),
+  ],
+  // Oficina: painel do carro, chapa de metal.
+  motor: [
+    mk('p1', 'Vermelho e grafite', { bg: '#111214', surface: '#1b1d21', ink: '#f1f2f4', muted: '#9da2aa', accent: '#e2231a', accent2: '#ffb020', line: '#2b2e34', fx: ['#ffb020', '#ff6a00', '#ffffff'] }),
+    mk('p2', 'Laranja', { bg: '#121110', surface: '#1d1b19', ink: '#f4f1ee', muted: '#a8a29b', accent: '#ff7a00', accent2: '#ffd23f', onAccent: '#121110', line: '#2e2b27', fx: ['#ffd23f', '#ff7a00', '#ffffff'] }),
+    mk('p3', 'Azul', { bg: '#0d1118', surface: '#161c26', ink: '#eef2f8', muted: '#97a2b4', accent: '#2f7bff', accent2: '#ffb020', line: '#263041', fx: ['#ffb020', '#7ab0ff', '#ffffff'] }),
+    mk('p4', 'Verde', { bg: '#0f1210', surface: '#191d1a', ink: '#eff3ef', muted: '#9aa59c', accent: '#3fbf52', accent2: '#ffd23f', onAccent: '#0f1210', line: '#29302a', fx: ['#ffd23f', '#3fbf52', '#ffffff'] }),
+  ],
+  // Lava-car: letreiro de neon à noite.
+  brilho: [
+    mk('p1', 'Neon azul', { bg: '#0a0f1e', surface: '#121a30', ink: '#eef6ff', muted: '#9fb0cf', accent: '#2ad4ff', accent2: '#ff4fd8', onAccent: '#0a0f1e', line: '#22304f', fx: ['#bfe9ff', '#2ad4ff', '#ffffff'] }),
+    mk('p2', 'Neon rosa', { bg: '#140a1a', surface: '#20122a', ink: '#fff0fa', muted: '#c8a6c0', accent: '#ff3fa4', accent2: '#2ad4ff', onAccent: '#140a1a', line: '#3a2246', fx: ['#ffd0ea', '#ff3fa4', '#ffffff'] }),
+    mk('p3', 'Verde água', { bg: '#07141a', surface: '#0f2129', ink: '#eafffa', muted: '#94b8b2', accent: '#2bffc6', accent2: '#ffd23f', onAccent: '#07141a', line: '#1d3a42', fx: ['#c8fff0', '#2bffc6', '#ffffff'] }),
+    mk('p4', 'Amarelo', { bg: '#12100a', surface: '#1e1b12', ink: '#fffbea', muted: '#bdb497', accent: '#ffd400', accent2: '#2ad4ff', onAccent: '#12100a', line: '#3a3420', fx: ['#fff3b0', '#ffd400', '#ffffff'] }),
+  ],
+  // Loja de presentes: papel de presente e laço.
+  presente: [
+    mk('p1', 'Vermelho presente', { bg: '#fff7f2', surface: '#ffffff', ink: '#2e1414', muted: '#7a5a56', accent: '#c92a35', accent2: '#f2b632', line: '#2e14141c', fx: ['#c92a35', '#f2b632', '#2a9d8f'] }),
+    mk('p2', 'Azul', { bg: '#f3f7ff', surface: '#ffffff', ink: '#121f3d', muted: '#56627e', accent: '#2557d6', accent2: '#ff8a3d', line: '#121f3d1c', fx: ['#2557d6', '#ff8a3d', '#ffd23f'] }),
+    mk('p3', 'Menta', { bg: '#effaf6', surface: '#ffffff', ink: '#123028', muted: '#53695f', accent: '#12806a', accent2: '#ff6f91', line: '#1230281c', fx: ['#12806a', '#ff6f91', '#ffd23f'] }),
+    mk('p4', 'Rosa', { bg: '#fff3f8', surface: '#ffffff', ink: '#3a1028', muted: '#7d5a6c', accent: '#cc2f74', accent2: '#ffc53d', line: '#3a10281c', fx: ['#cc2f74', '#ffc53d', '#5bc0eb'] }),
+  ],
 };
 
-const DARK = new Set<MiniTheme>(['elegance', 'brasa', 'navalha', 'impulso', 'pace', 'garagem']);
+const DARK = new Set<MiniTheme>(['elegance', 'brasa', 'navalha', 'impulso', 'pace', 'garagem', 'safra', 'motor', 'brilho']);
 
 export function paletteVars(theme: MiniTheme, palette: PaletteId, brandColor = ''): Vars {
   const list = PALETTES[theme];
@@ -227,6 +290,12 @@ function brandVars(theme: MiniTheme, hex: string): Vars {
     case 'oficio': v['--accent2'] = fromHsl(43, 54, 39); set(accent, fromHsl(43, 54, 39), fromHsl(h, 12, 45)); break;
     case 'mesa': v['--cloth'] = fromHsl(h, Math.min(80, s), 46); break;
     case 'tigela': v['--calda'] = fromHsl(h, Math.min(85, s), 26); set(fromHsl(h + 40, 95, 66), fromHsl(48, 100, 62), fromHsl(150, 50, 65)); break;
+    case 'safra': v['--labelink'] = fromHsl(h, Math.min(80, s), 30); set(fromHsl(h, 70, 82), accent, '#ffffff'); break;
+    case 'esmalte': set(fromHsl(h + 25, 60, 72), fromHsl(h - 25, 55, 62), fromHsl(h, 50, 88)); break;
+    case 'serena': case 'cuidar': case 'fluxo': set(fromHsl(h, 45, 90), fromHsl(h + 50, 35, 88), fromHsl(h - 40, 40, 92)); break;
+    case 'patas': case 'presente': set(accent, fromHsl(h + 150, 85, 62), fromHsl(h, 60, 80)); break;
+    case 'motor': set(fromHsl(h + 30, 100, 60), accent, '#ffffff'); break;
+    case 'brilho': set(fromHsl(h, 90, 88), accent, '#ffffff'); break;
   }
   return finish(v);
 }

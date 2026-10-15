@@ -16,7 +16,17 @@ import type { MiniTheme } from './miniPage';
 //  letterhead papel timbrado: monograma, nome em versalete e retrato emoldurado (advocacia e contabilidade)
 //  table     toalha xadrez em perspectiva, prato com a foto, talheres e o prato do dia (restaurante)
 //  bowl      calda escorrendo do topo, título de letra gorda e copo com adesivos (açaí e sorveteria)
-export type HeroKind = 'poster' | 'magazine' | 'arch' | 'split' | 'showroom' | 'seal' | 'optician' | 'bouquet' | 'worksite' | 'letterhead' | 'table' | 'bowl';
+//  label     rótulo de vinho sobre a foto da adega (adega e distribuidora)
+//  swatches  leque de unhas pintadas com a foto na unha do meio (unhas e cílios)
+//  frosted   foto inteira com um painel de vidro fosco por cima (estética)
+//  breath    círculo que respira com anéis e "inspire / expire" (pilates e yoga)
+//  blob      formas orgânicas que mudam devagar, foto numa delas (terapias)
+//  bone      foto do pet num círculo e o nome numa plaquinha em forma de osso (veterinária)
+//  gauge     conta-giros com o ponteiro acelerando sobre a foto da oficina (oficina)
+//  neon      letreiro de neon na parede de azulejo e foto com reflexo passando (lava-car)
+//  giftbox   caixa de presente com laço, a foto na frente da caixa (loja de presentes)
+export type HeroKind = 'poster' | 'magazine' | 'arch' | 'split' | 'showroom' | 'seal' | 'optician' | 'bouquet' | 'worksite' | 'letterhead' | 'table' | 'bowl'
+  | 'label' | 'swatches' | 'frosted' | 'breath' | 'blob' | 'bone' | 'gauge' | 'neon' | 'giftbox';
 // Lista:
 //  lanes     raias de pista numeradas (planos de treino)
 //  lookbook  grade de fotos em retrato, como um catálogo de moda
@@ -30,7 +40,17 @@ export type HeroKind = 'poster' | 'magazine' | 'arch' | 'split' | 'showroom' | '
 //  index     sumário com numeração romana (áreas de atuação)
 //  menu      cardápio de cantina com pratinhos e pontilhado até o preço
 //  cups      copinhos com adesivo de preço
-export type ListKind = 'lanes' | 'lookbook' | 'shelf' | 'fichas' | 'garage' | 'tags' | 'display' | 'cards' | 'quote' | 'index' | 'menu' | 'cups';
+//  winelist  carta de vinhos com foto em formato de garrafa
+//  bottles   fotos com um vidrinho de esmalte de cor diferente em cada
+//  ritual    passo a passo numa linha do tempo
+//  mats      tapetinhos de yoga com a ponta enrolada
+//  planner   página de agenda com espiral e caixinhas
+//  vaccine   carteirinha de vacinação com carimbo de preço
+//  checklist ordem de serviço em chapa de metal, item por item
+//  tiers     pacotes com borda de neon
+//  bags      sacolas de compra com alça
+export type ListKind = 'lanes' | 'lookbook' | 'shelf' | 'fichas' | 'garage' | 'tags' | 'display' | 'cards' | 'quote' | 'index' | 'menu' | 'cups'
+  | 'winelist' | 'bottles' | 'ritual' | 'mats' | 'planner' | 'vaccine' | 'checklist' | 'tiers' | 'bags';
 
 export type Look = {
   hero: HeroKind; list: ListKind;
@@ -53,6 +73,15 @@ export const LOOKS: Partial<Record<MiniTheme, Look>> = {
   oficio: { hero: 'letterhead', list: 'index', itemCta: 'Falar sobre isso', itemMessage: 'Olá! Preciso de ajuda com {item}.' },
   mesa: { hero: 'table', list: 'menu', itemCta: 'Pedir este', itemMessage: 'Olá! Quero pedir: {item}.' },
   tigela: { hero: 'bowl', list: 'cups', itemCta: 'Pedir agora', itemMessage: 'Olá! Quero pedir: {item}.' },
+  safra: { hero: 'label', list: 'winelist', itemCta: 'Reservar', itemMessage: 'Olá! Quero reservar: {item}.' },
+  esmalte: { hero: 'swatches', list: 'bottles', itemCta: 'Agendar', itemMessage: 'Olá! Quero agendar: {item}.' },
+  serena: { hero: 'frosted', list: 'ritual', itemCta: 'Agendar', itemMessage: 'Olá! Quero agendar: {item}.' },
+  fluxo: { hero: 'breath', list: 'mats', itemCta: 'Agendar aula', itemMessage: 'Olá! Quero agendar uma aula de {item}.' },
+  cuidar: { hero: 'blob', list: 'planner', itemCta: 'Marcar horário', itemMessage: 'Olá! Quero marcar um horário de {item}.' },
+  patas: { hero: 'bone', list: 'vaccine', itemCta: 'Agendar', itemMessage: 'Olá! Quero agendar: {item}.' },
+  motor: { hero: 'gauge', list: 'checklist', itemCta: 'Agendar', itemMessage: 'Olá! Quero agendar: {item}.' },
+  brilho: { hero: 'neon', list: 'tiers', itemCta: 'Agendar lavagem', itemMessage: 'Olá! Quero agendar: {item}.' },
+  presente: { hero: 'giftbox', list: 'bags', itemCta: 'Quero este', itemMessage: 'Olá! Tenho interesse em: {item}.' },
 };
 
 // "3 quartos · 2 vagas · 120 m²" vira uma lista de características (fichas, carros, planos).

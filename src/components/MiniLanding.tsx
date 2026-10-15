@@ -304,6 +304,102 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
           </div>
         </>;
       }
+      case 'label': {
+        const city = c.address.includes('·') ? c.address.split('·').pop()!.trim() : '';
+        return <>
+          <div className="lk-photo lk-cellar" style={coverStyle} aria-hidden="true" />
+          <div className="lk-cellar-shade" aria-hidden="true" />
+          {fxEl}
+          <div className="lk-winelabel">
+            <span className="lk-wl-top">{nicheInfo?.short ?? 'Adega'}{city ? ` · ${city}` : ''}</span>
+            {logo && <img className="lk-wl-logo" src={logo} alt="" />}
+            {nameEl('lk-wl-name')}
+            <span className="lk-wl-rule" aria-hidden="true"><i /><b>✦</b><i /></span>
+            {c.headline ? heroTitle : null}
+            <span className="lk-wl-year" aria-hidden="true">{year}</span>
+          </div>
+          <div className="mini-hero-copy">{heroTagline}{heroCtaEl}</div>
+        </>;
+      }
+      case 'swatches':
+        return <>
+          {fxEl}
+          <div className="lk-fan" aria-hidden="true">{[0, 1, 2, 3, 4].map(i => <i key={i} className={`lk-nail n${i}`} style={i === 2 ? coverStyle : undefined} />)}</div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'frosted':
+        return <>
+          <div className="lk-photo lk-spa" style={coverStyle} aria-hidden="true" />
+          {fxEl}
+          <div className="lk-glass">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'breath':
+        return <>
+          {fxEl}
+          <div className="lk-breathe" aria-hidden="true">
+            <i className="lk-ring" /><i className="lk-ring r2" /><i className="lk-ring r3" />
+            <div className="lk-breathe-photo" style={coverStyle} />
+            <span className="lk-breathe-word"><b>inspire</b><b>expire</b></span>
+          </div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'blob':
+        return <>
+          {fxEl}
+          <div className="lk-blobs" aria-hidden="true"><i className="lk-blob-a" /><i className="lk-blob-b" /><div className="lk-blob-photo" style={coverStyle} /></div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'bone':
+        return <>
+          {fxEl}
+          <div className="lk-pet" aria-hidden="true">
+            <div className="lk-pet-photo" style={coverStyle}>{!cover && <span>{initial}</span>}</div>
+            <i className="lk-pet-tag">{logo ? <img src={logo} alt="" /> : '♥'}</i>
+          </div>
+          <div className="lk-bonetag">{nameEl('lk-bone-name')}</div>
+          <div className="mini-hero-copy">{c.headline ? heroTitle : null}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'gauge': {
+        // Conta-giros: meia-volta de 0 a 8 (x1000 rpm), faixa vermelha a partir de 6,5.
+        const P = (deg: number, r: number) => `${(100 + r * Math.cos(deg * Math.PI / 180)).toFixed(1)} ${(100 - r * Math.sin(deg * Math.PI / 180)).toFixed(1)}`;
+        return <>
+          <div className="lk-photo lk-shop" style={coverStyle} aria-hidden="true" />
+          <div className="lk-shop-shade" aria-hidden="true" />
+          {fxEl}
+          <div className="lk-dial" aria-hidden="true">
+            <svg viewBox="0 0 200 112">
+              <path className="lk-dial-arc" d={`M${P(180, 80)}A80 80 0 0 1 ${P(0, 80)}`} />
+              <path className="lk-dial-red" d={`M${P(33.75, 80)}A80 80 0 0 1 ${P(0, 80)}`} />
+              {Array.from({ length: 41 }, (_, i) => <path key={i} className={i % 5 ? 'lk-tick' : 'lk-tick is-major'} d={`M${P(180 - i * 4.5, i % 5 ? 73 : 67)}L${P(180 - i * 4.5, 80)}`} />)}
+              {Array.from({ length: 9 }, (_, k) => { const [x, y] = P(180 - k * 22.5, 55).split(' '); return <text key={k} x={x} y={y}>{k}</text>; })}
+              <text className="lk-dial-unit" x="100" y="82">x1000 rpm</text>
+              <g className="lk-needle"><path d="M97.6 100L100 30L102.4 100Z" /><circle cx="100" cy="100" r="7" /></g>
+            </svg>
+          </div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      }
+      case 'neon':
+        return <>
+          {fxEl}
+          <div className="lk-neonsign">
+            {logo && <img className="lk-neon-logo" src={logo} alt="" />}
+            {nameEl('lk-neon-name')}
+            {nicheInfo && !plain(name).includes(plain(nicheInfo.short)) && <span className="lk-neon-sub" aria-hidden="true">{nicheInfo.short}</span>}
+          </div>
+          <div className="lk-shine" style={coverStyle} aria-hidden="true"><i /></div>
+          <div className="mini-hero-copy">{c.headline ? heroTitle : null}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'giftbox':
+        return <>
+          {fxEl}
+          <div className="lk-gift" aria-hidden="true">
+            <svg className="lk-bow" viewBox="0 0 120 64"><path d="M60 40C44 16 12 2 8 22C5 38 34 44 60 40ZM60 40C76 16 108 2 112 22C115 38 86 44 60 40Z" /><path d="M56 42L40 62L50 60L58 46ZM64 42L80 62L70 60L62 46Z" /><circle cx="60" cy="40" r="8" /></svg>
+            <i className="lk-gift-lid" />
+            <div className="lk-gift-box" style={coverStyle} />
+          </div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
     }
   };
 
@@ -416,6 +512,75 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
           <div className="lk-cupcard">{itemImg(p, 'lk-cupcard-img')}{p.price && <span className="lk-cup-price">R$ {p.price}</span>}</div>
           <h3>{p.name}</h3>
           {p.description && <p>{p.description}</p>}
+          {itemCta(p)}
+        </li>)}</ul>;
+      case 'winelist':
+        return <ul className="lk-wines">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+          {itemImg(p, 'lk-wine-img')}
+          <div className="lk-wine-body">
+            <small>Nº {String(i + 1).padStart(2, '0')}</small>
+            <h3>{p.name}</h3>
+            {itemDesc(p.description)}
+            <div className="lk-wine-foot">{itemPrice(p.price)}{itemCta(p)}</div>
+          </div>
+        </li>)}</ul>;
+      case 'bottles':
+        return <ul className="lk-polish">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6, '--c': `var(--pc${i % 5})` } as Vars}>
+          <div className="lk-polish-photo">{itemImg(p, 'lk-polish-img')}<i className="lk-bottle" aria-hidden="true" /></div>
+          <h3>{p.name}</h3>
+          {p.description && <p>{p.description}</p>}
+          {itemPrice(p.price)}
+          {itemCta(p)}
+        </li>)}</ul>;
+      case 'ritual':
+        return <ol className="lk-ritual">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+          <span className="lk-step" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+          <div className="lk-step-body">{imageUrl(p.image) ? itemImg(p, 'lk-step-img') : null}<h3>{p.name}</h3>{itemDesc(p.description)}{itemPrice(p.price)}{itemCta(p)}</div>
+        </li>)}</ol>;
+      case 'mats':
+        return <ul className="lk-mats">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6, '--m': `var(--fx${(i % 3) + 1})` } as Vars}>
+          {imageUrl(p.image) ? itemImg(p, 'lk-mat-img') : null}
+          <div className="lk-mat-body"><h3>{p.name}</h3>{itemDesc(p.description)}<div className="lk-mat-foot">{itemPrice(p.price)}{itemCta(p)}</div></div>
+          <i className="lk-roll" aria-hidden="true" />
+        </li>)}</ul>;
+      case 'planner':
+        return <div className="lk-planner">
+          <i className="lk-spiral" aria-hidden="true" />
+          <ul>{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+            <i className="lk-check" aria-hidden="true" />
+            <div className="lk-plan-body"><h3>{p.name}</h3>{p.description && <p>{p.description}</p>}<div className="lk-plan-foot">{p.price && <span className="lk-note">R$ {p.price}</span>}{itemCta(p)}</div></div>
+            {imageUrl(p.image) ? itemImg(p, 'lk-plan-img') : null}
+          </li>)}</ul>
+        </div>;
+      case 'vaccine':
+        return <div className="lk-vcard">
+          <div className="lk-vcard-head"><span>Carteirinha</span><b>{name}</b></div>
+          <ul>{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+            {imageUrl(p.image) ? itemImg(p, 'lk-v-img') : null}
+            <div className="lk-v-body"><h3>{p.name}</h3>{p.description && <p>{p.description}</p>}{itemCta(p)}</div>
+            {p.price ? <span className="lk-stamp-price"><small>R$</small>{p.price}</span> : <span className="lk-stamp-price is-ask">consulte</span>}
+          </li>)}</ul>
+        </div>;
+      case 'checklist':
+        return <div className="lk-os">
+          <div className="lk-os-head"><b>Ordem de serviço</b><span>{name}</span></div>
+          <ul>{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+            <i className="lk-tickbox" aria-hidden="true" />
+            <div className="lk-os-body"><div className="lk-os-row"><h3>{p.name}</h3>{p.price && <strong className="lk-price">R$ {p.price}</strong>}</div>{itemDesc(p.description)}{itemCta(p)}</div>
+            {imageUrl(p.image) ? itemImg(p, 'lk-os-img') : null}
+          </li>)}</ul>
+        </div>;
+      case 'tiers':
+        return <div className="lk-tiers">{list.map((p, i) => <article key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          {imageUrl(p.image) ? itemImg(p, 'lk-tier-img') : null}
+          <div className="lk-tier-body"><span className="lk-tier-n" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span><h3>{p.name}</h3>{itemDesc(p.description)}<div className="lk-tier-foot">{itemPrice(p.price)}{itemCta(p)}</div></div>
+        </article>)}</div>;
+      case 'bags':
+        return <ul className="lk-bags">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          <div className="lk-bag"><i className="lk-handle" aria-hidden="true" />{itemImg(p, 'lk-bag-img')}</div>
+          <h3>{p.name}</h3>
+          {p.description && <p>{p.description}</p>}
+          {itemPrice(p.price)}
           {itemCta(p)}
         </li>)}</ul>;
     }
@@ -639,6 +804,9 @@ function Marquee({ items, reverse = false }: { items: string[]; reverse?: boolea
   const run = <span className="mini-marquee-run">{list.map((t, i) => <Fragment key={i}><span>{t}</span><b>✦</b></Fragment>)}</span>;
   return <div className={`mini-marquee${reverse ? ' is-reverse' : ''}`}><div className="mini-marquee-track">{run}{run}{run}{run}</div></div>;
 }
+
+// Sem acento, minúsculo e só letras: compara "Lava-car" com "Brilho Lavacar".
+const plain = (v: string) => v.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // I, II, III... para o sumário de áreas de atuação.
 function roman(n: number) {
