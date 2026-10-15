@@ -20,7 +20,7 @@ export function NicheChips({ value, onChange }: { value: GroupFilter; onChange: 
 }
 
 // Com o nome do cliente digitado, o nome vira o título grande da capa (letra por letra).
-const withName = (c: MiniContent, name: string) => (name.trim() ? { ...c, name: name.trim(), headline: '' } : c);
+export const withName = (c: MiniContent, name: string) => (name.trim() ? { ...c, name: name.trim(), headline: '' } : c);
 
 export function modelLabel(id: NicheId) {
   const n = nicheById(id)!;
@@ -61,7 +61,7 @@ function useLive(ref: RefObject<HTMLElement>, enabled: boolean) {
 }
 
 // Retrato leve do exemplo, enquanto o celular não está ao vivo.
-function PhonePoster({ content, theme }: { content: MiniContent; theme: MiniTheme }) {
+export function PhonePoster({ content, theme }: { content: MiniContent; theme: MiniTheme }) {
   const vars = paletteVars(theme, content.palette, content.brandColor) as CSSProperties;
   const cover = imageUrl(content.cover);
   return <div className={`tp-stage tp-${theme} tp-is-poster`} style={vars} aria-hidden="true">
