@@ -1023,6 +1023,191 @@ const SCENES: Record<FxKind, (e: Env) => Scene> = {
       tap(x, y) { f.push(x, y, rnd(-600, 600), -200, 140); },
     };
   },
+
+  // Ótica: letras de tabela de vista flutuando fora de foco; perto da lente (que segue o dedo) ficam nítidas.
+  foco(e) {
+    type L = { x: number; y: number; vx: number; vy: number; ch: string; s: number };
+    const chars = 'EFPTOZLDC'.split('');
+    const ls: L[] = Array.from({ length: Math.round(18 * e.k) }, () => ({ x: rnd(0, e.w), y: rnd(0, e.h), vx: rnd(-8, 8), vy: rnd(-12, -4), ch: pick(chars), s: rnd(16, 42) }));
+    const R = clamp(Math.min(e.w, e.h) * 0.22, 60, 120);
+    let fx = e.w / 2, fy = e.h * 0.4, tx = fx, ty = fy, manual = 0, ring = 0;
+    const col = e.dark ? mix(e.c.ink, e.c.accent, 0.3) : e.c.accent, ghost = e.c.accent2;
+    return {
+      step(dt, t) {
+        manual = Math.max(0, manual - dt); ring = Math.max(0, ring - dt * 1.2);
+        if (manual <= 0) { tx = e.w * (0.5 + 0.32 * Math.sin(t * 0.23)); ty = e.h * (0.42 + 0.3 * Math.sin(t * 0.31 + 1)); }
+        const k = Math.min(1, dt * 3); fx += (tx - fx) * k; fy += (ty - fy) * k;
+        for (const l of ls) {
+          l.x += l.vx * dt; l.y += l.vy * dt;
+          if (l.y < -50) { l.y = e.h + 40; l.x = rnd(0, e.w); }
+          if (l.x < -40) l.x = e.w + 30; else if (l.x > e.w + 40) l.x = -30;
+        }
+      },
+      draw(g) {
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (const l of ls) {
+          const k = clamp(Math.hypot(l.x - fx, l.y - fy) / (R * 1.6), 0, 1);
+          const off = 1.5 + k * 9;
+          g.font = `700 ${Math.round(l.s)}px Lexend, system-ui, sans-serif`;
+          if (k > 0.05) {
+            g.fillStyle = rgba(ghost, 0.12 * k); g.fillText(l.ch, l.x - off, l.y - off * 0.3);
+            g.fillStyle = rgba(col, 0.12 * k); g.fillText(l.ch, l.x + off, l.y + off * 0.3);
+          }
+          g.fillStyle = rgba(col, 0.06 + (1 - k) * 0.4); g.fillText(l.ch, l.x, l.y);
+        }
+        g.strokeStyle = rgba(col, 0.18 + ring * 0.35); g.lineWidth = 1.5 + ring * 2;
+        g.beginPath(); g.arc(fx, fy, R * (1 + ring * 0.15), 0, TAU); g.stroke();
+        g.strokeStyle = rgba(col, 0.1); g.lineWidth = 1;
+        g.beginPath(); g.arc(fx, fy, R * 0.86, 0, TAU); g.stroke();
+        for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.beginPath(); g.moveTo(fx + Math.cos(a) * R * 0.9, fy + Math.sin(a) * R * 0.9); g.lineTo(fx + Math.cos(a) * R * 1.08, fy + Math.sin(a) * R * 1.08); g.stroke(); }
+      },
+      move(x, y) { tx = x; ty = y; manual = 2.5; },
+      tap(x, y) { tx = x; ty = y; manual = 3; ring = 1; },
+    };
+  },
+
+  // Floricultura: flores desabrochando pela capa e soltando pétalas; o toque faz um buquê nascer ali.
+  flores(e) {
+    type F = { x: number; y: number; s: number; n: number; rot: number; vr: number; t: number; life: number; col: string };
+    type P = { x: number; y: number; vx: number; vy: number; rot: number; vr: number; s: number; col: string; a: number };
+    const cols = [e.c.fx1, e.c.accent, mix(e.c.fx1, '#ffffff', 0.4), mix(e.c.accent, e.c.fx1, 0.5)];
+    const N = Math.round(9 * e.k);
+    const make = (x = rnd(0, e.w), y = rnd(e.h * 0.04, e.h * 0.96), s = rnd(10, 22)): F => ({ x, y, s, n: pick([5, 5, 6, 8]), rot: rnd(0, TAU), vr: rnd(-0.3, 0.3), t: 0, life: rnd(4, 7), col: pick(cols) });
+    const fs: F[] = []; for (let i = 0; i < N; i++) { const f = make(); f.t = rnd(0, f.life * 0.8); fs.push(f); }
+    const ps: P[] = [];
+    const back = (t: number) => { const c = 1.70158, u = t - 1; return 1 + (c + 1) * u * u * u + c * u * u; };
+    return {
+      step(dt) {
+        for (let i = fs.length - 1; i >= 0; i--) {
+          const f = fs[i]; f.t += dt; f.rot += f.vr * dt;
+          if (f.t > f.life) {
+            for (let k = 0; k < 2; k++) ps.push({ x: f.x, y: f.y, vx: rnd(-24, 24), vy: rnd(6, 24), rot: rnd(0, TAU), vr: rnd(-2, 2), s: f.s * 0.5, col: f.col, a: 0.8 });
+            if (fs.length > N) fs.splice(i, 1); else fs[i] = make();
+          }
+        }
+        for (let i = ps.length - 1; i >= 0; i--) { const p = ps[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 18 * dt; p.rot += p.vr * dt; p.a -= dt * 0.3; if (p.a <= 0 || p.y > e.h + 20) ps.splice(i, 1); }
+      },
+      draw(g) {
+        for (const f of fs) {
+          const k = f.t / f.life;
+          const open = k < 0.25 ? back(k / 0.25) : k > 0.8 ? 1 - (k - 0.8) * 2 : 1;
+          const a = k > 0.85 ? (1 - k) / 0.15 : Math.min(1, k * 6);
+          g.save(); g.translate(f.x, f.y); g.rotate(f.rot);
+          g.fillStyle = rgba(e.c.accent2, 0.55 * a);
+          for (const side of [-1, 1]) { g.save(); g.rotate(side * 0.9 + 0.4); g.translate(f.s * 1.05, 0); leafPath(g, f.s * 0.55 * Math.max(0, open)); g.fill(); g.restore(); }
+          for (let p = 0; p < f.n; p++) {
+            g.save(); g.rotate(p * TAU / f.n); g.scale(Math.max(0, open), Math.max(0, open));
+            g.beginPath(); g.ellipse(0, -f.s * 0.55, f.s * 0.32, f.s * 0.55, 0, 0, TAU); g.fillStyle = rgba(f.col, 0.78 * a); g.fill();
+            g.restore();
+          }
+          g.fillStyle = rgba(e.c.fx3, 0.95 * a); g.beginPath(); g.arc(0, 0, f.s * 0.2 * Math.max(0, open), 0, TAU); g.fill();
+          g.restore();
+        }
+        for (const p of ps) { g.save(); g.translate(p.x, p.y); g.rotate(p.rot); g.fillStyle = rgba(p.col, p.a); g.beginPath(); g.ellipse(0, 0, p.s * 0.32, p.s * 0.55, 0, 0, TAU); g.fill(); g.restore(); }
+      },
+      tap(x, y) { for (let i = 0; i < 3; i++) fs.push(make(x + rnd(-34, 34), y + rnd(-34, 34), rnd(14, 26))); if (fs.length > N * 3) fs.splice(0, fs.length - N * 3); },
+    };
+  },
+
+  // Material de construção: tijolos caindo e levantando uma parede no pé da capa; o toque assenta um tijolo ali.
+  tijolos(e) {
+    const bw = clamp(e.w / 9, 28, 46), bh = bw * 0.42, gap = 3, rows = 4;
+    const cols = Math.ceil(e.w / (bw + gap)) + 1;
+    const tones = [e.c.fx1, e.c.fx2, e.c.fx3, mix(e.c.fx1, e.c.fx2, 0.5)];
+    type B = { x: number; y: number; ty: number; vy: number; col: string; done: boolean };
+    type D = { x: number; y: number; vx: number; vy: number; a: number; r: number };
+    let slots: boolean[][] = [], bricks: B[] = [], fade = 1, hold = -1, next = 0.2;
+    const dust: D[] = [];
+    const reset = () => { slots = Array.from({ length: rows }, () => Array(cols).fill(false)); bricks = []; fade = 1; hold = -1; };
+    reset();
+    const sx = (r: number, c: number) => c * (bw + gap) - (r % 2 ? (bw + gap) / 2 : 0);
+    const sy = (r: number) => e.h - (r + 1) * (bh + gap);
+    const place = (target?: number) => {
+      for (let r = 0; r < rows; r++) {
+        const free: number[] = []; slots[r].forEach((v, c) => { if (!v) free.push(c); });
+        if (!free.length) continue;
+        const c = target == null ? pick(free) : free.reduce((b, cc) => Math.abs(sx(r, cc) + bw / 2 - target) < Math.abs(sx(r, b) + bw / 2 - target) ? cc : b);
+        slots[r][c] = true;
+        bricks.push({ x: sx(r, c), y: sy(r) - rnd(40, 80), ty: sy(r), vy: 0, col: pick(tones), done: false });
+        return true;
+      }
+      return false;
+    };
+    return {
+      step(dt) {
+        if (hold >= 0) { hold += dt; if (hold > 2.4) { fade -= dt * 0.8; if (fade <= 0) reset(); } }
+        else { next -= dt; if (next <= 0) { if (!place()) hold = 0; next = rnd(0.14, 0.32); } }
+        for (const b of bricks) {
+          if (b.done) continue;
+          b.vy += 1500 * dt; b.y += b.vy * dt;
+          if (b.y >= b.ty) { b.y = b.ty; b.done = true; for (let i = 0; i < 4; i++) dust.push({ x: b.x + rnd(0, bw), y: b.ty + bh, vx: rnd(-40, 40), vy: rnd(-50, -10), a: 0.5, r: rnd(1.5, 3.5) }); }
+        }
+        for (let i = dust.length - 1; i >= 0; i--) { const d = dust[i]; d.x += d.vx * dt; d.y += d.vy * dt; d.vy += 80 * dt; d.a -= dt * 0.9; if (d.a <= 0) dust.splice(i, 1); }
+        if (dust.length > 120) dust.splice(0, dust.length - 120);
+      },
+      draw(g) {
+        for (const b of bricks) {
+          g.fillStyle = rgba(b.col, 0.95 * fade); roundRect(g, b.x, b.y, bw, bh, 2.5); g.fill();
+          g.fillStyle = rgba('#ffffff', 0.16 * fade); g.fillRect(b.x + 2, b.y + 2, bw - 4, 2);
+          g.fillStyle = rgba('#000000', 0.16 * fade); g.fillRect(b.x + 2, b.y + bh - 3, bw - 4, 2);
+        }
+        const dc = e.dark ? '#d8d2c4' : mix(e.c.ink, '#ffffff', 0.6);
+        for (const d of dust) { g.fillStyle = rgba(dc, d.a); g.beginPath(); g.arc(d.x, d.y, d.r, 0, TAU); g.fill(); }
+      },
+      tap(x) { if (hold < 0 && !place(x)) hold = 0; },
+    };
+  },
+
+  // Advocacia e contabilidade: uma assinatura a tinta se escrevendo no papel; o toque deixa um borrão de tinta.
+  tinta(e) {
+    let pts: [number, number][] = [], prog = 0, hold = 0, fade = 1;
+    const ink = e.dark ? mix(e.c.ink, e.c.accent2, 0.35) : e.c.accent;
+    type Bl = { x: number; y: number; r: number; max: number; a: number; drops: [number, number, number][] };
+    const blots: Bl[] = [];
+    // A assinatura fica sobre a linha do pé do papel (.lk-signline, a ~28 px do fim).
+    const build = () => {
+      pts = [];
+      const x0 = e.w * rnd(0.22, 0.27), W = e.w * rnd(0.46, 0.52), y0 = e.h - clamp(e.w * 0.09, 30, 38);
+      const loops = Math.round(rnd(5, 7)), r = clamp(e.w * 0.03, 8, 14), ph = rnd(0, TAU);
+      for (let i = 0; i <= 180; i++) {
+        const t = i / 180, w = t * loops * TAU;
+        const amp = r * (t < 1 / loops ? 2.4 : 0.8 + 0.8 * Math.abs(Math.sin(t * 7.3 + ph)));
+        const y = y0 - amp * (1 - Math.cos(w)) * 0.5;
+        pts.push([x0 + W * t - r * 0.9 * Math.sin(w) + (y0 - y) * 0.45, y]);
+      }
+      const [lx, ly] = pts[pts.length - 1];
+      for (let i = 1; i <= 40; i++) { const t = i / 40; pts.push([lx + (x0 - lx) * t * 1.08, ly + r * 0.7 + Math.sin(t * Math.PI) * r * 0.5]); }
+      prog = 0; hold = 0; fade = 1;
+    };
+    build();
+    return {
+      step(dt) {
+        if (prog < 1) prog = Math.min(1, prog + dt / 3.4); else if (hold < 2.4) hold += dt; else { fade -= dt * 0.7; if (fade <= 0) build(); }
+        for (let i = blots.length - 1; i >= 0; i--) { const b = blots[i]; b.r = Math.min(b.max, b.r + dt * b.max * 5); b.a -= dt * 0.08; if (b.a <= 0) blots.splice(i, 1); }
+      },
+      draw(g) {
+        const m = Math.floor(prog * (pts.length - 1));
+        g.lineCap = 'round';
+        for (let i = 1; i <= m; i++) {
+          const [x1, y1] = pts[i - 1], [x2, y2] = pts[i];
+          const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+          g.strokeStyle = rgba(ink, 0.7 * fade); g.lineWidth = 0.7 + 1.9 * Math.abs((y2 - y1) / len);
+          g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+        }
+        if (prog < 1 && m > 0) { const [px, py] = pts[m]; g.fillStyle = rgba(ink, 0.5); g.beginPath(); g.arc(px, py, 2.4, 0, TAU); g.fill(); }
+        for (const b of blots) {
+          g.fillStyle = rgba(ink, b.a);
+          g.beginPath(); g.arc(b.x, b.y, b.r, 0, TAU); g.fill();
+          for (const [a, d, s] of b.drops) { g.beginPath(); g.arc(b.x + Math.cos(a) * d * (b.r / b.max), b.y + Math.sin(a) * d * (b.r / b.max), s, 0, TAU); g.fill(); }
+        }
+      },
+      tap(x, y) {
+        const max = rnd(9, 15);
+        blots.push({ x, y, r: 0, max, a: 0.3, drops: Array.from({ length: 6 }, () => [rnd(0, TAU), max * rnd(1.2, 2.2), rnd(1.2, 3.2)] as [number, number, number]) });
+        if (blots.length > 12) blots.shift();
+      },
+    };
+  },
 };
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

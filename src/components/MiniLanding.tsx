@@ -205,6 +205,105 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
           <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
         </>;
       }
+      case 'optician': {
+        // Tabela de exame de vista montada com as letras do nome (1, 2, 3, 4 e 5 letras por linha).
+        const letters = Array.from(name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase());
+        const src = letters.length ? letters : ['E'];
+        let k = 0;
+        const rows = [1, 2, 3, 4, 5].map(n => Array.from({ length: n }, () => src[k++ % src.length]).join(''));
+        const acuity = ['20/200', '20/100', '20/70', '20/50', '20/40'];
+        const clip = `${sealId}-lens`;
+        return <>
+          {fxEl}
+          <div className="lk-optic-top">{brandEl}</div>
+          <div className="lk-chart" aria-hidden="true">
+            {rows.map((row, i) => <div key={i} className="lk-chart-row" style={{ '--r': i } as Vars}><small>{i + 1}</small><b>{row}</b><small>{acuity[i]}</small></div>)}
+          </div>
+          <div className="lk-frames" aria-hidden="true">
+            <svg viewBox="0 0 320 136">
+              <defs><clipPath id={clip}><ellipse cx="84" cy="72" rx="68" ry="56" /><ellipse cx="236" cy="72" rx="68" ry="56" /></clipPath></defs>
+              <g clipPath={`url(#${clip})`}>
+                <rect width="320" height="136" className="lk-lens-tint" />
+                {cover && <image href={cover} x="0" y="-18" width="320" height="172" preserveAspectRatio="xMidYMid slice" />}
+                <path className="lk-glare" d="M34 46 Q56 22 96 22 M190 40 Q206 22 242 20" />
+              </g>
+              <ellipse className="lk-rim" cx="84" cy="72" rx="68" ry="56" />
+              <ellipse className="lk-rim" cx="236" cy="72" rx="68" ry="56" />
+              <path className="lk-rim" d="M150 60 Q160 46 170 60 M17 58 L3 48 M303 58 L317 48" />
+            </svg>
+          </div>
+          <div className="mini-hero-copy">{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      }
+      case 'bouquet':
+        return <>
+          {fxEl}
+          <div className="lk-posy">
+            <Sprig className="lk-sprig is-left" />
+            <Sprig className="lk-sprig is-right" />
+            <div className="lk-oval" style={coverStyle} aria-hidden="true">{!cover && <span>{initial}</span>}</div>
+            <span className="lk-ribbon" aria-hidden="true">{nicheInfo?.short ?? listTitleFor(c)}</span>
+          </div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'worksite':
+        return <>
+          <div className="lk-zebra" aria-hidden="true" />
+          {fxEl}
+          <div className="lk-site" aria-hidden="true">
+            <div className="lk-site-photo" style={coverStyle} />
+            <div className="lk-tape">{[10, 20, 30, 40, 50, 60, 70, 80, 90].map(n => <span key={n}>{n}</span>)}</div>
+          </div>
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      case 'letterhead': {
+        const skip = /^(de|da|do|das|dos|e|&|and|the|of)$/i;
+        const initials = name.split(/\s+/).filter(w => w && !skip.test(w)).slice(0, 2).map(w => Array.from(w)[0].toUpperCase());
+        const city = c.address.includes('·') ? c.address.split('·').pop()!.trim() : '';
+        // A assinatura a tinta é escrita no próprio papel (atrás do texto).
+        return <>
+          <div className="lk-letter">
+            {fxEl}
+            <span className="lk-monogram" aria-hidden="true"><span>{initials.join('') || initial}</span></span>
+            {nameEl('lk-letter-name')}
+            <span className="lk-rule" aria-hidden="true"><i /><b /><i /></span>
+            {c.headline ? heroTitle : null}
+            {heroTagline}
+            {heroCtaEl}
+            {fx === 'tinta' && <span className="lk-signline" aria-hidden="true" />}
+          </div>
+          {cover && <figure className="lk-portrait"><div className="lk-portrait-photo" style={coverStyle} aria-hidden="true" />{city && <figcaption>{city}</figcaption>}</figure>}
+        </>;
+      }
+      case 'table': {
+        const pick = c.products.find(p => p.name);
+        return <>
+          <div className="lk-cloth" aria-hidden="true" />
+          {fxEl}
+          <div className="lk-diner">{brandEl}</div>
+          <div className="lk-setting" aria-hidden="true">
+            <svg className="lk-cutlery" viewBox="0 0 24 140"><path d="M1 0H4V36H7.5V0H10.5V36H13.5V0H16.5V36H20V0H23V42C23 50 18 55 15 56V134A3 3 0 0 1 9 134V56C6 55 1 50 1 42Z" /></svg>
+            <div className="lk-dish"><div className="lk-dish-food" style={coverStyle} /></div>
+            <svg className="lk-cutlery" viewBox="0 0 24 140"><path d="M9 2C9 .8 10 0 11 0 19 6 21 28 20 64H9ZM7.5 67H19V134A5.75 5.75 0 0 1 7.5 134Z" /></svg>
+          </div>
+          {pick && <div className="lk-today"><small>Destaque</small><b>{pick.name}</b>{pick.price && <span>R$ {pick.price}</span>}</div>}
+          <div className="mini-hero-copy">{heroTitle}{heroTagline}{heroCtaEl}</div>
+        </>;
+      }
+      case 'bowl': {
+        const first = c.products.find(p => p.name);
+        return <>
+          <svg className="lk-drip" viewBox="0 0 400 96" preserveAspectRatio="none" aria-hidden="true"><path d={DRIP} /></svg>
+          {fxEl}
+          <div className="mini-hero-copy">{brandEl}{heroTitle}{heroTagline}{heroCtaEl}</div>
+          <div className="lk-cup" aria-hidden="true">
+            <i className="lk-cup-lid" />
+            <div className="lk-cup-body"><div className="lk-cup-photo" style={coverStyle} /></div>
+            {first && <span className="lk-sticker is-a">{first.name}</span>}
+            {first?.price && <span className="lk-sticker is-b">R$ {first.price}</span>}
+          </div>
+        </>;
+      }
     }
   };
 
@@ -261,6 +360,62 @@ export default function MiniLanding({ content, demo = false, thumb = false, floa
           <h3>{p.name}</h3>
           {p.description && <p>{p.description}</p>}
           {itemPrice(p.price)}
+          {itemCta(p)}
+        </li>)}</ul>;
+      case 'display':
+        return <ul className="lk-display">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          <div className="lk-acrylic">{itemImg(p, 'lk-acrylic-img')}</div>
+          <small>Modelo {String(i + 1).padStart(2, '0')}</small>
+          <h3>{p.name}</h3>
+          {itemDesc(p.description)}
+          {itemPrice(p.price)}
+          {itemCta(p)}
+        </li>)}</ul>;
+      case 'cards':
+        return <ul className="lk-cards">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          {itemImg(p, 'lk-card-img')}
+          <div className="lk-giftcard">
+            <i className="lk-string" aria-hidden="true" />
+            <span className="lk-for" aria-hidden="true">com carinho</span>
+            <h3>{p.name}</h3>
+            {p.description && <p>{p.description}</p>}
+            {itemPrice(p.price)}
+            {itemCta(p)}
+          </div>
+        </li>)}</ul>;
+      case 'quote':
+        return <div className="lk-receipt">
+          <div className="lk-receipt-head"><b>Orçamento</b><span>{name}</span></div>
+          <ul>{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+            {imageUrl(p.image) ? itemImg(p, 'lk-q-img') : null}
+            <div className="lk-q-body">
+              <div className="lk-q-head"><h3>{p.name}</h3>{p.price && <strong className="lk-price">R$ {p.price}</strong>}</div>
+              {itemDesc(p.description)}
+              {itemCta(p)}
+            </div>
+          </li>)}</ul>
+          <i className="lk-barcode" aria-hidden="true" />
+        </div>;
+      case 'index':
+        return <ol className="lk-index">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+          <span className="lk-roman" aria-hidden="true">{roman(i + 1)}</span>
+          <div className="lk-index-body"><h3>{p.name}</h3>{p.description && <p>{p.description}</p>}{itemPrice(p.price)}{itemCta(p)}</div>
+          {imageUrl(p.image) ? itemImg(p, 'lk-index-img') : null}
+        </li>)}</ol>;
+      case 'menu':
+        return <ul className="lk-carte">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 8 } as Vars}>
+          {imageUrl(p.image) ? itemImg(p, 'lk-carte-img') : null}
+          <div className="lk-carte-body">
+            <div className="lk-carte-head"><h3>{p.name}</h3><i aria-hidden="true" />{p.price && <strong className="lk-price">R$ {p.price}</strong>}</div>
+            {p.description && <p>{p.description}</p>}
+            {itemCta(p)}
+          </div>
+        </li>)}</ul>;
+      case 'cups':
+        return <ul className="lk-cups">{list.map((p, i) => <li key={p.id} data-reveal style={{ '--i': i % 6 } as Vars}>
+          <div className="lk-cupcard">{itemImg(p, 'lk-cupcard-img')}{p.price && <span className="lk-cup-price">R$ {p.price}</span>}</div>
+          <h3>{p.name}</h3>
+          {p.description && <p>{p.description}</p>}
           {itemCta(p)}
         </li>)}</ul>;
     }
@@ -483,6 +638,45 @@ function Marquee({ items, reverse = false }: { items: string[]; reverse?: boolea
   const list = items.filter(Boolean);
   const run = <span className="mini-marquee-run">{list.map((t, i) => <Fragment key={i}><span>{t}</span><b>✦</b></Fragment>)}</span>;
   return <div className={`mini-marquee${reverse ? ' is-reverse' : ''}`}><div className="mini-marquee-track">{run}{run}{run}{run}</div></div>;
+}
+
+// I, II, III... para o sumário de áreas de atuação.
+function roman(n: number) {
+  const map: [string, number][] = [['M', 1000], ['CM', 900], ['D', 500], ['CD', 400], ['C', 100], ['XC', 90], ['L', 50], ['XL', 40], ['X', 10], ['IX', 9], ['V', 5], ['IV', 4], ['I', 1]];
+  let out = '';
+  for (const [r, v] of map) while (n >= v) { out += r; n -= v; }
+  return out;
+}
+
+// Calda escorrendo do topo da capa (açaí): faixa com gotas de tamanhos diferentes.
+const DRIP = (() => {
+  const band = 34;
+  const drops: [number, number][] = [[372, 30], [318, 58], [262, 24], [214, 46], [156, 22], [104, 62], [52, 28]];
+  let d = `M0 0H400V${band}`;
+  for (const [x, len] of drops) {
+    const y = band + len;
+    d += `L${x + 10} ${band}C${x + 6} ${band} ${x + 6.5} ${y - 10} ${x + 6.5} ${y - 5}A6.5 6.5 0 0 1 ${x - 6.5} ${y - 5}C${x - 6.5} ${y - 10} ${x - 6} ${band} ${x - 10} ${band}`;
+  }
+  return d + `L0 ${band}Z`;
+})();
+
+// Raminho desenhado à mão (floricultura): caule, folhas e três flores.
+function Sprig({ className }: { className: string }) {
+  // O <g> de fora posiciona; o de dentro anima (transform do CSS sobrescreveria o atributo).
+  const bloom = (x: number, y: number, s: number, d: number) => <g transform={`translate(${x} ${y}) scale(${s})`}><g className="lk-bloom" style={{ '--d': d } as Vars}>
+    {[0, 72, 144, 216, 288].map(a => <ellipse key={a} cx="0" cy="-8" rx="5.2" ry="8" transform={`rotate(${a})`} />)}
+    <circle r="3.6" />
+  </g></g>;
+  return <svg className={className} viewBox="0 0 120 240" aria-hidden="true">
+    <path className="lk-stem" pathLength={1} d="M64 238C60 196 50 160 58 122C64 92 76 70 70 40C67 26 62 16 56 10" />
+    <path className="lk-stem" pathLength={1} d="M57 150C44 136 34 118 30 98" />
+    <path className="lk-stem" pathLength={1} d="M66 96C78 86 90 72 94 54" />
+    <path className="lk-leaf" d="M60 204C42 200 30 188 26 172C44 174 56 186 60 204Z" />
+    <path className="lk-leaf" d="M61 180C79 174 91 160 93 144C75 148 63 162 61 180Z" />
+    <path className="lk-leaf" d="M44 132C30 130 20 120 18 108C32 110 42 120 44 132Z" />
+    <path className="lk-leaf" d="M72 86C86 82 96 72 100 60C86 62 76 72 72 86Z" />
+    {bloom(56, 12, 1, 0)}{bloom(30, 96, 0.8, 1)}{bloom(94, 52, 0.72, 2)}
+  </svg>;
 }
 
 const ECG = 'M0 60 H46 L58 60 L66 38 L74 76 L86 8 L98 92 L108 52 L118 60 H286 L296 60 L302 48 L310 70 L318 60 H400';

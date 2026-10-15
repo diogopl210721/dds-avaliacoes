@@ -136,6 +136,48 @@ export const PALETTES: Record<MiniTheme, Palette[]> = {
     mk('p3', 'Mel', { bg: '#f6ecd6', surface: '#fdf6e6', ink: '#33280f', muted: '#76684a', accent: '#8a5a00', accent2: '#4a7536', line: '#33280f2b', fx: ['#f2c76a', '#c9d89a', '#f7e2a8'] }),
     mk('p4', 'Mata', { bg: '#1c251a', surface: '#253022', ink: '#f1ead8', muted: '#b4b39a', accent: '#b5d68a', accent2: '#e0a96a', onAccent: '#1c251a', line: '#f1ead826', fx: ['#3d5a32', '#b5d68a', '#e0a96a'] }),
   ],
+  // Ótica: tabela de exame de vista (branco clínico e a linha vermelha da tabela).
+  lente: [
+    mk('p1', 'Azul óptico', { bg: '#f3f6fa', surface: '#ffffff', ink: '#0c1b2e', muted: '#55657a', accent: '#1747d1', accent2: '#e0452b', line: '#0c1b2e1c', fx: ['#1747d1', '#e0452b', '#7a8ba3'] }),
+    mk('p2', 'Tartaruga', { bg: '#f7f1e9', surface: '#fffdf9', ink: '#2a1a10', muted: '#76604e', accent: '#8a4a1c', accent2: '#c9502c', line: '#2a1a101c', fx: ['#8a4a1c', '#c9502c', '#b59a7c'] }),
+    mk('p3', 'Preto fosco', { bg: '#0f1012', surface: '#18191c', ink: '#f2f3f5', muted: '#9ea3ab', accent: '#f2f3f5', accent2: '#ff5a3c', onAccent: '#0f1012', line: '#f2f3f521', fx: ['#f2f3f5', '#ff5a3c', '#5d636d'] }),
+    mk('p4', 'Menta', { bg: '#eef7f3', surface: '#ffffff', ink: '#0f2a22', muted: '#4e6a60', accent: '#0d7356', accent2: '#e26a2c', line: '#0f2a221c', fx: ['#0d7356', '#e26a2c', '#8aa79c'] }),
+  ],
+  // Floricultura: papel de seda, pétala e folha.
+  flora: [
+    mk('p1', 'Rosa e folha', { bg: '#fbf1ee', surface: '#fffaf8', ink: '#33191f', muted: '#7a5e64', accent: '#ad3557', accent2: '#5b8a4a', line: '#33191f1f', fx: ['#f2a7b8', '#9cc58a', '#f7d27a'] }),
+    mk('p2', 'Lavanda', { bg: '#f5f1fa', surface: '#fdfbff', ink: '#2a1f3d', muted: '#6a5d80', accent: '#6c4bb0', accent2: '#6f9a55', line: '#2a1f3d1f', fx: ['#c9b3ee', '#a9cf8f', '#f4c6dd'] }),
+    mk('p3', 'Girassol', { bg: '#fcf5e2', surface: '#fffcf2', ink: '#2e2410', muted: '#73664a', accent: '#a65a06', accent2: '#4f7a3a', line: '#2e24101f', fx: ['#f7c948', '#9cc58a', '#f08a4b'] }),
+    mk('p4', 'Jardim à noite', { bg: '#16201a', surface: '#1f2b23', ink: '#f6ece6', muted: '#b7b0a6', accent: '#f2a7b8', accent2: '#b5d68a', onAccent: '#16201a', line: '#f6ece621', fx: ['#f2a7b8', '#b5d68a', '#f7d27a'] }),
+  ],
+  // Material de construção: faixa zebrada, concreto e amarelo de obra.
+  obra: [
+    mk('p1', 'Amarelo obra', { bg: '#efede7', surface: '#ffffff', ink: '#1a1a17', muted: '#5f5d55', accent: '#ffc414', accent2: '#1a1a17', onAccent: '#1a1a17', line: '#1a1a1726', fx: ['#b5512d', '#cf6a3d', '#8f3f22'], extra: { tape: '#ffd21a' } }),
+    mk('p2', 'Laranja cone', { bg: '#f1eee9', surface: '#ffffff', ink: '#1d1a17', muted: '#625b53', accent: '#ff6a13', accent2: '#1d1a17', onAccent: '#1d1a17', line: '#1d1a1726', fx: ['#b5512d', '#cf6a3d', '#8f3f22'], extra: { tape: '#ffd21a' } }),
+    mk('p3', 'Azul ferramenta', { bg: '#eef0f3', surface: '#ffffff', ink: '#121a26', muted: '#56606e', accent: '#1f5fbf', accent2: '#ffc414', line: '#121a2626', fx: ['#b5512d', '#cf6a3d', '#8f3f22'], extra: { tape: '#ffd21a' } }),
+    mk('p4', 'Concreto', { bg: '#1b1c1d', surface: '#25272a', ink: '#f1efe8', muted: '#aaa79e', accent: '#ffc414', accent2: '#f1efe8', onAccent: '#1b1c1d', line: '#f1efe824', fx: ['#a24a2a', '#c4643a', '#7d3720'], extra: { tape: '#ffd21a' } }),
+  ],
+  // Advocacia e contabilidade: papel timbrado, marinho e dourado.
+  oficio: [
+    mk('p1', 'Marinho', { bg: '#f6f3ec', surface: '#fffdf8', ink: '#14213a', muted: '#5b6476', accent: '#14213a', accent2: '#9a7a2e', onAccent: '#f6f3ec', line: '#14213a24', fx: ['#14213a', '#9a7a2e', '#5b6476'] }),
+    mk('p2', 'Bordô', { bg: '#f7f2ee', surface: '#fffcf9', ink: '#2a1418', muted: '#6e5a5d', accent: '#6e1f2e', accent2: '#9a7a2e', onAccent: '#f7f2ee', line: '#2a141824', fx: ['#6e1f2e', '#9a7a2e', '#6e5a5d'] }),
+    mk('p3', 'Verde garrafa', { bg: '#f3f4ef', surface: '#fcfdf8', ink: '#13261f', muted: '#56665e', accent: '#1f4a3a', accent2: '#9a7a2e', onAccent: '#f3f4ef', line: '#13261f24', fx: ['#1f4a3a', '#9a7a2e', '#56665e'] }),
+    mk('p4', 'Grafite', { bg: '#141619', surface: '#1c1f23', ink: '#ece8df', muted: '#a7a39a', accent: '#c9a861', accent2: '#c9a861', onAccent: '#141619', line: '#ece8df24', fx: ['#ece8df', '#c9a861', '#7d7a73'] }),
+  ],
+  // Restaurante: toalha xadrez de cantina.
+  mesa: [
+    mk('p1', 'Toalha vermelha', { bg: '#fbf6ee', surface: '#ffffff', ink: '#2b1a12', muted: '#7a6352', accent: '#b8322a', accent2: '#3d7a3a', line: '#2b1a121f', fx: ['#5fa83f', '#79be52', '#d9472b'], extra: { cloth: '#c0392b' } }),
+    mk('p2', 'Azul boteco', { bg: '#f6f4ee', surface: '#ffffff', ink: '#14223a', muted: '#5d6676', accent: '#1f4e8c', accent2: '#d99a1e', line: '#14223a1f', fx: ['#5fa83f', '#79be52', '#f2b705'], extra: { cloth: '#2a5ea8' } }),
+    mk('p3', 'Verde ervas', { bg: '#f5f6ee', surface: '#ffffff', ink: '#1b2a18', muted: '#5c6857', accent: '#2f6b3a', accent2: '#c8452b', line: '#1b2a181f', fx: ['#5fa83f', '#8f9a3c', '#d9472b'], extra: { cloth: '#3d7a3a' } }),
+    mk('p4', 'Cantina à noite', { bg: '#1a1411', surface: '#251c17', ink: '#f6ebdd', muted: '#c1ab95', accent: '#e8a33d', accent2: '#e05a3a', onAccent: '#1a1411', line: '#f6ebdd21', fx: ['#79be52', '#e8a33d', '#e05a3a'], extra: { cloth: '#8a2a1f' } }),
+  ],
+  // Açaí e sorveteria: calda escorrendo.
+  tigela: [
+    mk('p1', 'Açaí', { bg: '#f7f0fb', surface: '#ffffff', ink: '#2a0f3a', muted: '#6b5480', accent: '#5b1a7a', accent2: '#ff4f8b', line: '#2a0f3a1f', fx: ['#ff4f8b', '#ffd23f', '#7ad3a8'], extra: { calda: '#4a1066' } }),
+    mk('p2', 'Morango', { bg: '#fff3f5', surface: '#ffffff', ink: '#3a0f1c', muted: '#7d5560', accent: '#c81e4b', accent2: '#5b1a7a', line: '#3a0f1c1f', fx: ['#ff7aa8', '#ffd23f', '#7ad3a8'], extra: { calda: '#a8123c' } }),
+    mk('p3', 'Pistache e chocolate', { bg: '#effaf5', surface: '#ffffff', ink: '#14281f', muted: '#52685d', accent: '#1c7a5c', accent2: '#ff7aa8', line: '#14281f1f', fx: ['#ff7aa8', '#ffd23f', '#a46a44'], extra: { calda: '#5b341c' } }),
+    mk('p4', 'Noite roxa', { bg: '#1a0b24', surface: '#261334', ink: '#fbefff', muted: '#c2a9d1', accent: '#ffd23f', accent2: '#ff4f8b', onAccent: '#1a0b24', line: '#fbefff21', fx: ['#ff4f8b', '#ffd23f', '#7ad3a8'], extra: { calda: '#8a2ab8' } }),
+  ],
 };
 
 const DARK = new Set<MiniTheme>(['elegance', 'brasa', 'navalha', 'impulso', 'pace', 'garagem']);
@@ -179,6 +221,12 @@ function brandVars(theme: MiniTheme, hex: string): Vars {
     case 'forno': v['--awning'] = accent; set(fromHsl(h, 60, 85), fromHsl(h + 20, 70, 72), fromHsl(h, 70, 94)); break;
     case 'planta': set(fromHsl(h, 25, 90), fromHsl(h + 35, 55, 60), accent); break;
     case 'raiz': set(fromHsl(h, 40, 66), fromHsl(h + 40, 60, 72), fromHsl(h - 20, 35, 52)); break;
+    case 'lente': v['--accent2'] = fromHsl(h + 180, 75, 52); set(accent, fromHsl(h + 180, 75, 52), fromHsl(h, 15, 58)); break;
+    case 'flora': set(fromHsl(h, 70, 78), fromHsl(h + 120, 35, 68), fromHsl(h + 40, 85, 72)); break;
+    case 'obra': break;
+    case 'oficio': v['--accent2'] = fromHsl(43, 54, 39); set(accent, fromHsl(43, 54, 39), fromHsl(h, 12, 45)); break;
+    case 'mesa': v['--cloth'] = fromHsl(h, Math.min(80, s), 46); break;
+    case 'tigela': v['--calda'] = fromHsl(h, Math.min(85, s), 26); set(fromHsl(h + 40, 95, 66), fromHsl(48, 100, 62), fromHsl(150, 50, 65)); break;
   }
   return finish(v);
 }

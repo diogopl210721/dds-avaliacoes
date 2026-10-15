@@ -9,7 +9,8 @@ export type FxKind =
   | 'brilho' | 'ondas' | 'pegadas' | 'bolhas'
   | 'impacto' | 'respira' | 'faiscas' | 'chuva'
   | 'brotos' | 'etiquetas' | 'circuito'
-  | 'pista' | 'flash' | 'farinha' | 'planta' | 'farois' | 'folhas';
+  | 'pista' | 'flash' | 'farinha' | 'planta' | 'farois' | 'folhas'
+  | 'foco' | 'flores' | 'tijolos' | 'tinta';
 
 export type NicheId =
   | 'pizzaria' | 'restaurante' | 'cafeteria' | 'acai' | 'adega'
@@ -17,11 +18,12 @@ export type NicheId =
   | 'dentista' | 'terapias' | 'veterinaria' | 'petshop'
   | 'academia' | 'pilates' | 'oficina' | 'lavacar'
   | 'jardinagem' | 'loja' | 'assistencia'
-  | 'corrida' | 'moda' | 'panificadora' | 'imobiliaria' | 'carros' | 'naturais';
+  | 'corrida' | 'moda' | 'panificadora' | 'imobiliaria' | 'carros' | 'naturais'
+  | 'otica' | 'floricultura' | 'construcao' | 'escritorio';
 
 export type NicheGroup = 'comida' | 'beleza' | 'saude' | 'movimento' | 'carro' | 'lojas' | 'casa';
 // Segmento dos textos automáticos (miniAutofill) usado como base para o ramo.
-export type NicheSegment = 'gastronomia' | 'beleza' | 'barbearia' | 'saude' | 'fitness' | 'loja' | 'automotivo' | 'pet' | 'servicos';
+export type NicheSegment = 'gastronomia' | 'beleza' | 'barbearia' | 'saude' | 'fitness' | 'loja' | 'automotivo' | 'pet' | 'escritorio' | 'servicos';
 
 export type NicheInfo = {
   id: NicheId; label: string; short: string; group: NicheGroup;
@@ -44,10 +46,10 @@ const n = (id: NicheId, label: string, short: string, group: NicheGroup, theme: 
 // A ordem é a da vitrine. Todos os IDs precisam estar na lista da função plate-mini (content.ts).
 export const NICHES: NicheInfo[] = [
   n('pizzaria', 'Pizzaria e hamburgueria', 'Pizzaria', 'comida', 'brasa', 'p1', 'vapor', 'Vapor saindo do forno', 'Cardápio', 'gastronomia'),
-  n('restaurante', 'Restaurante, marmitaria e lanchonete', 'Restaurante', 'comida', 'brasa', 'p3', 'temperos', 'Ervas e temperos no ar', 'Cardápio do dia', 'gastronomia'),
+  n('restaurante', 'Restaurante, marmitaria e lanchonete', 'Restaurante', 'comida', 'mesa', 'p1', 'temperos', 'Ervas e temperos no ar', 'Cardápio do dia', 'gastronomia'),
   n('cafeteria', 'Cafeteria e confeitaria', 'Cafeteria', 'comida', 'elegance', 'p1', 'graos', 'Grãos de café caindo', 'Cardápio', 'gastronomia'),
   n('panificadora', 'Panificadora e padaria', 'Padaria', 'comida', 'forno', 'p1', 'farinha', 'Farinha no ar que o dedo espalha', 'Saindo do forno', 'gastronomia'),
-  n('acai', 'Açaí, sorveteria e doceria', 'Açaí e doces', 'comida', 'viva', 'p2', 'gotas', 'Calda escorrendo e granulado', 'Cardápio', 'gastronomia'),
+  n('acai', 'Açaí, sorveteria e doceria', 'Açaí e doces', 'comida', 'tigela', 'p1', 'gotas', 'Calda escorrendo e granulado', 'Cardápio', 'gastronomia'),
   n('adega', 'Adega, empório e distribuidora', 'Adega', 'comida', 'elegance', 'p2', 'espumante', 'Bolhas de espumante', 'Rótulos', 'loja'),
   n('naturais', 'Produtos naturais e granel', 'Naturais', 'comida', 'raiz', 'p1', 'folhas', 'Folhas que o vento leva', 'Na prateleira', 'loja'),
   n('salao', 'Salão de beleza', 'Salão', 'beleza', 'aura', 'p1', 'seda', 'Fios de seda em movimento', 'Serviços', 'beleza'),
@@ -65,10 +67,14 @@ export const NICHES: NicheInfo[] = [
   n('lavacar', 'Lava-car e estética automotiva', 'Lava-car', 'carro', 'impulso', 'p2', 'chuva', 'Gotas no vidro que o dedo limpa', 'Serviços', 'automotivo'),
   n('carros', 'Loja de carros e seminovos', 'Loja de carros', 'carro', 'garagem', 'p1', 'farois', 'Faróis passando na noite', 'Estoque', 'automotivo'),
   n('moda', 'Moda e boutique', 'Moda', 'lojas', 'atelier', 'p1', 'flash', 'Flashes de desfile', 'Coleção', 'loja'),
+  n('otica', 'Ótica e óculos', 'Ótica', 'lojas', 'lente', 'p1', 'foco', 'Letras que entram em foco', 'Armações e lentes', 'loja'),
+  n('floricultura', 'Floricultura e flores para presente', 'Floricultura', 'lojas', 'flora', 'p1', 'flores', 'Flores desabrochando', 'Buquês e arranjos', 'loja'),
   n('loja', 'Loja de presentes, calçados e variedades', 'Loja', 'lojas', 'viva', 'p4', 'etiquetas', 'Etiquetas balançando', 'Novidades', 'loja'),
-  n('jardinagem', 'Jardinagem, paisagismo e floricultura', 'Jardinagem', 'casa', 'refugio', 'p2', 'brotos', 'Plantas brotando', 'Serviços', 'servicos'),
+  n('construcao', 'Material de construção e ferragens', 'Construção', 'casa', 'obra', 'p1', 'tijolos', 'Tijolos subindo a parede', 'Materiais', 'loja'),
+  n('jardinagem', 'Jardinagem e paisagismo', 'Jardinagem', 'casa', 'refugio', 'p2', 'brotos', 'Plantas brotando', 'Serviços', 'servicos'),
   n('imobiliaria', 'Imobiliária e corretor de imóveis', 'Imobiliária', 'casa', 'planta', 'p1', 'planta', 'Planta baixa se desenhando', 'Imóveis em destaque', 'servicos'),
   n('assistencia', 'Assistência técnica de celular e informática', 'Assistência técnica', 'casa', 'essencial', 'p1', 'circuito', 'Circuito com energia passando', 'Serviços', 'servicos'),
+  n('escritorio', 'Advocacia, contabilidade e consultoria', 'Escritório', 'casa', 'oficio', 'p1', 'tinta', 'Assinatura a tinta', 'Áreas de atuação', 'escritorio'),
 ];
 
 export const NICHE_IDS = NICHES.map(x => x.id);

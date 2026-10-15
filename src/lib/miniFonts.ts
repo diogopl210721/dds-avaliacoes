@@ -18,6 +18,13 @@ export const THEME_FONTS: Record<MiniTheme, string[]> = {
   planta: ['Urbanist:wght@300..800'],
   garagem: ['Exo+2:ital,wght@0,400..800;1,600..900'],
   raiz: ['Gloock', 'Nunito:wght@400;600;700;800', 'Caveat:wght@500;700'],
+  // Pesos fixos (sem faixa): um nome ou peso errado derruba o pedido de fontes inteiro.
+  lente: ['Lexend:wght@300;400;500;600;700;800'],
+  flora: ['Instrument+Serif:ital@0;1', 'Instrument+Sans:wght@400;500;600;700', 'Parisienne'],
+  obra: ['Saira+Stencil+One', 'Chivo:wght@400;500;700;800', 'IBM+Plex+Mono:wght@400;500;600'],
+  oficio: ['Libre+Caslon+Display', 'Libre+Caslon+Text:ital,wght@0,400;0,700;1,400', 'Public+Sans:wght@400;500;600;700'],
+  mesa: ['Abril+Fatface', 'Karla:wght@400;500;600;700;800'],
+  tigela: ['Lilita+One', 'Fredoka:wght@400;500;600;700'],
 };
 
 export function fontsUrl(themes: MiniTheme[]) {

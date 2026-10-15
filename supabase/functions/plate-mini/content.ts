@@ -1,8 +1,8 @@
 // Validação do conteúdo do mini site (sem dependências: testável fora do Deno).
-export const THEMES = ["elegance", "viva", "essencial", "brasa", "aura", "navalha", "vital", "impulso", "refugio", "pace", "atelier", "forno", "planta", "garagem", "raiz"];
+export const THEMES = ["elegance", "viva", "essencial", "brasa", "aura", "navalha", "vital", "impulso", "refugio", "pace", "atelier", "forno", "planta", "garagem", "raiz", "lente", "flora", "obra", "oficio", "mesa", "tigela"];
 const PALETTES = ["p1", "p2", "p3", "p4", "brand"];
 // Ramos (src/lib/miniNicheCore.ts): ligam o efeito animado da capa.
-export const NICHES = ["pizzaria", "restaurante", "cafeteria", "acai", "adega", "salao", "unhas", "estetica", "barbearia", "dentista", "terapias", "veterinaria", "petshop", "academia", "pilates", "oficina", "lavacar", "jardinagem", "loja", "assistencia", "corrida", "moda", "panificadora", "imobiliaria", "carros", "naturais"];
+export const NICHES = ["pizzaria", "restaurante", "cafeteria", "acai", "adega", "salao", "unhas", "estetica", "barbearia", "dentista", "terapias", "veterinaria", "petshop", "academia", "pilates", "oficina", "lavacar", "jardinagem", "loja", "assistencia", "corrida", "moda", "panificadora", "imobiliaria", "carros", "naturais", "otica", "floricultura", "construcao", "escritorio"];
 const ICONS = ["shield", "clock", "star", "heart", "truck", "award", "leaf", "sparkles", "thumbs", "wrench", "smile", "zap", "calendar", "users", "wallet", "pin"];
 
 export function text(value: unknown, max = 1000) { return typeof value === "string" ? value.trim().slice(0, max) : ""; }
