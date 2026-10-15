@@ -4,7 +4,7 @@ import {
   ArrowLeft, BarChart3, Cake, ChevronDown, FileSpreadsheet, FileText, KeyRound, LayoutDashboard, Link2, LogOut,
   MessageCircle, Nfc, Phone, QrCode, TrendingUp, Users,
 } from "lucide-react";
-import PlateMiniOffer, { PlateMiniAccess } from "../components/PlateMiniOffer";
+import PlateMiniOffer, { PlateMiniAccess, isSiteAccess } from "../components/PlateMiniOffer";
 import { callFunction } from "../lib/supabaseClient";
 import { AuthShell, MenuPlaca, Campo, BotaoEnviar, Erro, TituloForm, EscolhaPedirDados, somente4Digitos } from "../components/PlacaUi";
 import { Aurora, BrandMark, CountUp, Spinner, spotMove } from "../components/ui/Fx";
@@ -272,7 +272,7 @@ export default function Analise() {
   if (miniEditor) return <>
     <div className="sticky top-0 z-40 flex items-center justify-between gap-3 px-4 py-2.5 bg-navy-950 text-white border-b border-white/10">
       <button className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#8fd8ff] hover:text-white" onClick={() => setMiniEditor(null)}><ArrowLeft size={16} /> Voltar ao meu sistema</button>
-      <span className="hidden sm:block text-xs text-[#a7b7d1]">Mini site da placa {miniEditor.codigo}</span>
+      <span className="hidden sm:block text-xs text-[#a7b7d1]">Mini site {isSiteAccess(miniEditor.codigo) ? "" : "da placa "}{miniEditor.codigo}</span>
     </div>
     <Suspense fallback={<ScreenLoading light label="Abrindo o estúdio…" />}><MiniStudio plateAccess={miniEditor} /></Suspense>
   </>;
@@ -293,6 +293,8 @@ export default function Analise() {
     const pctQr = qr + nfc > 0 ? Math.round((qr / (qr + nfc)) * 100) : 0;
     const status = STATUS_LABEL[resultado.status] ?? resultado.status;
     const ativa = resultado.status === "ATIVA";
+    // Acesso só de mini site (SITE-0001, sem plaquinha): o painel mostra só o mini site.
+    const soSite = isSiteAccess(resultado.codigo);
 
     return (
       <div className="min-h-[100dvh] bg-[#f4f6fb] pb-16">
@@ -307,20 +309,32 @@ export default function Analise() {
               <p className="text-xs font-bold tracking-[.2em] uppercase text-[#66e0ff] flex items-center gap-2"><LayoutDashboard size={14} /> Meu sistema</p>
               <h1 className="mt-2 font-display text-[clamp(28px,4.5vw,44px)] font-extrabold tracking-[-.04em] leading-[1.05] text-white">{resultado.empresa ?? "Meu sistema"}</h1>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <span className="dds-chip bg-white/10 text-[#d6e3f8] font-mono">Código {resultado.codigo}</span>
+                <span className="dds-chip bg-white/10 text-[#d6e3f8] font-mono">{soSite ? "Acesso" : "Código"} {resultado.codigo}</span>
                 <span className={`dds-chip ${ativa ? "bg-emerald-400/15 text-emerald-300" : "bg-amber-400/15 text-amber-200"}`}><span className={`w-1.5 h-1.5 rounded-full ${ativa ? "bg-emerald-300" : "bg-amber-300"}`} />Status: {status}</span>
               </div>
               {avisoSenha && <p className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-400/15 px-3.5 py-2 text-sm font-semibold text-emerald-200 dds-fade" role="status">✓ Senha trocada. Use a nova senha a partir de agora.</p>}
             </div>
             <div className="flex flex-wrap gap-2 self-start sm:self-auto dds-rise" style={{ ["--d" as string]: ".1s" }}>
-              <Link to={`/editar?codigo=${encodeURIComponent(resultado.codigo)}`} className="dds-btn dds-btn-ghost-dark"><Link2 size={16} /> Trocar o link da minha placa</Link>
+              {!soSite && <Link to={`/editar?codigo=${encodeURIComponent(resultado.codigo)}`} className="dds-btn dds-btn-ghost-dark"><Link2 size={16} /> Trocar o link da minha placa</Link>}
               <button type="button" onClick={() => { setAvisoSenha(false); setTrocandoSenha(true); }} className="dds-btn dds-btn-ghost-dark"><KeyRound size={16} /> Trocar senha</button>
             </div>
           </div>
 
         </header>
 
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
+        {soSite ? <main className="max-w-6xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
+          <PlateMiniOffer codigo={resultado.codigo} senha={pin.trim()} empresa={resultado.empresa} onOpen={setMiniEditor} />
+          <section className="dds-card dds-card-pad flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <span className="dds-icon-tile"><QrCode size={18} /></span>
+              <div>
+                <h2 className="font-display font-bold text-ink">Quer também a plaquinha de avaliações do Google?</h2>
+                <p className="mt-1 text-sm text-ink-muted leading-relaxed">Com QR Code e NFC, seus clientes avaliam em segundos e você acompanha os acessos aqui no mesmo sistema.</p>
+              </div>
+            </div>
+            <a href={`https://wa.me/5541991542931?text=${encodeURIComponent(`Olá! ${resultado.empresa ? `Sou da ${resultado.empresa} (acesso ${resultado.codigo})` : `Meu acesso é o ${resultado.codigo}`} e quero saber da plaquinha de avaliações.`)}`} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-whats shrink-0"><MessageCircle size={16} /> Falar com a DDS</a>
+          </section>
+        </main> : <main className="max-w-6xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <Kpi icon={<Users size={20} />} label="Total de acessos" value={resultado.totalAcessos} d={0}>
               <div className="mt-4">
@@ -438,7 +452,7 @@ export default function Analise() {
           <Card icon={<TrendingUp size={18} />} title="Acessos por ano">
             {anos.length === 0 ? <SemDados /> : <BarrasLista linhas={anos} />}
           </Card>
-        </main>
+        </main>}
 
         {trocandoSenha && (
           <TrocarSenha
@@ -463,11 +477,11 @@ export default function Analise() {
       <TituloForm icon={<LayoutDashboard size={20} />} titulo="Acesse meu sistema" texto="Use o código e a senha da sua placa para acessar estatísticas, contatos e a criação do seu mini site." />
       <form onSubmit={consultar} className="space-y-4">
         <label className="block">
-          <span className="dds-label">Código da placa</span>
+          <span className="dds-label">Código da placa ou do mini site</span>
           <input
             value={codigo}
             onChange={(e) => setCodigo(e.target.value)}
-            placeholder="Ex: DDS215"
+            placeholder="Ex: DDS215 ou SITE-0001"
             required
             autoComplete="username"
             className="dds-input"
@@ -612,7 +626,7 @@ function TrocarSenha({ codigo, senhaAtual, onFechar, onTrocada }: {
           <span className="dds-icon-tile shrink-0"><KeyRound size={18} /></span>
           <div>
             <h2 id="trocar-senha-titulo" className="font-display text-lg font-extrabold tracking-tight text-ink">Trocar senha</h2>
-            <p className="text-sm text-ink-muted leading-relaxed">Placa {codigo}. A nova senha vale para entrar no sistema, trocar o link e editar o mini site.</p>
+            <p className="text-sm text-ink-muted leading-relaxed">{isSiteAccess(codigo) ? `Acesso ${codigo}. A nova senha vale para entrar no sistema e editar o mini site.` : `Placa ${codigo}. A nova senha vale para entrar no sistema, trocar o link e editar o mini site.`}</p>
           </div>
         </div>
         <Campo label="Nova senha (4 números)" value={nova} onChange={(v) => { setNova(somente4Digitos(v)); setErro(null); }} placeholder="0000" inputMode="numeric" maxLength={4} autoComplete="new-password" />

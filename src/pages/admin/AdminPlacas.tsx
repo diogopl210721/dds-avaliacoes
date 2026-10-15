@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft, ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Download, History, KeyRound, Layers, Lock,
   Pause, Phone, Play, Plus, RotateCcw, Search, Sparkles, Store, Trash2, Unlock, X, Zap, CheckCircle2, Clock3,
+  Globe, MessageCircle,
 } from "lucide-react";
 import { supabase, callFunction } from "../../lib/supabaseClient";
 import { linkDaPropriaPlaca, MSG_LINK_DA_PLACA } from "../../lib/linkGuard";
@@ -13,6 +14,10 @@ import { Aurora, BrandMark, CountUp, Spinner } from "../../components/ui/Fx";
 import { ScreenLoading } from "../../components/ui/Screen";
 
 const MiniStudio = lazy(() => import("../MiniStudio"));
+
+// Acessos só de mini site (sem plaquinha): série SITE-0001, SITE-0002… (função admin-create-site-access).
+const soSite = (codigo: string) => /^SITE-\d+$/i.test(codigo);
+const SISTEMA_URL = "https://www.ddsinovacao.com.br/dds-avaliacoes/#/sistema";
 
 type DdsLinkResumo = {
   id: string;
@@ -61,6 +66,7 @@ export default function AdminPlacas() {
   const [erro, setErro] = useState<string | null>(null);
 
   const [selecionada, setSelecionada] = useState<Plate | null>(null);
+  const [novoSite, setNovoSite] = useState(false);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [novoDestino, setNovoDestino] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -341,8 +347,10 @@ export default function AdminPlacas() {
     <Suspense fallback={<ScreenLoading light label="Abrindo o estúdio…" />}><MiniStudio plateAccess={miniEditor} /></Suspense>
   </>;
 
-  const ativas = plates.filter(p => p.status === "ATIVA").length;
-  const aguardando = plates.filter(p => p.status === "AGUARDANDO_ATIVACAO" || p.status === "CRIADA").length;
+  // As contas só de mini site não são placas: ficam fora das contagens de placas.
+  const placasReais = plates.filter(p => !soSite(p.codigo));
+  const ativas = placasReais.filter(p => p.status === "ATIVA").length;
+  const aguardando = placasReais.filter(p => p.status === "AGUARDANDO_ATIVACAO" || p.status === "CRIADA").length;
   const miniLiberados = plates.filter(p => p.mini_site_enabled).length;
 
   return (
@@ -377,13 +385,16 @@ export default function AdminPlacas() {
             <button onClick={criarLote} disabled={criando} className="dds-btn dds-btn-glow">
               {criando ? <><Spinner /> Gerando...</> : <><Plus size={18} /> Gerar placas</>}
             </button>
+            <button onClick={() => setNovoSite(true)} className="dds-btn dds-btn-ghost-dark" title="Cliente que quer só o mini site, sem plaquinha">
+              <Globe size={17} /> <span className="hidden sm:inline">Cliente sem plaquinha</span><span className="sm:hidden">Só site</span>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Kpi icon={<Layers size={19} />} label="Placas no painel" value={plates.length} loading={carregando} d={0} />
+          <Kpi icon={<Layers size={19} />} label="Placas no painel" value={placasReais.length} loading={carregando} d={0} />
           <Kpi icon={<CheckCircle2 size={19} />} label="Ativas" value={ativas} loading={carregando} d={.05} tone="green" />
           <Kpi icon={<Clock3 size={19} />} label="Aguardando ativação" value={aguardando} loading={carregando} d={.1} tone="amber" />
           <Kpi icon={<Sparkles size={19} />} label="Mini sites liberados" value={miniLiberados} loading={carregando} d={.15} tone="violet" />
@@ -436,6 +447,7 @@ export default function AdminPlacas() {
                       className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer transition-colors hover:bg-[#f5f9ff] ${selecionada?.id === p.id ? "bg-[#eef6ff]" : ""}`}
                     >
                       <span className="font-mono font-bold text-sm shrink-0">{p.codigo}</span>
+                      {soSite(p.codigo) && <SiteBadge />}
                       <span className="text-sm text-ink-muted truncate flex-1 min-w-0">{p.companies?.nome ?? "—"}</span>
                       <StatusBadge status={p.status} />
                       <ChevronRight size={16} className="text-[#b9c6dc] shrink-0" />
@@ -462,7 +474,7 @@ export default function AdminPlacas() {
                           onClick={() => abrirDetalhe(p)}
                           className={`group border-t border-[#eef2f8] cursor-pointer transition-colors hover:bg-[#f5f9ff] ${selecionada?.id === p.id ? "bg-[#eef6ff] shadow-[inset_3px_0_0_#1a6fe0]" : ""}`}
                         >
-                          <td className="px-4 py-3 font-mono font-bold">{p.codigo}</td>
+                          <td className="px-4 py-3 font-mono font-bold"><span className="inline-flex items-center gap-2">{p.codigo}{soSite(p.codigo) && <SiteBadge />}</span></td>
                           <td className="px-4 py-3 font-mono">
                             {p.pin ? (
                               <button
@@ -560,13 +572,16 @@ export default function AdminPlacas() {
                   <dl className="grid grid-cols-2 gap-2.5 text-sm">
                     <Info rotulo="Empresa" className="col-span-2"><span className="flex items-center gap-2"><Store size={15} className="text-ink-muted" />{selecionada.companies?.nome ?? "—"}</span></Info>
                     <Info rotulo="Status da placa"><StatusBadge status={selecionada.status} /></Info>
+                    {soSite(selecionada.codigo) ? <Info rotulo="Tipo"><SiteBadge /></Info> : <>
                     <Info rotulo="Status do link">{selecionada.dds_links ? <LinkBadge status={selecionada.dds_links.status} /> : "—"}</Info>
                     <Info rotulo="Acessos" className="col-span-2">
                       {scansTotal ? (
                         <span className="flex items-baseline gap-3"><strong className="font-display text-2xl font-extrabold">{scansTotal.total}</strong><span className="text-ink-muted">QR {scansTotal.qr} · NFC {scansTotal.nfc}</span></span>
                       ) : selecionada.dds_links ? <span className="dds-skel block h-7 w-32" /> : "—"}
                     </Info>
+                    </>}
                   </dl>
+                  {soSite(selecionada.codigo) && <p className="rounded-2xl bg-[#f3f0ff] border border-[#e1dafe] px-3.5 py-3 text-sm text-[#4b3fb0] leading-relaxed">Acesso só de mini site, sem plaquinha. O cliente entra em <strong>Meu sistema</strong> com este código e o PIN.</p>}
 
                   <div className="relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br from-navy-800 to-navy-950">
                     <div aria-hidden="true" className="absolute -right-8 -top-10 w-36 h-36 rounded-full bg-[radial-gradient(closest-side,#399cff66,transparent)]" />
@@ -587,13 +602,14 @@ export default function AdminPlacas() {
                       ) : (
                         <AcaoBotao onClick={() => alterarStatus(selecionada.id, "ATIVA")}><Unlock size={14} /> Desbloquear</AcaoBotao>
                       )}
-                      <AcaoBotao onClick={() => transferirPlaca(selecionada.id)}><ArrowLeftRight size={14} /> Transferir</AcaoBotao>
+                      {!soSite(selecionada.codigo) && <AcaoBotao onClick={() => transferirPlaca(selecionada.id)}><ArrowLeftRight size={14} /> Transferir</AcaoBotao>}
                       <AcaoBotao onClick={() => novoPin(selecionada.codigo, selecionada.id)}><KeyRound size={14} /> Novo PIN</AcaoBotao>
-                      <AcaoBotao onClick={() => resetarPlaca(selecionada.codigo, selecionada.id)}><RotateCcw size={14} /> Resetar</AcaoBotao>
+                      {!soSite(selecionada.codigo) && <AcaoBotao onClick={() => resetarPlaca(selecionada.codigo, selecionada.id)}><RotateCcw size={14} /> Resetar</AcaoBotao>}
                       <AcaoBotao perigo onClick={() => excluirPlaca(selecionada.codigo, selecionada.id)}><Trash2 size={14} /> Excluir</AcaoBotao>
                     </div>
                   </div>
 
+                  {!soSite(selecionada.codigo) && <>
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <p className="flex items-center gap-2 text-sm font-semibold text-ink"><Phone size={15} className="text-brand-600" /> Telefones deixados antes de avaliar ({leads.length})</p>
@@ -702,12 +718,108 @@ export default function AdminPlacas() {
                   ) : (
                     <p className="text-sm text-ink-muted">Esta placa não tem link dinâmico associado.</p>
                   )}
+                  </>}
                 </div>
               </aside>
             </div>
           )}
         </div>
       </main>
+      {novoSite && <NovoAcessoSite onFechar={() => setNovoSite(false)} onCriado={() => { setBusca(""); setPagina(0); carregar(); }} />}
+    </div>
+  );
+}
+
+function SiteBadge() {
+  return <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f0ff] px-2 py-0.5 font-sans text-[11px] font-bold text-[#6d5ae6]"><Globe size={11} /> Só mini site</span>;
+}
+
+// Cria o acesso só de mini site e já entrega a mensagem pronta para mandar ao cliente.
+function NovoAcessoSite({ onFechar, onCriado }: { onFechar: () => void; onCriado: () => void }) {
+  const [nome, setNome] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [criando, setCriando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [criado, setCriado] = useState<{ codigo: string; pin: string; empresa: string; telefone: string } | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") onFechar(); };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [onFechar]);
+
+  async function criar(e: React.FormEvent) {
+    e.preventDefault();
+    if (criando) return;
+    setCriando(true); setErro(null);
+    try {
+      const data = await callFunction<{ codigo?: string; pin?: string; empresa?: string; telefone?: string; error?: string }>("admin-create-site-access", { nome, telefone });
+      if (data.error || !data.codigo || !data.pin) throw new Error(data.error || "Não foi possível criar o acesso.");
+      setCriado({ codigo: data.codigo, pin: data.pin, empresa: data.empresa ?? nome, telefone: data.telefone ?? "" });
+      onCriado();
+    } catch (e: any) { setErro(e.message ?? "Não foi possível criar o acesso."); }
+    finally { setCriando(false); }
+  }
+
+  const mensagem = criado ? [
+    `Olá! Aqui está o acesso ao mini site da ${criado.empresa}:`,
+    "",
+    `Entre em: ${SISTEMA_URL}`,
+    `Código: ${criado.codigo}`,
+    `Senha: ${criado.pin}`,
+    "",
+    "Lá você vê os modelos de cada ramo. Escolha o seu e me chame aqui. Assim que o pagamento for confirmado, eu libero para você montar e publicar o seu mini site.",
+  ].join("\n") : "";
+  const digitos = criado?.telefone.replace(/\D/g, "") ?? "";
+  const numero = digitos.length === 10 || digitos.length === 11 ? `55${digitos}` : digitos;
+  const linkWhats = `https://wa.me/${numero.length >= 12 ? numero : ""}?text=${encodeURIComponent(mensagem)}`;
+  async function copiar() {
+    try { await navigator.clipboard.writeText(mensagem); setCopiado(true); setTimeout(() => setCopiado(false), 2000); } catch { /* sem permissão */ }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-navy-950/60 backdrop-blur-[2px] p-0 sm:p-4" onClick={onFechar}>
+      <div role="dialog" aria-modal="true" aria-label="Cliente sem plaquinha" onClick={(e) => e.stopPropagation()} className="w-full sm:max-w-md max-h-[92dvh] overflow-y-auto dds-scroll rounded-t-[28px] sm:rounded-[24px] bg-white p-5 sm:p-6 shadow-lift dds-rise">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <span className="grid place-items-center w-11 h-11 shrink-0 rounded-2xl bg-[#f3f0ff] text-[#6d5ae6]"><Globe size={20} /></span>
+            <div>
+              <h2 className="font-display text-lg font-extrabold tracking-tight text-ink">Cliente sem plaquinha</h2>
+              <p className="text-sm text-ink-muted leading-relaxed">Cria um acesso só de mini site. O mini site fica bloqueado até você liberar depois do pagamento.</p>
+            </div>
+          </div>
+          <button onClick={onFechar} className="grid place-items-center w-9 h-9 shrink-0 rounded-xl text-ink-muted hover:bg-[#f1f4f9] hover:text-ink" aria-label="Fechar"><X size={18} /></button>
+        </div>
+
+        {!criado ? (
+          <form onSubmit={criar} className="mt-5 space-y-4">
+            <label className="block">
+              <span className="dds-label">Nome da empresa</span>
+              <input value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={100} placeholder="Ex: Doce Sabor Confeitaria" className="dds-input" autoFocus />
+            </label>
+            <label className="block">
+              <span className="dds-label">WhatsApp do cliente (opcional)</span>
+              <input value={telefone} onChange={(e) => setTelefone(e.target.value)} inputMode="tel" placeholder="(41) 99999-9999" className="dds-input" />
+              <span className="dds-help">Para abrir a conversa com ele já com o acesso na mensagem.</span>
+            </label>
+            {erro && <p className="dds-error" role="alert">{erro}</p>}
+            <button type="submit" disabled={criando || !nome.trim()} className="dds-btn dds-btn-primary w-full">{criando ? <><Spinner /> Criando…</> : <><Plus size={17} /> Criar acesso</>}</button>
+          </form>
+        ) : (
+          <div className="mt-5 space-y-4">
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] px-3.5 py-3"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-ink-muted">Código</p><p className="mt-1 font-mono text-xl font-extrabold text-ink">{criado.codigo}</p></div>
+              <div className="rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] px-3.5 py-3"><p className="text-[11px] font-semibold uppercase tracking-[.1em] text-ink-muted">Senha</p><p className="mt-1 font-mono text-xl font-extrabold text-ink tracking-[.2em]">{criado.pin}</p></div>
+            </div>
+            <pre className="whitespace-pre-wrap rounded-2xl bg-[#f7f9fd] border border-[#e8edf5] p-3.5 font-sans text-[13px] leading-relaxed text-ink-soft">{mensagem}</pre>
+            <div className="flex flex-wrap gap-2">
+              <a href={linkWhats} target="_blank" rel="noopener noreferrer" className="dds-btn dds-btn-whats flex-1"><MessageCircle size={16} /> {numero.length >= 12 ? "Enviar no WhatsApp dele" : "Enviar pelo WhatsApp"}</a>
+              <button type="button" onClick={copiar} className="dds-btn dds-btn-outline"><Copy size={15} /> {copiado ? "Copiada ✓" : "Copiar mensagem"}</button>
+            </div>
+            <p className="text-xs text-ink-muted leading-relaxed">Depois do pagamento, abra o acesso na lista e toque em <strong>Pagamento confirmado · liberar mini site</strong>.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

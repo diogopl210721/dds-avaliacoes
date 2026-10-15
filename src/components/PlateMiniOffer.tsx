@@ -9,6 +9,9 @@ import { GroupFilter, NicheCard, NicheChips, NicheViewer, nichesOf } from "./Nic
 import { Aurora, Spinner } from "./ui/Fx";
 import "../mini.css";
 
+// Acessos só de mini site (sem plaquinha) usam a série SITE-0001, SITE-0002…
+export const isSiteAccess = (codigo: string) => /^SITE-\d+$/i.test(codigo.trim());
+
 export type PlateMiniAccess = {
   codigo: string; senha: string; page: MiniRecord | null;
   company: { nome?: string; write_a_review_uri?: string } | null;
@@ -22,7 +25,9 @@ const WHATS = "5541991542931";
 export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
   codigo: string; senha: string; empresa?: string | null; onOpen: (access: PlateMiniAccess) => void;
 }) {
-  const [show, setShow] = useState(false);
+  // Acesso só de mini site (SITE-0001): sem plaquinha, os exemplos já aparecem abertos.
+  const site = isSiteAccess(codigo);
+  const [show, setShow] = useState(site);
   const [access, setAccess] = useState<PlateMiniAccess | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -66,7 +71,8 @@ export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
 
   const wa = (id: NicheId) => {
     const n = nicheById(id)!;
-    const msg = `Olá! ${name ? `Sou da ${name} (placa ${codigo})` : `Minha placa é a ${codigo}`}. Vi no meu painel o exemplo de mini site de ${n.label} e quero um assim.`;
+    const ref = site ? `acesso ${codigo}` : `placa ${codigo}`;
+    const msg = `Olá! ${name ? `Sou da ${name} (${ref})` : site ? `Meu acesso é o ${codigo}` : `Minha placa é a ${codigo}`}. Vi no meu painel o exemplo de mini site de ${n.label} e quero um assim.`;
     return `https://wa.me/${WHATS}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -78,7 +84,7 @@ export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
           <p className="dds-eyebrow"><Sparkles size={14} className="text-[#66e0ff]" />SEU NEGÓCIO PODE IR ALÉM</p>
           <h2 className="mt-4 font-display text-[clamp(26px,3.6vw,38px)] font-extrabold tracking-[-.04em] leading-[1.05] text-white">Sua empresa. <span className="font-serif italic font-normal dds-spectrum-text">Seu mini site.</span></h2>
           <p className="mt-3 text-[15px] leading-relaxed text-[#a7b7d1] max-w-xl">Fotos, produtos, WhatsApp e redes sociais em uma página pronta para compartilhar na bio e com seus clientes.</p>
-          {enabled && <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300"><BadgeCheck size={16} /> Liberado para a sua placa</p>}
+          {enabled && <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-300"><BadgeCheck size={16} /> {site ? 'Liberado para você' : 'Liberado para a sua placa'}</p>}
         </div>
         <div className="flex flex-col gap-2 md:items-end">
           <button onClick={() => { if (enabled && access) onOpen(access); else setShow(!show); }}
@@ -104,8 +110,12 @@ export default function PlateMiniOffer({ codigo, senha, empresa, onOpen }: {
       </div>
       <div className="rounded-2xl bg-gradient-to-br from-[#eef6ff] to-[#f3f0ff] border border-[#d9e6fb] p-4 text-sm text-ink-soft space-y-2">
         <strong className="block font-display text-ink">Gostou? Sua empresa pode ter uma página assim.</strong>
-        <p>Combine a contratação com quem forneceu sua plaquinha. Após a confirmação do pagamento, o administrador libera a criação aqui no seu sistema.</p>
-        <p>As funções da sua placa continuam disponíveis enquanto você decide.</p>
+        {site
+          ? <p>Escolha o modelo, toque em "Quero este" e combine a contratação pelo WhatsApp. Após a confirmação do pagamento, a criação é liberada aqui no seu sistema.</p>
+          : <>
+            <p>Combine a contratação com quem forneceu sua plaquinha. Após a confirmação do pagamento, o administrador libera a criação aqui no seu sistema.</p>
+            <p>As funções da sua placa continuam disponíveis enquanto você decide.</p>
+          </>}
       </div>
     </div>}
     {open && <NicheViewer id={open} ids={viewerIds} name={name} onClose={close} onNav={showNiche}
