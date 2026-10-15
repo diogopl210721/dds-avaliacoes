@@ -35,13 +35,19 @@ const STEPS: { icon: ReactNode; title: string; text: string }[] = [
   { icon: <Rocket size={20} />, title: 'Toque em Publicar', text: 'Seu site no ar em www.ddsinovacao.com.br/suaempresa. Mude quantas vezes quiser.' },
 ];
 
-// Passos da janela "Como funciona": os dois primeiros acontecem antes; os outros acendem junto com a demonstração.
-const HOW: { title: string; text: string; demo?: number[] }[] = [
+// Vídeo da janela "Como funciona": gravação real do estúdio preenchido do zero (public/video/estudio.mp4).
+// VIDEO_CH: em que segundo do vídeo começa cada passo (gerado junto com o vídeo).
+const VIDEO_URL = `${import.meta.env.BASE_URL}video/estudio`; // .mp4 (iPhone e a maioria) e .webm (reserva)
+const VIDEO_POSTER = `${import.meta.env.BASE_URL}video/estudio.jpg`;
+const VIDEO_CH = [0.4, 6.1, 14.7, 19.4, 29.1, 39.8, 50.6, 55.2, 61.1];
+
+// Passos da janela: o primeiro acontece antes; os outros acendem junto com o vídeo (ch = passos do vídeo).
+const HOW: { title: string; text: string; ch?: number[] }[] = [
   { title: `Chame no WhatsApp e pague R$ ${PRECO}`, text: 'Uma vez só. Sem mensalidade.' },
-  { title: 'Receba o link e crie sua senha', text: 'O seu código de acesso vem junto (ex.: SITE101).' },
-  { title: 'Digite o nome e escolha o modelo', text: `São ${NICHES.length} ramos, cada um com visual próprio.`, demo: [0, 1] },
-  { title: 'Coloque fotos e WhatsApp', text: 'Você vê como fica na hora, enquanto preenche.', demo: [2] },
-  { title: 'Toque em Publicar', text: 'Pronto: seu site no ar. Mude quando quiser.', demo: [3, 4] },
+  { title: 'Receba o link e crie sua senha', text: 'O seu código de acesso vem junto (ex.: SITE101).', ch: [0] },
+  { title: 'Escolha o ramo e as cores', text: `São ${NICHES.length} ramos, cada um com visual próprio.`, ch: [1, 2] },
+  { title: 'Preencha nome, WhatsApp, fotos e preços', text: 'Você vê como fica na hora, enquanto preenche.', ch: [3, 4, 5, 6] },
+  { title: 'Toque em Publicar', text: 'Pronto: seu site no ar. Mude quando quiser.', ch: [7, 8] },
 ];
 
 const FEATURES: { icon: ReactNode; title: string; text: string }[] = [
@@ -79,6 +85,7 @@ export default function Vitrine() {
   const [how, setHow] = useState(false);
   const [demoStep, setDemoStep] = useState(0);
   const [howStep, setHowStep] = useState(0);
+  const [seek, setSeek] = useState<{ t: number; n: number } | null>(null);
   const [dock, setDock] = useState(false);
   const [priceSeen, setPriceSeen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -318,11 +325,11 @@ export default function Vitrine() {
     {how && <div className="vt-how" role="dialog" aria-modal="true" aria-labelledby="vt-how-t" onClick={() => setHow(false)}>
       <div className="vt-how-panel" onClick={e => e.stopPropagation()}>
         <button type="button" className="vt-how-close" onClick={() => setHow(false)} aria-label="Fechar"><X size={19} /></button>
-        <BuildDemo name={name} big onStep={setHowStep} />
+        <HowVideo onChapter={setHowStep} seek={seek} />
         <div className="w-full">
           <h2 id="vt-how-t">Como funciona</h2>
-          <p className="mt-1.5 text-[15px] text-[#a7b7d1]">Do WhatsApp ao seu site no ar.</p>
-          <HowSteps step={howStep} />
+          <p className="mt-1.5 text-[15px] text-[#a7b7d1]">Do WhatsApp ao seu site no ar. Toque em um passo para ver no vídeo.</p>
+          <HowSteps step={howStep} onPick={ch => setSeek({ t: VIDEO_CH[ch], n: Date.now() })} />
           <div className="vt-how-actions">
             <span className="vt-ring">{whats('Chamar no WhatsApp')}</span>
             <button type="button" onClick={toModels} className="dds-btn dds-btn-ghost-dark dds-btn-lg">Ver os modelos <ArrowDown size={17} /></button>
@@ -339,12 +346,35 @@ export default function Vitrine() {
   </div>;
 }
 
-// Lista de passos da janela "Como funciona": o passo da demonstração acende.
-function HowSteps({ step }: { step: number }) {
+// Lista de passos da janela "Como funciona": o passo que está passando no vídeo acende; tocar pula para ele.
+function HowSteps({ step, onPick }: { step: number; onPick: (chapter: number) => void }) {
   return <ol className="vt-how-steps">
-    {HOW.map((h, i) => <li key={h.title} className={h.demo ? (h.demo.includes(step) ? 'is-on' : '') : 'is-pre'}>
-      <b>{h.demo ? i + 1 : <Check size={15} />}</b>
-      <div><h3>{h.title}</h3><p>{h.text}</p></div>
+    {HOW.map((h, i) => <li key={h.title} className={h.ch ? (h.ch.includes(step) ? 'is-on' : '') : 'is-pre'}>
+      {h.ch ? <button type="button" onClick={() => onPick(h.ch![0])}><b>{i + 1}</b><div><h3>{h.title}</h3><p>{h.text}</p></div></button>
+        : <><b><Check size={15} /></b><div><h3>{h.title}</h3><p>{h.text}</p></div></>}
     </li>)}
   </ol>;
+}
+
+// Gravação real do estúdio, dentro de um celular. Sem som; com "reduzir movimento", não começa sozinho.
+function HowVideo({ onChapter, seek }: { onChapter: (chapter: number) => void; seek: { t: number; n: number } | null }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const still = useMemo(() => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches, []);
+  useEffect(() => {
+    const v = ref.current;
+    if (!seek || !v) return;
+    v.currentTime = seek.t; v.play().catch(() => { /* o navegador pode pedir um toque */ });
+  }, [seek]);
+  const chapterAt = (t: number) => VIDEO_CH.reduce((acc, c, k) => (t >= c - 0.05 ? k : acc), 0);
+  return <div className="vt-demo is-big is-video">
+    <div className="vt-demo-phone"><div className="vt-demo-screen">
+      <video ref={ref} poster={VIDEO_POSTER} muted playsInline autoPlay={!still} loop controls={still} preload="auto"
+        aria-label="Vídeo: o estúdio do mini site sendo preenchido do zero até o site no ar"
+        onTimeUpdate={e => onChapter(chapterAt(e.currentTarget.currentTime))}>
+        <source src={`${VIDEO_URL}.mp4`} type="video/mp4" />
+        <source src={`${VIDEO_URL}.webm`} type="video/webm" />
+      </video>
+      <i className="vt-demo-island" />
+    </div></div>
+  </div>;
 }
