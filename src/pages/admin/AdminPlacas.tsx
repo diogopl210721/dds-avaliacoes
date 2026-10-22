@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft, ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Download, History, KeyRound, Layers, Lock,
   Pause, Phone, Play, Plus, RotateCcw, Search, Sparkles, Store, Trash2, Unlock, X, Zap, CheckCircle2, Clock3,
-  Globe, MessageCircle,
+  Globe, MessageCircle, Pencil, Check,
 } from "lucide-react";
 import { supabase, callFunction } from "../../lib/supabaseClient";
 import { linkDaPropriaPlaca, MSG_LINK_DA_PLACA } from "../../lib/linkGuard";
@@ -41,7 +41,7 @@ type Plate = {
   apelido: string | null;
   mini_site_enabled: boolean;
   company_id: string | null;
-  companies: { nome: string } | null;
+  companies: { nome: string; telefone?: string | null } | null;
   ultimo_acesso_em: string | null;
   dds_links: DdsLinkResumo | null;
 };
@@ -89,7 +89,7 @@ export default function AdminPlacas() {
     const { data, error } = await supabase
       .from("plates")
       .select(
-        "id, codigo, pin, status, apelido, mini_site_enabled, company_id, ultimo_acesso_em, companies(nome), dds_links:dynamic_link_id(id, slug, destino_atual, status, pedir_dados, qr_png_path, qr_svg_path, historico_limpo_em)"
+        "id, codigo, pin, status, apelido, mini_site_enabled, company_id, ultimo_acesso_em, companies(nome, telefone), dds_links:dynamic_link_id(id, slug, destino_atual, status, pedir_dados, qr_png_path, qr_svg_path, historico_limpo_em)"
       )
       .eq("oculta", false)
       .order("created_at", { ascending: false });
@@ -606,7 +606,10 @@ export default function AdminPlacas() {
 
                 <div className="p-5 space-y-5">
                   <dl className="grid grid-cols-2 gap-2.5 text-sm">
-                    <Info rotulo="Empresa" className="col-span-2"><span className="flex items-center gap-2"><Store size={15} className="text-ink-muted" />{selecionada.companies?.nome ?? "—"}</span></Info>
+                    <Info rotulo="Empresa" className="col-span-2">
+                      {selecionada.company_id ? <EditarEmpresa key={selecionada.id} companyId={selecionada.company_id} nome={selecionada.companies?.nome ?? ""} telefone={selecionada.companies?.telefone ?? ""} site={soSite(selecionada.codigo)} onSalvo={carregar} />
+                        : <span className="flex items-center gap-2"><Store size={15} className="text-ink-muted" />—</span>}
+                    </Info>
                     {soSite(selecionada.codigo) ? <>
                     <Info rotulo="Situação"><SiteStatus status={selecionada.status} /></Info>
                     <Info rotulo="Tipo"><SiteBadge /></Info>
@@ -783,6 +786,44 @@ export default function AdminPlacas() {
 
 function SiteBadge() {
   return <span className="inline-flex items-center gap-1 rounded-full bg-[#f3f0ff] px-2 py-0.5 font-sans text-[11px] font-bold text-[#6d5ae6]"><Globe size={11} /> Só mini site</span>;
+}
+
+// Nome e WhatsApp da empresa, editáveis pelo admin (placas e clientes de mini site).
+// O nome que aparece no mini site é o do estúdio: o cliente muda lá e publica de novo.
+function EditarEmpresa({ companyId, nome, telefone, site, onSalvo }: { companyId: string; nome: string; telefone: string; site: boolean; onSalvo: () => void }) {
+  const [editando, setEditando] = useState(false);
+  const [novoNome, setNovoNome] = useState(nome);
+  const [novoTel, setNovoTel] = useState(telefone);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+  const fone = (v: string) => { const d = v.replace(/\D/g, ""); return d.length === 11 ? `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}` : d.length === 10 ? `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}` : v; };
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    const n = novoNome.trim();
+    if (!n) { setErro("Informe o nome da empresa."); return; }
+    setSalvando(true); setErro("");
+    const { error } = await supabase.from("companies").update({ nome: n.slice(0, 100), telefone: novoTel.replace(/\D/g, "").slice(0, 13) || null, updated_at: new Date().toISOString() }).eq("id", companyId);
+    setSalvando(false);
+    if (error) { setErro("Não foi possível salvar: " + error.message); return; }
+    setEditando(false); onSalvo();
+  }
+  if (!editando) return <div className="flex items-start justify-between gap-3">
+    <div className="min-w-0">
+      <span className="flex items-center gap-2"><Store size={15} className="text-ink-muted shrink-0" /><span className="truncate">{nome || "—"}</span></span>
+      <span className="mt-1 flex items-center gap-2 text-ink-muted"><Phone size={14} className="shrink-0" />{telefone ? fone(telefone) : "Sem WhatsApp"}</span>
+    </div>
+    <button type="button" onClick={() => { setNovoNome(nome); setNovoTel(telefone); setErro(""); setEditando(true); }} className="dds-btn dds-btn-outline dds-btn-sm shrink-0"><Pencil size={14} /> Editar</button>
+  </div>;
+  return <form onSubmit={salvar} className="space-y-2.5">
+    <label className="block"><span className="dds-label">Nome da empresa</span><input value={novoNome} onChange={e => setNovoNome(e.target.value)} maxLength={100} className="dds-input !py-2" autoFocus /></label>
+    <label className="block"><span className="dds-label">WhatsApp</span><input value={novoTel} onChange={e => setNovoTel(e.target.value)} inputMode="tel" placeholder="(41) 99999-9999" className="dds-input !py-2" /></label>
+    {site && <p className="text-xs text-ink-muted leading-relaxed">O nome que aparece no mini site o cliente muda no estúdio dele.</p>}
+    {erro && <p className="dds-error" role="alert">{erro}</p>}
+    <div className="flex gap-2">
+      <button type="submit" disabled={salvando} className="dds-btn dds-btn-primary dds-btn-sm">{salvando ? <><Spinner /> Salvando…</> : <><Check size={14} /> Salvar</>}</button>
+      <button type="button" disabled={salvando} onClick={() => setEditando(false)} className="dds-btn dds-btn-outline dds-btn-sm">Cancelar</button>
+    </div>
+  </form>;
 }
 
 function SiteStatus({ status }: { status: string }) {
