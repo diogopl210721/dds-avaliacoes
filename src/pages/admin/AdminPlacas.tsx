@@ -1,4 +1,4 @@
-import { lazy, ReactNode, Suspense, useEffect, useState } from "react";
+import { lazy, ReactNode, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft, ArrowLeftRight, ChevronLeft, ChevronRight, Copy, Download, History, KeyRound, Layers, Lock,
@@ -72,6 +72,9 @@ export default function AdminPlacas() {
   const [novoSite, setNovoSite] = useState(false);
   const [envio, setEnvio] = useState<EnvioAcesso | null>(null);
   const [tipo, setTipo] = useState<"placas" | "sites">("placas");
+  // Filtro vindo dos cards do topo (cada número abre a lista correspondente).
+  const [filtro, setFiltro] = useState<"todas" | "ativas" | "aguardando" | "mini">("todas");
+  const listaRef = useRef<HTMLElement>(null);
   const [historico, setHistorico] = useState<Historico[]>([]);
   const [novoDestino, setNovoDestino] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -109,7 +112,12 @@ export default function AdminPlacas() {
 
   // Placas e clientes só de mini site ficam em listas separadas (abas acima da busca).
   const filtradas = plates.filter((p) => {
-    if (soSite(p.codigo) !== (tipo === "sites")) return false;
+    if (filtro === "mini") { if (!p.mini_site_enabled) return false; }
+    else {
+      if (soSite(p.codigo) !== (tipo === "sites")) return false;
+      if (filtro === "ativas" && p.status !== "ATIVA") return false;
+      if (filtro === "aguardando" && p.status !== "AGUARDANDO_ATIVACAO" && p.status !== "CRIADA") return false;
+    }
     if (!busca) return true;
     const alvo = busca.toLowerCase();
     // Só busca nos campos que aparecem na própria tabela (código, PIN,
@@ -129,6 +137,12 @@ export default function AdminPlacas() {
   function aoBuscar(valor: string) {
     setBusca(valor);
     setPagina(0); // toda busca nova volta pra primeira página
+  }
+
+  // Cards do topo: filtram a lista e rolam até ela.
+  function verLista(novoTipo: "placas" | "sites", novoFiltro: "todas" | "ativas" | "aguardando" | "mini") {
+    setTipo(novoTipo); setFiltro(novoFiltro); setPagina(0); setBusca(""); setSelecionada(null);
+    requestAnimationFrame(() => listaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
   async function liberarMiniSite() {
@@ -418,10 +432,10 @@ export default function AdminPlacas() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 -mt-16 sm:-mt-20 space-y-5 relative">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Kpi icon={<Layers size={19} />} label="Placas no painel" value={placasReais.length} loading={carregando} d={0} />
-          <Kpi icon={<CheckCircle2 size={19} />} label="Ativas" value={ativas} loading={carregando} d={.05} tone="green" />
-          <Kpi icon={<Clock3 size={19} />} label="Aguardando ativação" value={aguardando} loading={carregando} d={.1} tone="amber" />
-          <Kpi icon={<Sparkles size={19} />} label="Mini sites liberados" value={miniLiberados} loading={carregando} d={.15} tone="violet" />
+          <Kpi icon={<Layers size={19} />} label="Placas no painel" value={placasReais.length} loading={carregando} d={0} ativo={tipo === "placas" && filtro === "todas"} onClick={() => verLista("placas", "todas")} />
+          <Kpi icon={<CheckCircle2 size={19} />} label="Ativas" value={ativas} loading={carregando} d={.05} tone="green" ativo={filtro === "ativas"} onClick={() => verLista("placas", "ativas")} />
+          <Kpi icon={<Clock3 size={19} />} label="Aguardando ativação" value={aguardando} loading={carregando} d={.1} tone="amber" ativo={filtro === "aguardando"} onClick={() => verLista("placas", "aguardando")} />
+          <Kpi icon={<Sparkles size={19} />} label="Mini sites liberados" value={miniLiberados} loading={carregando} d={.15} tone="violet" ativo={filtro === "mini"} onClick={() => verLista(tipo, "mini")} />
         </div>
 
         {erro && <p className="dds-error" role="alert">{erro}</p>}
@@ -440,15 +454,20 @@ export default function AdminPlacas() {
         )}
 
         <div className={`grid gap-5 items-start ${selecionada ? "lg:grid-cols-[minmax(0,1fr)_420px]" : ""}`}>
-          <section className="dds-card overflow-hidden">
+          <section ref={listaRef} className="dds-card overflow-hidden scroll-mt-4">
             <div className="px-3 sm:px-4 pt-3 sm:pt-4 flex gap-1.5" role="tablist" aria-label="Tipo de cadastro">
               {([["placas", "Placas", placasReais.length], ["sites", "Clientes de mini site", plates.length - placasReais.length]] as const).map(([id, rotulo, n]) => (
-                <button key={id} type="button" role="tab" aria-selected={tipo === id} onClick={() => { setTipo(id); setPagina(0); setSelecionada(null); }}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors ${tipo === id ? "bg-navy-900 text-white" : "text-ink-muted hover:bg-[#f1f4f9] hover:text-ink"}`}>
-                  {id === "sites" && <Globe size={14} />}{rotulo}<span className={`rounded-full px-2 py-0.5 text-[11px] ${tipo === id ? "bg-white/15" : "bg-[#eef2f8]"}`}>{n}</span>
+                <button key={id} type="button" role="tab" aria-selected={tipo === id && filtro !== "mini"} onClick={() => { setTipo(id); setFiltro("todas"); setPagina(0); setSelecionada(null); }}
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors ${tipo === id && filtro !== "mini" ? "bg-navy-900 text-white" : "text-ink-muted hover:bg-[#f1f4f9] hover:text-ink"}`}>
+                  {id === "sites" && <Globe size={14} />}{rotulo}<span className={`rounded-full px-2 py-0.5 text-[11px] ${tipo === id && filtro !== "mini" ? "bg-white/15" : "bg-[#eef2f8]"}`}>{n}</span>
                 </button>
               ))}
             </div>
+            {filtro !== "todas" && <div className="px-3 sm:px-4 pt-3">
+              <button type="button" onClick={() => { setFiltro("todas"); setPagina(0); }} className="inline-flex items-center gap-2 rounded-full bg-[#eef6ff] px-3 py-1.5 text-[13px] font-semibold text-brand-700 ring-1 ring-[#cfe3ff] hover:bg-[#e2efff]" aria-label="Limpar filtro">
+                Mostrando: {filtro === "ativas" ? "placas ativas" : filtro === "aguardando" ? "placas aguardando ativação" : "mini sites liberados (placas e clientes de mini site)"} · {filtradas.length}<X size={14} />
+              </button>
+            </div>}
             <div className="p-3 sm:p-4 border-b border-[#eef2f8] flex items-center gap-3">
               <label className="relative flex-1">
                 <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8d9bb5]" aria-hidden="true" />
@@ -460,7 +479,7 @@ export default function AdminPlacas() {
                   aria-label="Pesquisar placas"
                 />
               </label>
-              <span className="hidden sm:block text-sm text-ink-muted whitespace-nowrap">{filtradas.length} {tipo === "sites" ? "cliente(s)" : "placa(s)"}</span>
+              <span className="hidden sm:block text-sm text-ink-muted whitespace-nowrap">{filtradas.length} {filtro === "mini" ? "cadastro(s)" : tipo === "sites" ? "cliente(s)" : "placa(s)"}</span>
             </div>
 
             {carregando ? (
@@ -557,7 +576,7 @@ export default function AdminPlacas() {
                   <ChevronLeft size={15} /> Anterior
                 </button>
                 <span className="text-ink-muted text-center">
-                  Página {paginaAtual + 1} de {totalPaginas}<span className="hidden sm:inline"> · {filtradas.length} {tipo === "sites" ? "cliente(s)" : "placa(s)"}</span>
+                  Página {paginaAtual + 1} de {totalPaginas}<span className="hidden sm:inline"> · {filtradas.length} {filtro === "mini" ? "cadastro(s)" : tipo === "sites" ? "cliente(s)" : "placa(s)"}</span>
                 </span>
                 <button onClick={() => setPagina((p) => Math.min(totalPaginas - 1, p + 1))} disabled={paginaAtual >= totalPaginas - 1} className="dds-btn dds-btn-outline dds-btn-sm">
                   Próximo <ChevronRight size={15} />
@@ -945,7 +964,7 @@ function Janela({ titulo, texto, onFechar, children }: { titulo: string; texto: 
   );
 }
 
-function Kpi({ icon, label, value, loading, d, tone = "blue" }: { icon: ReactNode; label: string; value: number; loading: boolean; d: number; tone?: "blue" | "green" | "amber" | "violet" }) {
+function Kpi({ icon, label, value, loading, d, tone = "blue", ativo = false, onClick }: { icon: ReactNode; label: string; value: number; loading: boolean; d: number; tone?: "blue" | "green" | "amber" | "violet"; ativo?: boolean; onClick: () => void }) {
   const tones = {
     blue: "",
     green: "!bg-gradient-to-br !from-emerald-50 !to-emerald-100 !text-emerald-700 !shadow-[inset_0_0_0_1px_#a7f3d0]",
@@ -953,11 +972,15 @@ function Kpi({ icon, label, value, loading, d, tone = "blue" }: { icon: ReactNod
     violet: "!bg-gradient-to-br !from-[#f3f0ff] !to-[#e6e0ff] !text-[#6d5ae6] !shadow-[inset_0_0_0_1px_#d9d1ff]",
   };
   return (
-    <div className="dds-card dds-lift p-4 sm:p-5 dds-rise" style={{ ["--d" as string]: `${d}s` }}>
-      <span className={`dds-icon-tile !w-10 !h-10 ${tones[tone]}`}>{icon}</span>
-      <p className="mt-3 font-display text-[28px] sm:text-[32px] leading-none font-extrabold tracking-[-.04em]">{loading ? <span className="dds-skel inline-block h-7 w-12 align-middle" /> : <CountUp value={value} />}</p>
-      <p className="mt-1 text-[13px] text-ink-muted">{label}</p>
-    </div>
+    <button type="button" onClick={onClick} aria-pressed={ativo} title={`Ver ${label.toLowerCase()}`}
+      className={`group dds-card dds-lift p-4 sm:p-5 dds-rise text-left cursor-pointer transition-shadow ${ativo ? "!shadow-[0_0_0_2px_#1a6fe0,0_12px_32px_-20px_#0b142633]" : "hover:!shadow-[0_0_0_1px_#b5d8ff,0_12px_32px_-20px_#0b142633]"}`} style={{ ["--d" as string]: `${d}s` }}>
+      <span className="flex items-start justify-between">
+        <span className={`dds-icon-tile !w-10 !h-10 ${tones[tone]}`}>{icon}</span>
+        <ChevronRight size={18} className={`mt-1 transition-transform ${ativo ? "text-brand-600" : "text-[#b9c6dc] group-hover:translate-x-0.5 group-hover:text-brand-600"}`} />
+      </span>
+      <span className="mt-3 block font-display text-[28px] sm:text-[32px] leading-none font-extrabold tracking-[-.04em]">{loading ? <span className="dds-skel inline-block h-7 w-12 align-middle" /> : <CountUp value={value} />}</span>
+      <span className="mt-1 block text-[13px] text-ink-muted">{label}</span>
+    </button>
   );
 }
 
