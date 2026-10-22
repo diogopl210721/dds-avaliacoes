@@ -408,7 +408,7 @@ export default function AdminPlacas() {
             <h1 className="mt-2 font-display text-[clamp(32px,4.5vw,48px)] font-extrabold tracking-[-.045em] leading-none text-white">Placas</h1>
             <p className="mt-3 text-[15px] text-[#a7b7d1] max-w-lg">Gere lotes, acompanhe o status e gerencie o link de cada placa.</p>
           </div>
-          <div className="dds-glass rounded-2xl p-2 flex items-end gap-2 self-start lg:self-auto dds-rise" style={{ ["--d" as string]: ".1s" }}>
+          <div className="dds-glass rounded-2xl p-2 flex flex-wrap sm:flex-nowrap items-end gap-2 w-full sm:w-auto self-start lg:self-auto dds-rise" style={{ ["--d" as string]: ".1s" }}>
             <label className="block">
               <span className="block px-1 pb-1 text-[11px] font-semibold text-[#a7b7d1]">Quantidade</span>
               <input
@@ -420,11 +420,11 @@ export default function AdminPlacas() {
                 className="w-24 rounded-xl border border-white/15 bg-navy-950/60 px-3 py-2.5 text-white font-semibold focus:outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-400/20"
               />
             </label>
-            <button onClick={criarLote} disabled={criando} className="dds-btn dds-btn-glow">
+            <button onClick={criarLote} disabled={criando} className="dds-btn dds-btn-glow flex-1 sm:flex-none">
               {criando ? <><Spinner /> Gerando...</> : <><Plus size={18} /> Gerar placas</>}
             </button>
-            <button onClick={() => setNovoSite(true)} className="dds-btn dds-btn-ghost-dark" title="Cliente que quer só o mini site, sem plaquinha">
-              <Globe size={17} /> <span className="hidden sm:inline">Novo cliente de mini site</span><span className="sm:hidden">Mini site</span>
+            <button onClick={() => setNovoSite(true)} className="dds-btn dds-btn-ghost-dark basis-full sm:basis-auto" title="Cliente que quer só o mini site, sem plaquinha">
+              <Globe size={17} /> Novo cliente de mini site
             </button>
           </div>
         </div>
@@ -459,7 +459,7 @@ export default function AdminPlacas() {
               {([["placas", "Placas", placasReais.length], ["sites", "Clientes de mini site", plates.length - placasReais.length]] as const).map(([id, rotulo, n]) => (
                 <button key={id} type="button" role="tab" aria-selected={tipo === id && filtro !== "mini"} onClick={() => { setTipo(id); setFiltro("todas"); setPagina(0); setSelecionada(null); }}
                   className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors ${tipo === id && filtro !== "mini" ? "bg-navy-900 text-white" : "text-ink-muted hover:bg-[#f1f4f9] hover:text-ink"}`}>
-                  {id === "sites" && <Globe size={14} />}{rotulo}<span className={`rounded-full px-2 py-0.5 text-[11px] ${tipo === id && filtro !== "mini" ? "bg-white/15" : "bg-[#eef2f8]"}`}>{n}</span>
+                  {id === "sites" && <Globe size={14} />}{id === "sites" ? <><span className="sm:hidden">Mini sites</span><span className="hidden sm:inline">{rotulo}</span></> : rotulo}<span className={`rounded-full px-2 py-0.5 text-[11px] ${tipo === id && filtro !== "mini" ? "bg-white/15" : "bg-[#eef2f8]"}`}>{n}</span>
                 </button>
               ))}
             </div>
